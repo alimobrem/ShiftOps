@@ -58,6 +58,8 @@ import Machines from './pages/compute/Machines';
 // Administration
 import ClusterSettings from './pages/administration/ClusterSettings';
 import Namespaces from './pages/administration/Namespaces';
+import CRDInstances from './pages/administration/CRDInstances';
+import CRInstanceDetail from './pages/administration/CRInstanceDetail';
 import Roles from './pages/administration/Roles';
 import RoleBindings from './pages/administration/RoleBindings';
 import ServiceAccounts from './pages/administration/ServiceAccounts';
@@ -394,6 +396,8 @@ function App() {
               />
             } />
             <Route path="crds" element={<CustomResourceDefinitions />} />
+            <Route path="crds/:name/instances" element={<CRDInstances />} />
+            <Route path="crds/:name/instances/:namespace/:instanceName" element={<CRInstanceDetail />} />
             <Route path="crds/:name" element={
               <GenericResourceDetail
                 kind="CustomResourceDefinition"

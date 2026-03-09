@@ -55,7 +55,7 @@ export default function CustomResourceDefinitions() {
       loading={loading}
       getRowKey={(crd) => crd.name}
       nameField="name"
-      onRowClick={(item) => navigate(`/administration/crds/${item.name}`)}
+      onRowClick={(item) => navigate(`/administration/crds/${item.name}/instances`)}
     />
   );
 }
