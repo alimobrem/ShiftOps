@@ -1,0 +1,8 @@
+node_modules
+dist
+.rspack_cache
+*.bak
+*.bak2
+.env
+.env.*
+.DS_Store
