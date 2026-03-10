@@ -93,18 +93,17 @@ interface ClusterStore {
   isLoading: boolean;
   error: string | null;
   pollingInterval: ReturnType<typeof setInterval> | null;
-  pendingTimers: ReturnType<typeof setTimeout>[];
   setSelectedNamespace: (namespace: string) => void;
   fetchClusterData: () => Promise<void>;
   startPolling: () => void;
   stopPolling: () => void;
   // Admin actions
-  scaleDeployment: (namespace: string, name: string, replicas: number) => void;
-  deletePod: (namespace: string, name: string) => void;
-  restartPod: (namespace: string, name: string) => void;
-  addNamespace: (name: string) => void;
-  deleteNamespace: (name: string) => void;
-  addDeployment: (name: string, namespace: string, image: string, replicas: number) => void;
+  scaleDeployment: (namespace: string, name: string, replicas: number) => Promise<void>;
+  deletePod: (namespace: string, name: string) => Promise<void>;
+  restartPod: (namespace: string, name: string) => Promise<void>;
+  addNamespace: (name: string) => Promise<void>;
+  deleteNamespace: (name: string) => Promise<void>;
+  addDeployment: (name: string, namespace: string, image: string, replicas: number) => Promise<void>;
 }
 
 
@@ -120,7 +119,6 @@ export const useClusterStore = create<ClusterStore>((set, get) => ({
   metrics: [],
   isLoading: false,
   error: null,
-  pendingTimers: [],
   storageInfo: null,
   selectedNamespace: 'all',
   pollingInterval: null,
@@ -217,101 +215,86 @@ export const useClusterStore = create<ClusterStore>((set, get) => ({
     }
   },
 
-  scaleDeployment: (namespace, name, replicas) => {
+  scaleDeployment: async (namespace, name, replicas) => {
+    try {
+      await fetch(`/api/kubernetes/apis/apps/v1/namespaces/${namespace}/deployments/${name}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/strategic-merge-patch+json' },
+        body: JSON.stringify({ spec: { replicas } }),
+      });
+    } catch { /* ignore */ }
     set((state) => ({
       deployments: state.deployments.map((d) =>
-        d.namespace === namespace && d.name === name
-          ? { ...d, replicas, ready: Math.min(d.ready, replicas) }
-          : d
+        d.namespace === namespace && d.name === name ? { ...d, replicas } : d
       ),
     }));
-    // Simulate ready catching up after 2s
-    const timer1 = setTimeout(() => {
-      set((state) => ({
-        deployments: state.deployments.map((d) =>
-          d.namespace === namespace && d.name === name
-            ? { ...d, ready: d.replicas }
-            : d
-        ),
-      }));
-    }, 2000);
-    set((s) => ({ pendingTimers: [...s.pendingTimers, timer1] }));
   },
 
-  deletePod: (namespace, name) => {
+  deletePod: async (namespace, name) => {
+    try {
+      await fetch(`/api/kubernetes/api/v1/namespaces/${namespace}/pods/${name}`, { method: 'DELETE' });
+    } catch { /* ignore */ }
     set((state) => ({
       pods: state.pods.filter((p) => !(p.namespace === namespace && p.name === name)),
-      events: [
-        { type: 'Normal' as const, reason: 'Killing', message: `Stopping container in pod ${name}`, timestamp: new Date().toISOString(), namespace },
-        ...state.events.slice(0, 19),
-      ],
     }));
   },
 
-  restartPod: (namespace, name) => {
+  restartPod: async (namespace, name) => {
+    try {
+      await fetch(`/api/kubernetes/api/v1/namespaces/${namespace}/pods/${name}`, { method: 'DELETE' });
+    } catch { /* ignore */ }
     set((state) => ({
       pods: state.pods.map((p) =>
         p.namespace === namespace && p.name === name
-          ? { ...p, restarts: p.restarts + 1, status: 'Pending' as const }
+          ? { ...p, status: 'Pending' as const }
           : p
       ),
-      events: [
-        { type: 'Normal' as const, reason: 'Restarting', message: `Restarting pod ${name}`, timestamp: new Date().toISOString(), namespace },
-        ...state.events.slice(0, 19),
-      ],
     }));
-    // Simulate restart completing after 3s
-    const timer2 = setTimeout(() => {
-      set((state) => ({
-        pods: state.pods.map((p) =>
-          p.namespace === namespace && p.name === name
-            ? { ...p, status: 'Running' as const }
-            : p
-        ),
-      }));
-    }, 3000);
-    set((s) => ({ pendingTimers: [...s.pendingTimers, timer2] }));
   },
 
-  addNamespace: (name) => {
+  addNamespace: async (name) => {
+    try {
+      await fetch(`/api/kubernetes/api/v1/namespaces`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiVersion: 'v1', kind: 'Namespace', metadata: { name } }),
+      });
+    } catch { /* ignore */ }
     set((state) => ({
       namespaces: [...state.namespaces, { name, status: 'Active' as const, podCount: 0, age: '0d' }],
     }));
   },
 
-  deleteNamespace: (name) => {
+  deleteNamespace: async (name) => {
+    try {
+      await fetch(`/api/kubernetes/api/v1/namespaces/${name}`, { method: 'DELETE' });
+    } catch { /* ignore */ }
     set((state) => ({
       namespaces: state.namespaces.filter((ns) => ns.name !== name),
     }));
   },
 
-  addDeployment: (name, namespace, _image, replicas) => {
+  addDeployment: async (name, namespace, image, replicas) => {
+    try {
+      await fetch(`/api/kubernetes/apis/apps/v1/namespaces/${namespace}/deployments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiVersion: 'apps/v1', kind: 'Deployment',
+          metadata: { name, namespace },
+          spec: {
+            replicas,
+            selector: { matchLabels: { app: name } },
+            template: {
+              metadata: { labels: { app: name } },
+              spec: { containers: [{ name, image, ports: [{ containerPort: 8080 }] }] },
+            },
+          },
+        }),
+      });
+    } catch { /* ignore */ }
     set((state) => ({
       deployments: [...state.deployments, { name, namespace, replicas, ready: 0, status: 'Progressing' as const }],
-      events: [
-        { type: 'Normal' as const, reason: 'ScalingReplicaSet', message: `Scaled up replica set ${name} to ${replicas}`, timestamp: new Date().toISOString(), namespace },
-        ...state.events.slice(0, 19),
-      ],
     }));
-    // Simulate pods becoming ready
-    const timer3 = setTimeout(() => {
-      set((state) => ({
-        deployments: state.deployments.map((d) =>
-          d.namespace === namespace && d.name === name
-            ? { ...d, ready: d.replicas, status: 'Available' as const }
-            : d
-        ),
-        pods: [
-          ...state.pods,
-          ...Array.from({ length: replicas }, () => ({
-            name: `${name}-${Math.random().toString(36).slice(2, 7)}-${Math.random().toString(36).slice(2, 7)}`,
-            namespace,
-            status: 'Running' as const,
-            restarts: 0,
-          })),
-        ],
-      }));
-    }, 3000);
-    set((s) => ({ pendingTimers: [...s.pendingTimers, timer3] }));
   },
 }));

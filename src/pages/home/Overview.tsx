@@ -238,14 +238,10 @@ export default function Overview() {
                 <div className="os-overview__utilization-row">
                   <div>
                     <div className="os-overview__utilization-label">Filesystem</div>
-                    <div className="os-overview__utilization-sublabel">610 GiB / 718.7 GiB</div>
+                    <div className="os-overview__utilization-sublabel">Filesystem data requires node metrics</div>
                   </div>
-                  <div className="os-overview__utilization-value">108.6 GiB</div>
-                  <div>
-                    <div className="os-overview__fs-bar-track">
-                      <div className="os-overview__fs-bar-fill" />
-                    </div>
-                  </div>
+                  <div className="os-overview__utilization-value">--</div>
+                  <div />
                 </div>
               </CardBody>
             </Card>
