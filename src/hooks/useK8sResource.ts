@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useClusterStore } from '@/store/useClusterStore';
 
 interface UseK8sResourceResult<T> {
   data: T[];
@@ -16,11 +17,41 @@ async function fetchList<T>(path: string): Promise<T[]> {
   return json.items ?? [];
 }
 
+/**
+ * Builds a namespace-scoped API path when a namespace is selected.
+ * Converts e.g. `/api/v1/pods` → `/api/v1/namespaces/myns/pods`
+ * and `/apis/apps/v1/deployments` → `/apis/apps/v1/namespaces/myns/deployments`
+ * Leaves cluster-scoped paths (nodes, pvs, namespaces, crds, etc.) unchanged.
+ */
+function scopePathToNamespace(apiPath: string, namespace: string): string {
+  if (namespace === 'all') return apiPath;
+
+  // Already namespace-scoped in the path
+  if (apiPath.includes('/namespaces/')) return apiPath;
+
+  // Cluster-scoped resources — don't scope
+  const clusterScoped = ['/nodes', '/persistentvolumes', '/namespaces', '/clusterroles', '/clusterrolebindings',
+    '/customresourcedefinitions', '/storageclasses', '/clusteroperators', '/clusterversions', '/infrastructures',
+    '/helmchartrepositories', '/packagemanifests'];
+  if (clusterScoped.some((cs) => apiPath.endsWith(cs))) return apiPath;
+
+  // /api/v1/pods → /api/v1/namespaces/{ns}/pods
+  const apiV1Match = apiPath.match(/^(\/api\/v1)\/(\w+)$/);
+  if (apiV1Match) return `${apiV1Match[1]}/namespaces/${namespace}/${apiV1Match[2]}`;
+
+  // /apis/apps/v1/deployments → /apis/apps/v1/namespaces/{ns}/deployments
+  const apisMatch = apiPath.match(/^(\/apis\/[^/]+\/[^/]+)\/(\w+)$/);
+  if (apisMatch) return `${apisMatch[1]}/namespaces/${namespace}/${apisMatch[2]}`;
+
+  return apiPath;
+}
+
 export function useK8sResource<TRaw, TOut>(
   apiPath: string,
   transform: (item: TRaw) => TOut,
   pollInterval?: number,
 ): UseK8sResourceResult<TOut> {
+  const selectedNamespace = useClusterStore((s) => s.selectedNamespace);
   const [data, setData] = useState<TOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,12 +59,15 @@ export function useK8sResource<TRaw, TOut>(
 
   const refetch = () => setTick((t) => t + 1);
 
+  const scopedPath = scopePathToNamespace(apiPath, selectedNamespace);
+
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
 
     async function load() {
       try {
-        const items = await fetchList<TRaw>(apiPath);
+        const items = await fetchList<TRaw>(scopedPath);
         if (!cancelled) {
           setData(items.map(transform));
           setError(null);
@@ -41,6 +75,7 @@ export function useK8sResource<TRaw, TOut>(
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : String(err));
+          setData([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -58,7 +93,7 @@ export function useK8sResource<TRaw, TOut>(
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [apiPath, tick]);
+  }, [scopedPath, tick]);
 
   return { data, loading, error, refetch };
 }
