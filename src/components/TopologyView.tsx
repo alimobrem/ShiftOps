@@ -342,7 +342,15 @@ function Legend() {
 
 const TopologyView: React.FC = () => {
   const navigate = useNavigate();
-  const { pods, deployments, services, nodes } = useClusterStore();
+  const allPods = useClusterStore((s) => s.pods);
+  const allDeployments = useClusterStore((s) => s.deployments);
+  const allServices = useClusterStore((s) => s.services);
+  const nodes = useClusterStore((s) => s.nodes);
+  const selectedNamespace = useClusterStore((s) => s.selectedNamespace);
+
+  const pods = selectedNamespace === 'all' ? allPods : allPods.filter((p) => p.namespace === selectedNamespace);
+  const deployments = selectedNamespace === 'all' ? allDeployments : allDeployments.filter((d) => d.namespace === selectedNamespace);
+  const services = selectedNamespace === 'all' ? allServices : allServices.filter((s) => s.namespace === selectedNamespace);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
