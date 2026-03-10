@@ -83,7 +83,9 @@ export default function CRDInstances() {
             })
           );
         }
-      } catch { /* ignore */ }
+      } catch {
+        // API may not be available
+      }
       setLoading(false);
     }
     load();
@@ -117,9 +119,6 @@ export default function CRDInstances() {
           nameField="name"
           onRowClick={(item) => {
             if (!crdInfo) return;
-            const path = item.namespace
-              ? `/apis/${crdInfo.group}/${crdInfo.version}/namespaces/${item.namespace}/${crdInfo.plural}/${item.name}`
-              : `/apis/${crdInfo.group}/${crdInfo.version}/${crdInfo.plural}/${item.name}`;
             navigate(`/administration/crds/${crdName}/instances/${item.namespace || '-'}/${item.name}`);
           }}
         />

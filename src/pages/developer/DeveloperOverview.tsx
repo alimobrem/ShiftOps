@@ -4,8 +4,9 @@ import {
   Card,
   CardBody,
   Label,
+  Grid,
+  GridItem,
 } from '@patternfly/react-core';
-import { Grid, GridItem } from '@patternfly/react-core';
 import { useK8sResource, ageFromTimestamp, type K8sMeta } from '@/hooks/useK8sResource';
 
 interface RawDeployment extends K8sMeta {

@@ -11,8 +11,6 @@ import {
   DescriptionListDescription,
   Label,
   Title,
-  CodeBlock,
-  CodeBlockCode,
 } from '@patternfly/react-core';
 import ResourceDetailPage from '@/components/ResourceDetailPage';
 import StatusIndicator from '@/components/StatusIndicator';
@@ -76,7 +74,9 @@ export default function GenericResourceDetail({ kind, apiPath, backPath, backLab
         if (res.ok) {
           setResource(await res.json() as Record<string, unknown>);
         }
-      } catch { /* ignore */ }
+      } catch {
+        // API may not be available
+      }
       setLoading(false);
     }
     load();
@@ -117,7 +117,7 @@ export default function GenericResourceDetail({ kind, apiPath, backPath, backLab
               {statusValue && (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Status</DescriptionListTerm>
-                  <DescriptionListDescription><StatusIndicator status={statusValue} /></DescriptionListDescription>
+                  <DescriptionListDescription><StatusIndicator status={statusValue ?? ""} /></DescriptionListDescription>
                 </DescriptionListGroup>
               )}
               <DescriptionListGroup>
@@ -171,7 +171,7 @@ export default function GenericResourceDetail({ kind, apiPath, backPath, backLab
           <CardBody>
             <Title headingLevel="h3" size="lg" className="os-detail__section-title">Annotations</Title>
             <div className="os-detail__labels-wrap">
-              {Object.keys(annotations).length > 0 ? Object.entries(annotations).slice(0, 10).map(([k, v]) => (
+              {Object.keys(annotations).length > 0 ? Object.entries(annotations).slice(0, 10).map(([k, _v]) => (
                 <Label key={k} color="grey"><code className="os-detail__label-code">{k}</code></Label>
               )) : <span className="os-text-muted">No annotations</span>}
             </div>
@@ -185,8 +185,8 @@ export default function GenericResourceDetail({ kind, apiPath, backPath, backLab
     <ResourceDetailPage
       kind={kind}
       name={name}
-      namespace={namespace}
-      status={statusValue}
+      namespace={namespace ?? ""}
+      status={statusValue ?? ""}
       backPath={backPath}
       backLabel={backLabel}
       yaml={yamlContent}

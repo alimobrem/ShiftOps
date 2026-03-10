@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Card,
   CardBody,
@@ -20,7 +20,6 @@ const BASE = '/api/kubernetes';
 
 export default function CRInstanceDetail() {
   const { name: crdName, namespace, instanceName } = useParams();
-  const navigate = useNavigate();
   const [resource, setResource] = useState<Record<string, unknown> | null>(null);
   const [yaml, setYaml] = useState('');
   const [loading, setLoading] = useState(true);
@@ -51,7 +50,9 @@ export default function CRInstanceDetail() {
           setResource(raw);
           setYaml(JSON.stringify(raw, null, 2));
         }
-      } catch { /* ignore */ }
+      } catch {
+        // API may not be available
+      }
       setLoading(false);
     }
     load();
@@ -124,8 +125,8 @@ export default function CRInstanceDetail() {
     <ResourceDetailPage
       kind={kind}
       name={resName}
-      namespace={resNs || undefined}
-      status={statusPhase ? String(statusPhase) : undefined}
+      namespace={resNs || ""}
+      status={statusPhase ? String(statusPhase) : ""}
       backPath={`/administration/crds/${crdName}/instances`}
       backLabel={`${kind} Instances`}
       yaml={yaml}

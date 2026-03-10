@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, CardBody, Grid, GridItem, DescriptionList, DescriptionListGroup, DescriptionListTerm, DescriptionListDescription, Label, Title, Progress, ProgressVariant } from '@patternfly/react-core';
-import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { Card, CardBody, Grid, GridItem, DescriptionList, DescriptionListGroup, DescriptionListTerm, DescriptionListDescription, Label, Title } from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
 import ResourceDetailPage from '@/components/ResourceDetailPage';
 import StatusIndicator from '@/components/StatusIndicator';
@@ -23,7 +22,9 @@ export default function NodeDetail() {
           setNode(raw);
           setYaml(JSON.stringify(raw, null, 2));
         }
-      } catch { /* ignore */ }
+      } catch {
+        // API may not be available
+      }
       setLoading(false);
     }
     load();

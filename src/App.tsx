@@ -130,7 +130,7 @@ function App() {
             <Route path="installed/:namespace/:name" element={
               <GenericResourceDetail
                 kind="ClusterServiceVersion"
-                apiPath={(p) => `/apis/operators.coreos.com/v1alpha1/namespaces/${p.namespace}/clusterserviceversions/${p.name}`}
+                apiPath={(p) => `/apis/operators.coreos.com/v1alpha1/namespaces/${p['namespace']}/clusterserviceversions/${p['name']}`}
                 backPath="/operators/installed"
                 backLabel="Installed Operators"
                 statusField={['status', 'phase']}
@@ -148,7 +148,7 @@ function App() {
             <Route path="statefulsets/:namespace/:name" element={
               <GenericResourceDetail
                 kind="StatefulSet"
-                apiPath={(p) => `/apis/apps/v1/namespaces/${p.namespace}/statefulsets/${p.name}`}
+                apiPath={(p) => `/apis/apps/v1/namespaces/${p['namespace']}/statefulsets/${p['name']}`}
                 backPath="/workloads/statefulsets"
                 backLabel="StatefulSets"
                 statusField={['status', 'readyReplicas']}
@@ -158,7 +158,7 @@ function App() {
             <Route path="replicasets/:namespace/:name" element={
               <GenericResourceDetail
                 kind="ReplicaSet"
-                apiPath={(p) => `/apis/apps/v1/namespaces/${p.namespace}/replicasets/${p.name}`}
+                apiPath={(p) => `/apis/apps/v1/namespaces/${p['namespace']}/replicasets/${p['name']}`}
                 backPath="/workloads/replicasets"
                 backLabel="ReplicaSets"
               />
@@ -167,7 +167,7 @@ function App() {
             <Route path="daemonsets/:namespace/:name" element={
               <GenericResourceDetail
                 kind="DaemonSet"
-                apiPath={(p) => `/apis/apps/v1/namespaces/${p.namespace}/daemonsets/${p.name}`}
+                apiPath={(p) => `/apis/apps/v1/namespaces/${p['namespace']}/daemonsets/${p['name']}`}
                 backPath="/workloads/daemonsets"
                 backLabel="DaemonSets"
               />
@@ -176,7 +176,7 @@ function App() {
             <Route path="hpa/:namespace/:name" element={
               <GenericResourceDetail
                 kind="HorizontalPodAutoscaler"
-                apiPath={(p) => `/apis/autoscaling/v2/namespaces/${p.namespace}/horizontalpodautoscalers/${p.name}`}
+                apiPath={(p) => `/apis/autoscaling/v2/namespaces/${p['namespace']}/horizontalpodautoscalers/${p['name']}`}
                 backPath="/workloads/hpa"
                 backLabel="Horizontal Pod Autoscalers"
               />
@@ -185,7 +185,7 @@ function App() {
             <Route path="poddisruptionbudgets/:namespace/:name" element={
               <GenericResourceDetail
                 kind="PodDisruptionBudget"
-                apiPath={(p) => `/apis/policy/v1/namespaces/${p.namespace}/poddisruptionbudgets/${p.name}`}
+                apiPath={(p) => `/apis/policy/v1/namespaces/${p['namespace']}/poddisruptionbudgets/${p['name']}`}
                 backPath="/workloads/poddisruptionbudgets"
                 backLabel="Pod Disruption Budgets"
               />
@@ -194,7 +194,7 @@ function App() {
             <Route path="jobs/:namespace/:name" element={
               <GenericResourceDetail
                 kind="Job"
-                apiPath={(p) => `/apis/batch/v1/namespaces/${p.namespace}/jobs/${p.name}`}
+                apiPath={(p) => `/apis/batch/v1/namespaces/${p['namespace']}/jobs/${p['name']}`}
                 backPath="/workloads/jobs"
                 backLabel="Jobs"
                 statusField={['status', 'conditions']}
@@ -204,7 +204,7 @@ function App() {
             <Route path="cronjobs/:namespace/:name" element={
               <GenericResourceDetail
                 kind="CronJob"
-                apiPath={(p) => `/apis/batch/v1/namespaces/${p.namespace}/cronjobs/${p.name}`}
+                apiPath={(p) => `/apis/batch/v1/namespaces/${p['namespace']}/cronjobs/${p['name']}`}
                 backPath="/workloads/cronjobs"
                 backLabel="CronJobs"
               />
@@ -213,7 +213,7 @@ function App() {
             <Route path="secrets/:namespace/:name" element={
               <GenericResourceDetail
                 kind="Secret"
-                apiPath={(p) => `/api/v1/namespaces/${p.namespace}/secrets/${p.name}`}
+                apiPath={(p) => `/api/v1/namespaces/${p['namespace']}/secrets/${p['name']}`}
                 backPath="/workloads/secrets"
                 backLabel="Secrets"
               />
@@ -222,7 +222,7 @@ function App() {
             <Route path="configmaps/:namespace/:name" element={
               <GenericResourceDetail
                 kind="ConfigMap"
-                apiPath={(p) => `/api/v1/namespaces/${p.namespace}/configmaps/${p.name}`}
+                apiPath={(p) => `/api/v1/namespaces/${p['namespace']}/configmaps/${p['name']}`}
                 backPath="/workloads/configmaps"
                 backLabel="ConfigMaps"
               />
@@ -235,7 +235,7 @@ function App() {
             <Route path="services/:namespace/:name" element={
               <GenericResourceDetail
                 kind="Service"
-                apiPath={(p) => `/api/v1/namespaces/${p.namespace}/services/${p.name}`}
+                apiPath={(p) => `/api/v1/namespaces/${p['namespace']}/services/${p['name']}`}
                 backPath="/networking/services"
                 backLabel="Services"
                 statusField={['spec', 'type']}
@@ -245,7 +245,7 @@ function App() {
             <Route path="routes/:namespace/:name" element={
               <GenericResourceDetail
                 kind="Route"
-                apiPath={(p) => `/apis/route.openshift.io/v1/namespaces/${p.namespace}/routes/${p.name}`}
+                apiPath={(p) => `/apis/route.openshift.io/v1/namespaces/${p['namespace']}/routes/${p['name']}`}
                 backPath="/networking/routes"
                 backLabel="Routes"
               />
@@ -254,7 +254,7 @@ function App() {
             <Route path="ingress/:namespace/:name" element={
               <GenericResourceDetail
                 kind="Ingress"
-                apiPath={(p) => `/apis/networking.k8s.io/v1/namespaces/${p.namespace}/ingresses/${p.name}`}
+                apiPath={(p) => `/apis/networking.k8s.io/v1/namespaces/${p['namespace']}/ingresses/${p['name']}`}
                 backPath="/networking/ingress"
                 backLabel="Ingress"
               />
@@ -263,7 +263,7 @@ function App() {
             <Route path="networkpolicies/:namespace/:name" element={
               <GenericResourceDetail
                 kind="NetworkPolicy"
-                apiPath={(p) => `/apis/networking.k8s.io/v1/namespaces/${p.namespace}/networkpolicies/${p.name}`}
+                apiPath={(p) => `/apis/networking.k8s.io/v1/namespaces/${p['namespace']}/networkpolicies/${p['name']}`}
                 backPath="/networking/networkpolicies"
                 backLabel="Network Policies"
               />
@@ -272,7 +272,7 @@ function App() {
             <Route path="endpoints/:namespace/:name" element={
               <GenericResourceDetail
                 kind="Endpoints"
-                apiPath={(p) => `/api/v1/namespaces/${p.namespace}/endpoints/${p.name}`}
+                apiPath={(p) => `/api/v1/namespaces/${p['namespace']}/endpoints/${p['name']}`}
                 backPath="/networking/endpoints"
                 backLabel="Endpoints"
               />
@@ -285,7 +285,7 @@ function App() {
             <Route path="persistentvolumes/:name" element={
               <GenericResourceDetail
                 kind="PersistentVolume"
-                apiPath={(p) => `/api/v1/persistentvolumes/${p.name}`}
+                apiPath={(p) => `/api/v1/persistentvolumes/${p['name']}`}
                 backPath="/storage/persistentvolumes"
                 backLabel="Persistent Volumes"
                 statusField={['status', 'phase']}
@@ -295,7 +295,7 @@ function App() {
             <Route path="persistentvolumeclaims/:namespace/:name" element={
               <GenericResourceDetail
                 kind="PersistentVolumeClaim"
-                apiPath={(p) => `/api/v1/namespaces/${p.namespace}/persistentvolumeclaims/${p.name}`}
+                apiPath={(p) => `/api/v1/namespaces/${p['namespace']}/persistentvolumeclaims/${p['name']}`}
                 backPath="/storage/persistentvolumeclaims"
                 backLabel="Persistent Volume Claims"
                 statusField={['status', 'phase']}
@@ -305,7 +305,7 @@ function App() {
             <Route path="storageclasses/:name" element={
               <GenericResourceDetail
                 kind="StorageClass"
-                apiPath={(p) => `/apis/storage.k8s.io/v1/storageclasses/${p.name}`}
+                apiPath={(p) => `/apis/storage.k8s.io/v1/storageclasses/${p['name']}`}
                 backPath="/storage/storageclasses"
                 backLabel="Storage Classes"
               />
@@ -318,7 +318,7 @@ function App() {
             <Route path="builds/:namespace/:name" element={
               <GenericResourceDetail
                 kind="Build"
-                apiPath={(p) => `/apis/build.openshift.io/v1/namespaces/${p.namespace}/builds/${p.name}`}
+                apiPath={(p) => `/apis/build.openshift.io/v1/namespaces/${p['namespace']}/builds/${p['name']}`}
                 backPath="/builds/builds"
                 backLabel="Builds"
                 statusField={['status', 'phase']}
@@ -328,7 +328,7 @@ function App() {
             <Route path="buildconfigs/:namespace/:name" element={
               <GenericResourceDetail
                 kind="BuildConfig"
-                apiPath={(p) => `/apis/build.openshift.io/v1/namespaces/${p.namespace}/buildconfigs/${p.name}`}
+                apiPath={(p) => `/apis/build.openshift.io/v1/namespaces/${p['namespace']}/buildconfigs/${p['name']}`}
                 backPath="/builds/buildconfigs"
                 backLabel="Build Configs"
               />
@@ -337,7 +337,7 @@ function App() {
             <Route path="imagestreams/:namespace/:name" element={
               <GenericResourceDetail
                 kind="ImageStream"
-                apiPath={(p) => `/apis/image.openshift.io/v1/namespaces/${p.namespace}/imagestreams/${p.name}`}
+                apiPath={(p) => `/apis/image.openshift.io/v1/namespaces/${p['namespace']}/imagestreams/${p['name']}`}
                 backPath="/builds/imagestreams"
                 backLabel="Image Streams"
               />
@@ -407,7 +407,7 @@ function App() {
             <Route path="machines/:namespace/:name" element={
               <GenericResourceDetail
                 kind="Machine"
-                apiPath={(p) => `/apis/machine.openshift.io/v1beta1/namespaces/${p.namespace}/machines/${p.name}`}
+                apiPath={(p) => `/apis/machine.openshift.io/v1beta1/namespaces/${p['namespace']}/machines/${p['name']}`}
                 backPath="/compute/machines"
                 backLabel="Machines"
                 statusField={['status', 'phase']}
@@ -422,7 +422,7 @@ function App() {
             <Route path="namespaces/:name" element={
               <GenericResourceDetail
                 kind="Namespace"
-                apiPath={(p) => `/api/v1/namespaces/${p.name}`}
+                apiPath={(p) => `/api/v1/namespaces/${p['name']}`}
                 backPath="/administration/namespaces"
                 backLabel="Namespaces"
                 statusField={['status', 'phase']}
@@ -432,7 +432,7 @@ function App() {
             <Route path="roles/:namespace/:name" element={
               <GenericResourceDetail
                 kind="Role"
-                apiPath={(p) => `/apis/rbac.authorization.k8s.io/v1/namespaces/${p.namespace}/roles/${p.name}`}
+                apiPath={(p) => `/apis/rbac.authorization.k8s.io/v1/namespaces/${p['namespace']}/roles/${p['name']}`}
                 backPath="/administration/roles"
                 backLabel="Roles"
               />
@@ -440,7 +440,7 @@ function App() {
             <Route path="clusterroles/:name" element={
               <GenericResourceDetail
                 kind="ClusterRole"
-                apiPath={(p) => `/apis/rbac.authorization.k8s.io/v1/clusterroles/${p.name}`}
+                apiPath={(p) => `/apis/rbac.authorization.k8s.io/v1/clusterroles/${p['name']}`}
                 backPath="/administration/roles"
                 backLabel="Roles"
               />
@@ -449,7 +449,7 @@ function App() {
             <Route path="rolebindings/:namespace/:name" element={
               <GenericResourceDetail
                 kind="RoleBinding"
-                apiPath={(p) => `/apis/rbac.authorization.k8s.io/v1/namespaces/${p.namespace}/rolebindings/${p.name}`}
+                apiPath={(p) => `/apis/rbac.authorization.k8s.io/v1/namespaces/${p['namespace']}/rolebindings/${p['name']}`}
                 backPath="/administration/rolebindings"
                 backLabel="Role Bindings"
               />
@@ -458,7 +458,7 @@ function App() {
             <Route path="serviceaccounts/:namespace/:name" element={
               <GenericResourceDetail
                 kind="ServiceAccount"
-                apiPath={(p) => `/api/v1/namespaces/${p.namespace}/serviceaccounts/${p.name}`}
+                apiPath={(p) => `/api/v1/namespaces/${p['namespace']}/serviceaccounts/${p['name']}`}
                 backPath="/administration/serviceaccounts"
                 backLabel="Service Accounts"
               />
@@ -467,7 +467,7 @@ function App() {
             <Route path="resourcequotas/:namespace/:name" element={
               <GenericResourceDetail
                 kind="ResourceQuota"
-                apiPath={(p) => `/api/v1/namespaces/${p.namespace}/resourcequotas/${p.name}`}
+                apiPath={(p) => `/api/v1/namespaces/${p['namespace']}/resourcequotas/${p['name']}`}
                 backPath="/administration/resourcequotas"
                 backLabel="Resource Quotas"
               />
@@ -476,7 +476,7 @@ function App() {
             <Route path="limitranges/:namespace/:name" element={
               <GenericResourceDetail
                 kind="LimitRange"
-                apiPath={(p) => `/api/v1/namespaces/${p.namespace}/limitranges/${p.name}`}
+                apiPath={(p) => `/api/v1/namespaces/${p['namespace']}/limitranges/${p['name']}`}
                 backPath="/administration/limitranges"
                 backLabel="Limit Ranges"
               />
@@ -487,7 +487,7 @@ function App() {
             <Route path="crds/:name" element={
               <GenericResourceDetail
                 kind="CustomResourceDefinition"
-                apiPath={(p) => `/apis/apiextensions.k8s.io/v1/customresourcedefinitions/${p.name}`}
+                apiPath={(p) => `/apis/apiextensions.k8s.io/v1/customresourcedefinitions/${p['name']}`}
                 backPath="/administration/crds"
                 backLabel="Custom Resource Definitions"
               />
@@ -496,7 +496,7 @@ function App() {
             <Route path="clusteroperators/:name" element={
               <GenericResourceDetail
                 kind="ClusterOperator"
-                apiPath={(p) => `/apis/config.openshift.io/v1/clusteroperators/${p.name}`}
+                apiPath={(p) => `/apis/config.openshift.io/v1/clusteroperators/${p['name']}`}
                 backPath="/administration/clusteroperators"
                 backLabel="Cluster Operators"
                 statusField={['status', 'conditions']}

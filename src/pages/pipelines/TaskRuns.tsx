@@ -44,7 +44,7 @@ function computeDuration(startTime: string | undefined, completionTime: string |
 function extractStatus(conditions: RawCondition[] | undefined): string {
   if (!conditions || conditions.length === 0) return 'Unknown';
   const first = conditions[0];
-  return first.reason ?? first.type;
+  return first!.reason ?? first!.type;
 }
 
 const columns: ColumnDef<TaskRun>[] = [

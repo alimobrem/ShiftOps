@@ -75,7 +75,7 @@ const QuickStartGuide: React.FC<QuickStartGuideProps> = ({ open, onClose }) => {
           </div>
 
           <Dialog.Title className="compass-deploy-title">
-            {currentStep.title}
+            {currentStep!.title}
           </Dialog.Title>
 
           <Dialog.Description className="compass-deploy-desc">
@@ -83,7 +83,7 @@ const QuickStartGuide: React.FC<QuickStartGuideProps> = ({ open, onClose }) => {
           </Dialog.Description>
 
           <div className="compass-deploy-field">
-            <p>{currentStep.description}</p>
+            <p>{currentStep!.description}</p>
           </div>
 
           <div className="compass-deploy-actions">

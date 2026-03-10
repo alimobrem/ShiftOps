@@ -78,7 +78,9 @@ export default function PodDetail() {
           });
           setYaml(JSON.stringify(raw, null, 2));
         }
-      } catch { /* ignore */ }
+      } catch {
+        // API may not be available
+      }
       setLoading(false);
     }
     load();

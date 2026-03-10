@@ -452,7 +452,7 @@ export default function CompassLayout() {
             icon={isDarkMode ? <SunIcon /> : <MoonIcon />}
             onClick={() => setIsDarkMode(!isDarkMode)}
           />
-          <Button aria-label="Web Terminal" variant="plain" icon={<CogIcon />} onClick={() => setTerminalOpen(!terminalOpen)} />
+          <Button aria-label="Web Terminal" variant="plain" icon={<CodeIcon />} onClick={() => setTerminalOpen(!terminalOpen)} />
           <Button aria-label="Quick Start Guide" variant="plain" icon={<CogIcon />} onClick={() => setGuideOpen(true)} />
 
           {/* Connection Status */}

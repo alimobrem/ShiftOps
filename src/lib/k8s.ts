@@ -206,4 +206,4 @@ export async function checkClusterConnection(): Promise<boolean> {
 }
 
 export { ageFromTimestamp };
-export type { K8sResource, K8sListResponse };
+export type { K8sResource };

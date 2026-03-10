@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, TextInput, Label } from '@patternfly/react-core';
 import ResourceListPage, { type ColumnDef } from '@/components/ResourceListPage';
-import { useK8sResource, ageFromTimestamp, type K8sMeta } from '@/hooks/useK8sResource';
+import { useK8sResource, type K8sMeta } from '@/hooks/useK8sResource';
 import { useUIStore } from '@/store/useUIStore';
 
 const BASE = '/api/kubernetes';

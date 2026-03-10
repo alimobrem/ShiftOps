@@ -55,7 +55,7 @@ const columns: ColumnDef<SecretRotationRow>[] = [
     title: 'Status',
     key: 'status',
     render: (row) => (
-      <Label color={statusColorMap[row.status]}>{row.status}</Label>
+      <Label color={statusColorMap[row.status] ?? 'grey'}>{row.status}</Label>
     ),
   },
 ];
