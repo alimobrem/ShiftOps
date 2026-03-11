@@ -1,55 +1,106 @@
-import { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@patternfly/react-core';
+import { Button, Label } from '@patternfly/react-core';
 import { MinusIcon, PlusIcon } from '@patternfly/react-icons';
 import ResourceListPage, { type ColumnDef } from '@/components/ResourceListPage';
-import { useClusterStore, type Deployment } from '@/store/useClusterStore';
+import ResourceActions from '@/components/ResourceActions';
+import { useK8sResource, ageFromTimestamp, type K8sMeta } from '@/hooks/useK8sResource';
 import { useUIStore } from '@/store/useUIStore';
 import '@/openshift-components.css';
 
-function ScaleInline({ deployment }: { deployment: Deployment }) {
-  const scaleDeployment = useClusterStore((s) => s.scaleDeployment);
-  const addToast = useUIStore((s) => s.addToast);
+const BASE = '/api/kubernetes';
 
-  const handleScale = (delta: number, e: React.MouseEvent) => {
+interface DeployRow {
+  name: string;
+  namespace: string;
+  status: string;
+  replicas: number;
+  ready: number;
+  age: string;
+}
+
+interface RawDeployment extends K8sMeta {
+  spec: { replicas?: number };
+  status: { readyReplicas?: number; availableReplicas?: number; conditions?: { type: string; status: string }[] };
+}
+
+function ScaleInline({ deploy, onScaled }: { deploy: DeployRow; onScaled: () => void }) {
+  const addToast = useUIStore((s) => s.addToast);
+  const [scaling, setScaling] = useState(false);
+
+  const handleScale = async (delta: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    const next = Math.max(0, deployment.replicas + delta);
-    scaleDeployment(deployment.namespace, deployment.name, next);
-    addToast({ type: 'success', title: `Scaled ${deployment.name}`, description: `Replicas set to ${next}` });
+    const next = Math.max(0, deploy.replicas + delta);
+    setScaling(true);
+    try {
+      const res = await fetch(`${BASE}/apis/apps/v1/namespaces/${encodeURIComponent(deploy.namespace)}/deployments/${encodeURIComponent(deploy.name)}/scale`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiVersion: 'autoscaling/v1', kind: 'Scale',
+          metadata: { name: deploy.name, namespace: deploy.namespace },
+          spec: { replicas: next },
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      addToast({ type: 'success', title: `Scaled ${deploy.name}`, description: `Replicas: ${next}` });
+      onScaled();
+    } catch (err) {
+      addToast({ type: 'error', title: 'Scale failed', description: err instanceof Error ? err.message : String(err) });
+    }
+    setScaling(false);
   };
 
   return (
     <span className="os-deployments__scale-inline" onClick={(e) => e.stopPropagation()}>
-      <Button variant="plain" size="sm" isDisabled={deployment.replicas <= 0} onClick={(e) => handleScale(-1, e)} aria-label="Scale down" className="os-deployments__scale-btn">
+      <Button variant="plain" size="sm" isDisabled={deploy.replicas <= 0 || scaling} onClick={(e) => handleScale(-1, e)} aria-label="Scale down" className="os-deployments__scale-btn">
         <MinusIcon />
       </Button>
-      <span className="os-deployments__scale-value">{deployment.ready}/{deployment.replicas}</span>
-      <Button variant="plain" size="sm" onClick={(e) => handleScale(1, e)} aria-label="Scale up" className="os-deployments__scale-btn">
+      <span className="os-deployments__scale-value">{deploy.ready}/{deploy.replicas}</span>
+      <Button variant="plain" size="sm" isDisabled={scaling} onClick={(e) => handleScale(1, e)} aria-label="Scale up" className="os-deployments__scale-btn">
         <PlusIcon />
       </Button>
     </span>
   );
 }
 
-const columns: ColumnDef<Deployment>[] = [
-  { title: 'Name', key: 'name' },
-  { title: 'Namespace', key: 'namespace' },
-  { title: 'Status', key: 'status' },
-  { title: 'Replicas', key: 'replicas', render: (d) => <ScaleInline deployment={d} />, sortable: false },
-];
-
 export default function Deployments() {
   const navigate = useNavigate();
-  const { deployments, fetchClusterData } = useClusterStore();
 
-  useEffect(() => { fetchClusterData(); }, [fetchClusterData]);
+  const { data, loading, refetch } = useK8sResource<RawDeployment, DeployRow>(
+    '/apis/apps/v1/deployments',
+    (item) => {
+      const conditions = item.status.conditions ?? [];
+      const available = conditions.find((c) => c.type === 'Available');
+      const status = available?.status === 'True' ? 'Running' : 'Pending';
+      return {
+        name: item.metadata.name,
+        namespace: item.metadata.namespace ?? '',
+        status,
+        replicas: item.spec.replicas ?? 0,
+        ready: item.status.readyReplicas ?? 0,
+        age: ageFromTimestamp(item.metadata.creationTimestamp),
+      };
+    },
+    15000,
+  );
+
+  const columns: ColumnDef<DeployRow>[] = [
+    { title: 'Name', key: 'name' },
+    { title: 'Namespace', key: 'namespace' },
+    { title: 'Status', key: 'status', render: (d) => <Label color={d.status === 'Running' ? 'green' : 'orange'}>{d.status}</Label>, sortable: false },
+    { title: 'Replicas', key: 'replicas', render: (d) => <ScaleInline deploy={d} onScaled={refetch} />, sortable: false },
+    { title: 'Age', key: 'age' },
+    { title: '', key: 'actions', render: (d) => <ResourceActions name={d.name} namespace={d.namespace} apiBase="/apis/apps/v1" resourceType="deployments" kind="Deployment" detailPath={`/workloads/deployments/${d.namespace}/${d.name}`} onDelete={refetch} />, sortable: false },
+  ];
 
   return (
     <ResourceListPage
       title="Deployments"
       description="Manage deployment resources across your cluster"
       columns={columns}
-      data={deployments}
+      data={data}
+      loading={loading}
       getRowKey={(d) => `${d.namespace}-${d.name}`}
       onRowClick={(d) => navigate(`/workloads/deployments/${d.namespace}/${d.name}`)}
       createLabel="Create Deployment"

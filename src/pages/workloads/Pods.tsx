@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dropdown, DropdownList, DropdownItem, MenuToggle, Divider } from '@patternfly/react-core';
+import { Button, Dropdown, DropdownList, DropdownItem, MenuToggle, Divider } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import ResourceListPage, { type ColumnDef } from '@/components/ResourceListPage';
 import { useClusterStore, type Pod } from '@/store/useClusterStore';
@@ -65,12 +65,32 @@ function PodActions({ pod }: { pod: Pod }) {
   );
 }
 
+function PodQuickActions({ pod }: { pod: Pod }) {
+  const navigate = useNavigate();
+  const restartPod = useClusterStore((s) => s.restartPod);
+  const addToast = useUIStore((s) => s.addToast);
+
+  return (
+    <span className="os-pods__quick-actions" onClick={(e) => e.stopPropagation()}>
+      <Button variant="link" size="sm" isInline onClick={() => navigate(`/workloads/pods/${pod.namespace}/${pod.name}?tab=logs`)}>
+        Logs
+      </Button>
+      <Button variant="link" size="sm" isInline onClick={() => {
+        restartPod(pod.namespace, pod.name);
+        addToast({ type: 'info', title: `Restarting ${pod.name}` });
+      }}>
+        Restart
+      </Button>
+    </span>
+  );
+}
+
 const columns: ColumnDef<Pod>[] = [
   { title: 'Name', key: 'name' },
   { title: 'Namespace', key: 'namespace' },
   { title: 'Status', key: 'status' },
   { title: 'Restarts', key: 'restarts' },
-  { title: 'Age', key: 'age', render: () => '2h', sortable: false },
+  { title: 'Quick Actions', key: 'quick', render: (p) => <PodQuickActions pod={p} />, sortable: false },
   { title: '', key: 'actions', render: (p) => <PodActions pod={p} />, sortable: false },
 ];
 

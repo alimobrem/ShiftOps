@@ -1,9 +1,12 @@
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Label } from '@patternfly/react-core';
+import { Label, Button } from '@patternfly/react-core';
 import ResourceListPage, { type ColumnDef } from '@/components/ResourceListPage';
 import { useK8sResource, ageFromTimestamp, type K8sMeta } from '@/hooks/useK8sResource';
+import { useUIStore } from '@/store/useUIStore';
 
 interface RawNode extends K8sMeta {
+  spec?: RawNodeSpec;
   status?: {
     conditions?: { type: string; status: string }[];
     nodeInfo?: { kubeletVersion?: string; osImage?: string; containerRuntimeVersion?: string };
@@ -11,6 +14,10 @@ interface RawNode extends K8sMeta {
     capacity?: Record<string, string>;
     allocatable?: Record<string, string>;
   };
+}
+
+interface RawNodeSpec {
+  unschedulable?: boolean;
 }
 
 interface NodeRow {
@@ -23,27 +30,47 @@ interface NodeRow {
   cpu: string;
   memory: string;
   age: string;
+  schedulable: boolean;
 }
 
-const columns: ColumnDef<NodeRow>[] = [
-  { title: 'Name', key: 'name' },
-  { title: 'Status', key: 'status' },
-  {
-    title: 'Roles', key: 'roles', render: (n) => (
-      <>{n.roles.split(', ').map((r) => <Label key={r} color="blue" className="pf-v5-u-mr-xs">{r}</Label>)}</>
-    ), sortable: false,
-  },
-  { title: 'Version', key: 'version' },
-  { title: 'Internal IP', key: 'internalIP' },
-  { title: 'CPU', key: 'cpu' },
-  { title: 'Memory', key: 'memory' },
-  { title: 'Age', key: 'age' },
-];
+const BASE = '/api/kubernetes';
+
+function CordonButton({ node, onDone }: { node: NodeRow; onDone: () => void }) {
+  const addToast = useUIStore((s) => s.addToast);
+  const [loading, setLoading] = useState(false);
+  const isCordoned = !node.schedulable;
+
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE}/api/v1/nodes/${encodeURIComponent(node.name)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/strategic-merge-patch+json' },
+        body: JSON.stringify({ spec: { unschedulable: !isCordoned ? true : null } }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      addToast({ type: 'success', title: `${node.name} ${isCordoned ? 'uncordoned' : 'cordoned'}` });
+      onDone();
+    } catch (err) {
+      addToast({ type: 'error', title: 'Failed', description: err instanceof Error ? err.message : String(err) });
+    }
+    setLoading(false);
+  };
+
+  return (
+    <span onClick={(e) => e.stopPropagation()}>
+      <Button variant="link" size="sm" isInline isLoading={loading} onClick={handleToggle}>
+        {isCordoned ? 'Uncordon' : 'Cordon'}
+      </Button>
+    </span>
+  );
+}
 
 export default function Nodes() {
   const navigate = useNavigate();
 
-  const { data, loading } = useK8sResource<RawNode, NodeRow>(
+  const { data, loading, refetch } = useK8sResource<RawNode, NodeRow>(
     '/api/v1/nodes',
     (item) => {
       const conditions = item.status?.conditions ?? [];
@@ -68,10 +95,28 @@ export default function Nodes() {
         cpu: `${allocatable['cpu'] ?? '-'} / ${capacity['cpu'] ?? '-'}`,
         memory: `${allocatable['memory'] ?? '-'} / ${capacity['memory'] ?? '-'}`,
         age: ageFromTimestamp(item.metadata.creationTimestamp),
+        schedulable: !item.spec?.unschedulable,
       };
     },
     30000,
   );
+
+  const columns: ColumnDef<NodeRow>[] = [
+    { title: 'Name', key: 'name' },
+    { title: 'Status', key: 'status', render: (n) => (
+      <Label color={n.status === 'Ready' ? 'green' : 'red'}>{n.status}{!n.schedulable ? ', Cordoned' : ''}</Label>
+    ), sortable: false },
+    {
+      title: 'Roles', key: 'roles', render: (n) => (
+        <>{n.roles.split(', ').map((r) => <Label key={r} color="blue" className="pf-v5-u-mr-xs">{r}</Label>)}</>
+      ), sortable: false,
+    },
+    { title: 'Version', key: 'version' },
+    { title: 'CPU', key: 'cpu' },
+    { title: 'Memory', key: 'memory' },
+    { title: 'Age', key: 'age' },
+    { title: 'Actions', key: 'actions', render: (n) => <CordonButton node={n} onDone={refetch} />, sortable: false },
+  ];
 
   return (
     <ResourceListPage
