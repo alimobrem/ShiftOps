@@ -36,14 +36,15 @@ interface QueryResult {
 }
 
 function MiniChart({ data, color }: { data: number[]; color: string }) {
-  if (data.length < 2) return null;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  const valid = data.filter((v) => isFinite(v));
+  if (valid.length < 2) return null;
+  let min = valid[0], max = valid[0];
+  for (const v of valid) { if (v < min) min = v; if (v > max) max = v; }
   const range = max - min || 1;
   const w = 400;
   const h = 120;
-  const points = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
+  const points = valid.map((v, i) => {
+    const x = (i / (valid.length - 1)) * w;
     const y = h - ((v - min) / range) * h * 0.9 - h * 0.05;
     return `${x},${y}`;
   });

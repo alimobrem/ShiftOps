@@ -1,9 +1,19 @@
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
+import { execSync } from 'child_process';
 import path from 'path';
 
 const isDev = process.env.NODE_ENV === 'development';
+
+function getOCToken(): string {
+  if (process.env.OC_TOKEN) return process.env.OC_TOKEN;
+  try {
+    return execSync('oc whoami -t 2>/dev/null', { encoding: 'utf-8' }).trim();
+  } catch {
+    return '';
+  }
+}
 
 export default defineConfig({
   entry: {
@@ -103,7 +113,7 @@ export default defineConfig({
         secure: false,
         pathRewrite: (path: string) => path.replace(/^\/api\/prometheus/, ''),
         headers: {
-          Authorization: `Bearer ${process.env.OC_TOKEN || ''}`,
+          Authorization: `Bearer ${getOCToken()}`,
         },
       },
     ],
