@@ -108,7 +108,8 @@ export default function ResourceDetailPage({
   ];
 
   const handleEdit = () => {
-    addToast({ type: 'info', title: `Editing ${kind}`, description: name });
+    setActiveTabKey(allTabs.length - 1);
+    addToast({ type: 'info', title: 'Edit mode', description: 'Viewing YAML for ' + name });
   };
 
   const handleDelete = () => {

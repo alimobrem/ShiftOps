@@ -56,6 +56,24 @@ export default function OperatorHub() {
   const [searchValue, setSearchValue] = React.useState('');
   const addToast = useUIStore((s) => s.addToast);
 
+  const handleInstall = async (op: Operator) => {
+    try {
+      const res = await fetch('/api/kubernetes/apis/operators.coreos.com/v1alpha1/namespaces/openshift-operators/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiVersion: 'operators.coreos.com/v1alpha1', kind: 'Subscription',
+          metadata: { name: op.name, namespace: 'openshift-operators' },
+          spec: { channel: 'stable', name: op.name, source: 'community-operators', sourceNamespace: 'openshift-marketplace' },
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      addToast({ type: 'success', title: `Installing ${op.displayName}` });
+    } catch (err) {
+      addToast({ type: 'error', title: 'Install failed', description: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
   const { data, loading } = useK8sResource<RawPackageManifest, Operator>(
     '/apis/packages.operators.coreos.com/v1/packagemanifests',
     (item) => {
@@ -134,7 +152,7 @@ export default function OperatorHub() {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => addToast({ type: 'success', title: `Installing ${op.displayName}`, description: 'Operator will be available shortly' })}
+                        onClick={() => handleInstall(op)}
                       >
                         Install
                       </Button>

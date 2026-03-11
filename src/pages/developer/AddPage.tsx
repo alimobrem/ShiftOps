@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   PageSection,
   Title,
@@ -8,6 +10,7 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { useUIStore } from '@/store/useUIStore';
+import QuickDeployDialog from '@/components/QuickDeployDialog';
 
 interface AddOption {
   title: string;
@@ -24,8 +27,33 @@ const addOptions: AddOption[] = [
   { title: 'Operator Backed', description: 'Browse the catalog to discover and deploy operator managed services' },
 ];
 
+const navigationMap: Record<string, string> = {
+  'From Git': '/developer/git-import',
+  'From Dockerfile': '/developer/git-import',
+  'From Catalog': '/operators/operatorhub',
+  'Helm Chart': '/helm/charts',
+  'Operator Backed': '/operators/installed',
+};
+
 export default function AddPage() {
   const addToast = useUIStore((s) => s.addToast);
+  const navigate = useNavigate();
+  const [deployDialogOpen, setDeployDialogOpen] = useState(false);
+
+  const handleSelect = (title: string) => {
+    if (title === 'Container Image') {
+      setDeployDialogOpen(true);
+      return;
+    }
+    if (title === 'YAML') {
+      addToast({ type: 'info', title: 'YAML', description: 'Paste YAML in the terminal' });
+      return;
+    }
+    const path = navigationMap[title];
+    if (path) {
+      navigate(path);
+    }
+  };
 
   return (
     <>
@@ -57,11 +85,7 @@ export default function AddPage() {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => addToast({
-                        type: 'info',
-                        title: `${option.title} selected`,
-                        description: `Opening ${option.title} workflow`,
-                      })}
+                      onClick={() => handleSelect(option.title)}
                     >
                       Select
                     </Button>
@@ -72,6 +96,8 @@ export default function AddPage() {
           ))}
         </Gallery>
       </PageSection>
+
+      <QuickDeployDialog open={deployDialogOpen} onClose={() => setDeployDialogOpen(false)} />
     </>
   );
 }

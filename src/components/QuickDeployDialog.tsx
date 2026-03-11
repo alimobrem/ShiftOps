@@ -87,13 +87,41 @@ const QuickDeployDialog: React.FC<QuickDeployDialogProps> = ({ open, onClose }) 
     setStep((s) => Math.max(s - 1, 0));
   }, []);
 
-  const handleDeploy = useCallback(() => {
-    addToast({
-      type: 'success',
-      title: `Deployed ${form.appName}`,
-      description: `Image ${form.image} deployed to ${form.namespace} with ${form.replicas} replica(s)`,
-    });
-    onClose();
+  const handleDeploy = useCallback(async () => {
+    const ns = form.namespace || 'default';
+    const envParsed = form.envVars.trim()
+      ? form.envVars.trim().split('\n').map((line) => {
+          const idx = line.indexOf('=');
+          return idx > 0 ? { name: line.slice(0, idx), value: line.slice(idx + 1) } : null;
+        }).filter(Boolean)
+      : undefined;
+    try {
+      const res = await fetch(`/api/kubernetes/apis/apps/v1/namespaces/${encodeURIComponent(ns)}/deployments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiVersion: 'apps/v1', kind: 'Deployment',
+          metadata: { name: form.appName, namespace: ns, labels: { app: form.appName } },
+          spec: {
+            replicas: form.replicas,
+            selector: { matchLabels: { app: form.appName } },
+            template: {
+              metadata: { labels: { app: form.appName } },
+              spec: { containers: [{
+                name: form.appName, image: form.image,
+                ports: [{ containerPort: form.port }],
+                ...(envParsed?.length ? { env: envParsed } : {}),
+              }] },
+            },
+          },
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      addToast({ type: 'success', title: `Deployed ${form.appName}`, description: `Created in ${ns}` });
+      onClose();
+    } catch (err) {
+      addToast({ type: 'error', title: 'Deploy failed', description: err instanceof Error ? err.message : String(err) });
+    }
   }, [form, addToast, onClose]);
 
   const canProceedStep0 = form.appName.trim() !== '' && form.image.trim() !== '';

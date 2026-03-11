@@ -26,6 +26,7 @@ function RoleBindingActions({ rb }: { rb: RoleBinding }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const addToast = useUIStore((s) => s.addToast);
+  const navigate = useNavigate();
 
   return (
     <span onClick={(e) => e.stopPropagation()}>
@@ -42,13 +43,13 @@ function RoleBindingActions({ rb }: { rb: RoleBinding }) {
         <DropdownList>
           <DropdownItem onClick={() => {
             setMenuOpen(false);
-            addToast({ type: 'info', title: `Editing ${rb.name}` });
+            navigate(`/administration/rolebindings/${rb.namespace}/${rb.name}`);
           }}>
             Edit RoleBinding
           </DropdownItem>
           <DropdownItem onClick={() => {
             setMenuOpen(false);
-            addToast({ type: 'info', title: 'Viewing YAML', description: rb.name });
+            navigate(`/administration/rolebindings/${rb.namespace}/${rb.name}?tab=yaml`);
           }}>
             View YAML
           </DropdownItem>
@@ -65,9 +66,18 @@ function RoleBindingActions({ rb }: { rb: RoleBinding }) {
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setDeleteOpen(false);
-          addToast({ type: 'success', title: `RoleBinding ${rb.name} deleted` });
+          const path = rb.kind === 'ClusterRoleBinding'
+            ? `/api/kubernetes/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/${encodeURIComponent(rb.name)}`
+            : `/api/kubernetes/apis/rbac.authorization.k8s.io/v1/namespaces/${encodeURIComponent(rb.namespace)}/rolebindings/${encodeURIComponent(rb.name)}`;
+          try {
+            const res = await fetch(path, { method: 'DELETE' });
+            if (!res.ok) throw new Error(await res.text());
+            addToast({ type: 'success', title: `RoleBinding ${rb.name} deleted` });
+          } catch (err) {
+            addToast({ type: 'error', title: 'Delete failed', description: err instanceof Error ? err.message : String(err) });
+          }
         }}
         title="Delete RoleBinding"
         description={`Remove "${rb.name}"? The subject "${rb.subjects}" will lose "${rb.roleRef}" access${rb.namespace !== '-' ? ` in namespace "${rb.namespace}"` : ''}.`}

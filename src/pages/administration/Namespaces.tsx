@@ -25,6 +25,7 @@ function NamespaceActions({ ns }: { ns: NS }) {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const deleteNamespace = useClusterStore((s) => s.deleteNamespace);
   const addToast = useUIStore((s) => s.addToast);
+  const navigate = useNavigate();
 
   const isProtected = ['default', 'kube-system', 'kube-public'].includes(ns.name);
 
@@ -43,13 +44,13 @@ function NamespaceActions({ ns }: { ns: NS }) {
         <DropdownList>
           <DropdownItem onClick={() => {
             setMenuOpen(false);
-            addToast({ type: 'info', title: `Edit labels for ${ns.name}` });
+            navigate(`/administration/namespaces/${ns.name}?tab=labels`);
           }}>
             Edit Labels
           </DropdownItem>
           <DropdownItem onClick={() => {
             setMenuOpen(false);
-            addToast({ type: 'info', title: `Edit annotations for ${ns.name}` });
+            navigate(`/administration/namespaces/${ns.name}?tab=annotations`);
           }}>
             Edit Annotations
           </DropdownItem>
