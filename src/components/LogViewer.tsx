@@ -424,11 +424,10 @@ export default function LogViewer({ podName, namespace, containers }: LogViewerP
           flex-direction: column;
           height: 100%;
           min-height: 400px;
-          border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
+          border: 1px solid var(--glass-border, #30363d);
           border-radius: 8px;
           overflow: hidden;
           position: relative;
-          background: var(--pf-t--global--background--color--primary--default, #fff);
         }
 
         .compass-log-toolbar {
@@ -438,8 +437,9 @@ export default function LogViewer({ podName, namespace, containers }: LogViewerP
           justify-content: space-between;
           gap: 8px;
           padding: 8px 12px;
-          border-bottom: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
-          background: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
+          border-bottom: 1px solid var(--glass-border, #30363d);
+          background: rgba(15, 23, 42, 0.8);
+          color: #e2e8f0;
         }
 
         .compass-log-toolbar-group {
@@ -453,10 +453,12 @@ export default function LogViewer({ podName, namespace, containers }: LogViewerP
           flex: 1;
           overflow-y: auto;
           overflow-x: auto;
-          font-family: 'Red Hat Mono', 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+          font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Red Hat Mono', 'Consolas', monospace;
           font-size: 13px;
-          line-height: 1.5;
+          line-height: 1.6;
           padding: 4px 0;
+          background: rgba(15, 23, 42, 0.95);
+          color: #e2e8f0;
         }
 
         .compass-log-line {
@@ -465,10 +467,15 @@ export default function LogViewer({ podName, namespace, containers }: LogViewerP
           padding: 1px 12px;
           white-space: pre-wrap;
           word-break: break-all;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.03);
         }
 
         .compass-log-line--even {
-          background: rgba(0, 0, 0, 0.025);
+          background: rgba(255, 255, 255, 0.02);
+        }
+
+        .compass-log-line:hover {
+          background: rgba(59, 130, 246, 0.08);
         }
 
         .compass-log-line--nowrap {
@@ -482,15 +489,15 @@ export default function LogViewer({ podName, namespace, containers }: LogViewerP
         }
 
         .compass-log-line--error {
-          color: var(--pf-t--global--color--status--danger--default, #c9190b);
+          color: #f87171;
         }
 
         .compass-log-line--warn {
-          color: var(--pf-t--global--color--status--warning--default, #f0ab00);
+          color: #fbbf24;
         }
 
         .compass-log-line--debug {
-          color: var(--pf-t--global--color--disabled--default, #6a6e73);
+          color: #6b7280;
           opacity: 0.75;
         }
 
@@ -500,7 +507,7 @@ export default function LogViewer({ podName, namespace, containers }: LogViewerP
           text-align: right;
           padding-right: 12px;
           user-select: none;
-          color: var(--pf-t--global--color--disabled--default, #6a6e73);
+          color: rgba(148, 163, 184, 0.5);
           flex-shrink: 0;
         }
 
@@ -510,7 +517,7 @@ export default function LogViewer({ podName, namespace, containers }: LogViewerP
         }
 
         .compass-log-timestamp {
-          color: var(--pf-t--global--color--disabled--default, #6a6e73);
+          color: rgba(148, 163, 184, 0.7);
         }
 
         .compass-log-level {
@@ -518,27 +525,27 @@ export default function LogViewer({ podName, namespace, containers }: LogViewerP
         }
 
         .compass-log-highlight {
-          background-color: #fdd835;
-          color: #000;
+          background: rgba(250, 204, 21, 0.3);
+          color: #fff;
           border-radius: 2px;
           padding: 0 1px;
         }
 
         .compass-log-status {
           font-size: 12px;
-          color: var(--pf-t--global--color--disabled--default, #6a6e73);
+          color: rgba(148, 163, 184, 0.7);
           white-space: nowrap;
         }
 
         .compass-log-status-streaming {
-          color: var(--pf-t--global--color--status--success--default, #3e8635);
+          color: #4ade80;
           animation: compass-log-pulse 2s ease-in-out infinite;
         }
 
         .compass-log-paused-banner {
           padding: 4px 12px;
           font-size: 12px;
-          background: var(--pf-t--global--color--status--warning--default, #f0ab00);
+          background: #f59e0b;
           color: #000;
           text-align: center;
         }
@@ -547,25 +554,13 @@ export default function LogViewer({ podName, namespace, containers }: LogViewerP
           position: absolute;
           bottom: 16px;
           right: 16px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
           z-index: 10;
         }
 
         @keyframes compass-log-pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
-        }
-
-        /* Dark theme adjustments */
-        .pf-v6-theme-dark .compass-log-line--even,
-        .pf-v5-theme-dark .compass-log-line--even {
-          background: rgba(255, 255, 255, 0.03);
-        }
-
-        .pf-v6-theme-dark .compass-log-highlight,
-        .pf-v5-theme-dark .compass-log-highlight {
-          background-color: #f9a825;
-          color: #000;
         }
       `}</style>
     </div>
