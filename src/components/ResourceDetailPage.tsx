@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   PageSection,
   Title,
@@ -51,6 +51,7 @@ export default function ResourceDetailPage({
   yaml,
 }: ResourceDetailPageProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const addToast = useUIStore((s) => s.addToast);
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
@@ -106,6 +107,14 @@ export default function ResourceDetailPage({
         }]
       : []),
   ];
+
+  // Sync active tab from ?tab= query param
+  React.useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (!tabParam) return;
+    const idx = allTabs.findIndex((t) => t.title.toLowerCase() === tabParam.toLowerCase());
+    if (idx >= 0) setActiveTabKey(idx);
+  }, [searchParams, allTabs.length]);
 
   const handleEdit = () => {
     setActiveTabKey(allTabs.length - 1);

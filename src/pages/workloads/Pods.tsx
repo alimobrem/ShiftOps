@@ -8,12 +8,15 @@ import { useUIStore } from '@/store/useUIStore';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import '@/openshift-components.css';
 
+/* Pod detail page has a Logs tab at index 1 */
+
 function PodActions({ pod }: { pod: Pod }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const restartPod = useClusterStore((s) => s.restartPod);
   const deletePod = useClusterStore((s) => s.deletePod);
   const addToast = useUIStore((s) => s.addToast);
+  const navigate = useNavigate();
 
   return (
     <span onClick={(e) => e.stopPropagation()}>
@@ -37,7 +40,7 @@ function PodActions({ pod }: { pod: Pod }) {
           </DropdownItem>
           <DropdownItem onClick={() => {
             setMenuOpen(false);
-            addToast({ type: 'info', title: 'View Logs', description: `Opening logs for ${pod.name}` });
+            navigate(`/workloads/pods/${pod.namespace}/${pod.name}?tab=logs`);
           }}>
             View Logs
           </DropdownItem>
