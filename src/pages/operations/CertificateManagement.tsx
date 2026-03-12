@@ -1,5 +1,7 @@
 import { Label } from '@patternfly/react-core';
+import { useNavigate } from 'react-router-dom';
 import ResourceListPage, { type ColumnDef } from '@/components/ResourceListPage';
+import ResourceActions from '@/components/ResourceActions';
 import { useK8sResource, ageFromTimestamp, type K8sMeta } from '@/hooks/useK8sResource';
 
 interface CertRow {
@@ -42,22 +44,9 @@ function computeAgeDays(ts: string | undefined): number {
   return Math.floor(diff / 86400000);
 }
 
-const columns: ColumnDef<CertRow>[] = [
-  { title: 'Name', key: 'name' },
-  { title: 'Namespace', key: 'namespace' },
-  { title: 'Type', key: 'type' },
-  { title: 'Age', key: 'age' },
-  {
-    title: 'Status',
-    key: 'status',
-    render: (cert) => (
-      <Label color={getCertStatusColor(cert.status)}>{cert.status}</Label>
-    ),
-  },
-];
-
 export default function CertificateManagement() {
-  const { data: allSecrets, loading } = useK8sResource<RawSecret, CertRow | null>(
+  const navigate = useNavigate();
+  const { data: allSecrets, loading, refetch } = useK8sResource<RawSecret, CertRow | null>(
     '/api/v1/secrets',
     (item) => {
       if (item.type !== 'kubernetes.io/tls') return null;
@@ -78,6 +67,31 @@ export default function CertificateManagement() {
 
   const data = allSecrets.filter((item): item is CertRow => item !== null);
 
+  const columns: ColumnDef<CertRow>[] = [
+    { title: 'Name', key: 'name' },
+    { title: 'Namespace', key: 'namespace' },
+    { title: 'Age', key: 'age' },
+    {
+      title: 'Status', key: 'status',
+      render: (cert) => <Label color={getCertStatusColor(cert.status)}>{cert.status}</Label>,
+    },
+    {
+      title: '', key: 'actions',
+      render: (cert) => (
+        <ResourceActions
+          name={cert.name}
+          namespace={cert.namespace}
+          apiBase="/api/v1"
+          resourceType="secrets"
+          kind="TLS Secret"
+          detailPath={`/workloads/secrets/${cert.namespace}/${cert.name}`}
+          onDelete={refetch}
+        />
+      ),
+      sortable: false,
+    },
+  ];
+
   return (
     <ResourceListPage
       title="Certificate Management"
@@ -86,6 +100,7 @@ export default function CertificateManagement() {
       data={data}
       loading={loading}
       getRowKey={(cert) => `${cert.namespace}-${cert.name}`}
+      onRowClick={(cert) => navigate(`/workloads/secrets/${cert.namespace}/${cert.name}`)}
       nameField="name"
       filterFn={(cert, s) =>
         cert.name.toLowerCase().includes(s.toLowerCase()) ||
