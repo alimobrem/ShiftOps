@@ -213,6 +213,10 @@ async function executeCommand(rawCmd: string): Promise<{ output: string; isError
   }
 }
 
+const MIN_HEIGHT = 150;
+const MAX_HEIGHT = window.innerHeight - 100;
+const DEFAULT_HEIGHT = 350;
+
 const WebTerminal: React.FC<WebTerminalProps> = ({ open, onClose }) => {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<TerminalEntry[]>([]);
@@ -220,8 +224,32 @@ const WebTerminal: React.FC<WebTerminalProps> = ({ open, onClose }) => {
   const [historyIdx, setHistoryIdx] = useState(-1);
   const [nextId, setNextId] = useState(0);
   const [executing, setExecuting] = useState(false);
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dragging = useRef(false);
+  const startY = useRef(0);
+  const startH = useRef(0);
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    startY.current = e.clientY;
+    startH.current = height;
+
+    const onMove = (me: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = startY.current - me.clientY;
+      setHeight(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startH.current + delta)));
+    };
+    const onUp = () => {
+      dragging.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [height]);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 100);
@@ -276,7 +304,8 @@ const WebTerminal: React.FC<WebTerminalProps> = ({ open, onClose }) => {
   if (!open) return null;
 
   return (
-    <div className="os-terminal">
+    <div className="os-terminal" style={{ height }}>
+      <div className="os-terminal__resize" onMouseDown={handleDragStart} />
       <div className="os-terminal__header">
         <span className="os-terminal__title">Terminal</span>
         <button type="button" className="os-terminal__close" aria-label="Close terminal" onClick={onClose}>&#x2715;</button>
@@ -307,7 +336,9 @@ const WebTerminal: React.FC<WebTerminalProps> = ({ open, onClose }) => {
       </div>
 
       <style>{`
-        .os-terminal { position: fixed; bottom: 0; left: 0; right: 0; z-index: 9990; display: flex; flex-direction: column; height: 350px; border-top: 1px solid var(--glass-border); }
+        .os-terminal { position: fixed; bottom: 0; left: 0; right: 0; z-index: 9990; display: flex; flex-direction: column; border-top: 1px solid var(--glass-border); }
+        .os-terminal__resize { height: 4px; cursor: ns-resize; background: transparent; flex-shrink: 0; }
+        .os-terminal__resize:hover { background: var(--theme-color-1, #0066cc); }
         .os-terminal__header { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #1a1a2e; color: #e2e8f0; font-size: 13px; font-weight: 600; }
         .os-terminal__close { background: none; border: none; color: #e2e8f0; cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 3px; }
         .os-terminal__close:hover { background: rgba(255,255,255,0.1); }
