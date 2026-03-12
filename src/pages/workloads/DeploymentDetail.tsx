@@ -117,26 +117,33 @@ export default function DeploymentDetail() {
   );
 
   const rolloutHistory = useMemo(() => {
-    const sorted = [...replicaSets].sort((a, b) => {
-      const revA = Number(((a['metadata'] as Record<string, unknown>)?.['annotations'] as Record<string, string>)?.['deployment.kubernetes.io/revision'] ?? 0);
-      const revB = Number(((b['metadata'] as Record<string, unknown>)?.['annotations'] as Record<string, string>)?.['deployment.kubernetes.io/revision'] ?? 0);
-      return revB - revA;
-    });
-    return sorted.map((rs) => {
-      const rsMeta = rs['metadata'] as Record<string, unknown>;
-      const rsSpec = rs['spec'] as Record<string, unknown>;
-      const rsStatus = rs['status'] as Record<string, unknown>;
-      const annotations = (rsMeta?.['annotations'] ?? {}) as Record<string, string>;
-      const template = (rsSpec?.['template'] as Record<string, unknown>)?.['spec'] as Record<string, unknown> | undefined;
-      const containers = (template?.['containers'] ?? []) as Record<string, unknown>[];
-      return {
-        revision: annotations['deployment.kubernetes.io/revision'] ?? '-',
-        image: containers[0] ? String(containers[0]['image'] ?? '-') : '-',
-        replicas: Number(rsSpec?.['replicas'] ?? 0),
-        ready: Number(rsStatus?.['readyReplicas'] ?? 0),
-        created: String(rsMeta?.['creationTimestamp'] ?? '-'),
-      };
-    });
+    try {
+      const sorted = [...replicaSets].sort((a, b) => {
+        const metaA = (a?.['metadata'] ?? {}) as Record<string, unknown>;
+        const metaB = (b?.['metadata'] ?? {}) as Record<string, unknown>;
+        const annA = (metaA['annotations'] ?? {}) as Record<string, string>;
+        const annB = (metaB['annotations'] ?? {}) as Record<string, string>;
+        return Number(annB['deployment.kubernetes.io/revision'] ?? 0) - Number(annA['deployment.kubernetes.io/revision'] ?? 0);
+      });
+      return sorted.map((rs) => {
+        const rsMeta = (rs?.['metadata'] ?? {}) as Record<string, unknown>;
+        const rsSpec = (rs?.['spec'] ?? {}) as Record<string, unknown>;
+        const rsStatus = (rs?.['status'] ?? {}) as Record<string, unknown>;
+        const annotations = (rsMeta['annotations'] ?? {}) as Record<string, string>;
+        const template = rsSpec['template'] as Record<string, unknown> | undefined;
+        const podSpec = template?.['spec'] as Record<string, unknown> | undefined;
+        const containers = (podSpec?.['containers'] ?? []) as Record<string, unknown>[];
+        return {
+          revision: annotations['deployment.kubernetes.io/revision'] ?? '-',
+          image: containers.length > 0 ? String(containers[0]['image'] ?? '-') : '-',
+          replicas: Number(rsSpec['replicas'] ?? 0),
+          ready: Number(rsStatus['readyReplicas'] ?? 0),
+          created: String(rsMeta['creationTimestamp'] ?? '-'),
+        };
+      });
+    } catch {
+      return [];
+    }
   }, [replicaSets]);
 
   const rolloutTab = (
