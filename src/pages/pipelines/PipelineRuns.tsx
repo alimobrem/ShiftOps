@@ -1,7 +1,12 @@
+import React from 'react';
+import { Button, DropdownItem } from '@patternfly/react-core';
 import ResourceListPage, { type ColumnDef } from '@/components/ResourceListPage';
 import ResourceActions from '@/components/ResourceActions';
 import StatusIndicator from '@/components/StatusIndicator';
 import { useK8sResource, ageFromTimestamp, type K8sMeta } from '@/hooks/useK8sResource';
+import { useUIStore } from '@/store/useUIStore';
+
+const BASE = '/api/kubernetes';
 
 interface PipelineRun {
   name: string;
@@ -59,8 +64,44 @@ const columns: ColumnDef<PipelineRun>[] = [
   },
   { title: 'Duration', key: 'duration' },
   { title: 'Age', key: 'age' },
-  { title: '', key: 'actions', render: (r) => <ResourceActions name={r.name} namespace={r.namespace} apiBase="/apis/tekton.dev/v1" resourceType="pipelineruns" kind="PipelineRun" />, sortable: false },
+  { title: '', key: 'actions', render: (r) => <PipelineRunActions run={r} />, sortable: false },
 ];
+
+function PipelineRunActions({ run }: { run: PipelineRun }) {
+  const addToast = useUIStore((s) => s.addToast);
+
+  const handleRerun = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`${BASE}/apis/tekton.dev/v1/namespaces/${encodeURIComponent(run.namespace)}/pipelineruns`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiVersion: 'tekton.dev/v1', kind: 'PipelineRun',
+          metadata: { generateName: `${run.pipeline}-rerun-`, namespace: run.namespace },
+          spec: { pipelineRef: { name: run.pipeline } },
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      addToast({ type: 'success', title: `Re-run started for ${run.pipeline}` });
+    } catch (err) {
+      addToast({ type: 'error', title: 'Re-run failed', description: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
+  return (
+    <ResourceActions
+      name={run.name}
+      namespace={run.namespace}
+      apiBase="/apis/tekton.dev/v1"
+      resourceType="pipelineruns"
+      kind="PipelineRun"
+      extraItems={
+        <DropdownItem onClick={handleRerun}>Re-run Pipeline</DropdownItem>
+      }
+    />
+  );
+}
 
 export default function PipelineRuns() {
   const { data, loading } = useK8sResource<RawPipelineRun, PipelineRun>(

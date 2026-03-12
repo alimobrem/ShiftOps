@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardBody, Grid, GridItem, DescriptionList, DescriptionListGroup, DescriptionListTerm, DescriptionListDescription, Label, Title, Progress, ProgressVariant } from '@patternfly/react-core';
+import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { useParams } from 'react-router-dom';
 import ResourceDetailPage from '@/components/ResourceDetailPage';
 import StatusIndicator from '@/components/StatusIndicator';
@@ -12,6 +13,7 @@ export default function DeploymentDetail() {
   const [deploy, setDeploy] = useState<Record<string, unknown> | null>(null);
   const [yaml, setYaml] = useState('');
   const [loading, setLoading] = useState(true);
+  const [replicaSets, setReplicaSets] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -28,6 +30,21 @@ export default function DeploymentDetail() {
       setLoading(false);
     }
     load();
+
+    // Fetch ReplicaSets for rollout history
+    async function loadRS() {
+      try {
+        const res = await fetch(`${BASE}/apis/apps/v1/namespaces/${namespace}/replicasets`);
+        if (!res.ok) return;
+        const json = await res.json() as { items: Record<string, unknown>[] };
+        const owned = json.items.filter((rs) => {
+          const owners = ((rs['metadata'] as Record<string, unknown>)?.['ownerReferences'] ?? []) as Record<string, unknown>[];
+          return owners.some((o) => String(o['name']) === name && String(o['kind']) === 'Deployment');
+        });
+        setReplicaSets(owned);
+      } catch { /* ignore */ }
+    }
+    loadRS();
   }, [namespace, name]);
 
   if (loading) return <div className="os-text-muted" role="status">Loading...</div>;
@@ -99,6 +116,55 @@ export default function DeploymentDetail() {
     </Grid>
   );
 
+  const rolloutHistory = useMemo(() => {
+    const sorted = [...replicaSets].sort((a, b) => {
+      const revA = Number(((a['metadata'] as Record<string, unknown>)?.['annotations'] as Record<string, string>)?.['deployment.kubernetes.io/revision'] ?? 0);
+      const revB = Number(((b['metadata'] as Record<string, unknown>)?.['annotations'] as Record<string, string>)?.['deployment.kubernetes.io/revision'] ?? 0);
+      return revB - revA;
+    });
+    return sorted.map((rs) => {
+      const rsMeta = rs['metadata'] as Record<string, unknown>;
+      const rsSpec = rs['spec'] as Record<string, unknown>;
+      const rsStatus = rs['status'] as Record<string, unknown>;
+      const annotations = (rsMeta?.['annotations'] ?? {}) as Record<string, string>;
+      const template = (rsSpec?.['template'] as Record<string, unknown>)?.['spec'] as Record<string, unknown> | undefined;
+      const containers = (template?.['containers'] ?? []) as Record<string, unknown>[];
+      return {
+        revision: annotations['deployment.kubernetes.io/revision'] ?? '-',
+        image: containers[0] ? String(containers[0]['image'] ?? '-') : '-',
+        replicas: Number(rsSpec?.['replicas'] ?? 0),
+        ready: Number(rsStatus?.['readyReplicas'] ?? 0),
+        created: String(rsMeta?.['creationTimestamp'] ?? '-'),
+      };
+    });
+  }, [replicaSets]);
+
+  const rolloutTab = (
+    <Card>
+      <CardBody>
+        <Title headingLevel="h3" size="lg" className="os-detail__section-title">Rollout History</Title>
+        {rolloutHistory.length === 0 ? (
+          <p className="os-text-muted">No rollout history available.</p>
+        ) : (
+          <Table aria-label="Rollout history" variant="compact">
+            <Thead><Tr><Th>Revision</Th><Th>Image</Th><Th>Replicas</Th><Th>Ready</Th><Th>Created</Th></Tr></Thead>
+            <Tbody>
+              {rolloutHistory.map((r, i) => (
+                <Tr key={i}>
+                  <Td><Label color={i === 0 ? 'green' : 'grey'}>{r.revision}{i === 0 ? ' (current)' : ''}</Label></Td>
+                  <Td><code>{r.image}</code></Td>
+                  <Td>{r.replicas}</Td>
+                  <Td>{r.ready}</Td>
+                  <Td>{r.created}</Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        )}
+      </CardBody>
+    </Card>
+  );
+
   return (
     <ResourceDetailPage
       kind="Deployment"
@@ -109,7 +175,10 @@ export default function DeploymentDetail() {
       backLabel="Deployments"
       yaml={yaml}
       labels={labels}
-      tabs={[{ title: 'Details', content: detailsTab }]}
+      tabs={[
+        { title: 'Details', content: detailsTab },
+        { title: 'Rollout History', content: rolloutTab },
+      ]}
     />
   );
 }

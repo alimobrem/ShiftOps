@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import ResourceListPage, { type ColumnDef } from '@/components/ResourceListPage';
 import ResourceActions from '@/components/ResourceActions';
+import { Label } from '@patternfly/react-core';
 import { useK8sResource, ageFromTimestamp, type K8sMeta } from '@/hooks/useK8sResource';
 
 interface PVC {
@@ -34,7 +35,11 @@ const accessModeShort: Record<string, string> = {
 const columns: ColumnDef<PVC>[] = [
   { title: 'Name', key: 'name' },
   { title: 'Namespace', key: 'namespace' },
-  { title: 'Status', key: 'status' },
+  { title: 'Status', key: 'status', render: (pvc) => (
+    <Label color={pvc.status === 'Bound' ? 'green' : pvc.status === 'Pending' ? 'red' : 'orange'}>
+      {pvc.status === 'Pending' && pvc.volume === '-' ? 'Unbound' : pvc.status}
+    </Label>
+  ), sortable: false },
   { title: 'Volume', key: 'volume' },
   { title: 'Capacity', key: 'capacity' },
   { title: 'Access Modes', key: 'accessModes' },

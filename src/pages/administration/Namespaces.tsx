@@ -14,7 +14,10 @@ interface NS {
   status: string;
   labels: string[];
   age: string;
+  podCount: number;
 }
+
+const BASE = '/api/kubernetes';
 
 interface RawNamespace extends K8sMeta {
   status: { phase?: string };
@@ -87,21 +90,44 @@ const columns: ColumnDef<NS>[] = [
       {ns.labels.map((l) => <Label key={l} color="blue"><code className="os-namespaces__label-code">{l}</code></Label>)}
     </span>
   ), sortable: false },
+  { title: 'Workloads', key: 'podCount', render: (ns) => ns.podCount === 0 ? <Label color="orange">Unused</Label> : <span>{ns.podCount} pods</span>, sortable: false },
   { title: 'Age', key: 'age' },
   { title: '', key: 'actions', render: (ns) => <NamespaceActions ns={ns} />, sortable: false },
 ];
 
 export default function Namespaces() {
   const navigate = useNavigate();
-  const { data, loading } = useK8sResource<RawNamespace, NS>(
+  const [podCounts, setPodCounts] = React.useState<Record<string, number>>({});
+
+  const { data: rawData, loading } = useK8sResource<RawNamespace, NS>(
     '/api/v1/namespaces',
     (item) => ({
       name: item.metadata.name,
       status: item.status.phase ?? 'Active',
       labels: Object.entries(item.metadata.labels ?? {}).map(([k, v]) => `${k}=${v}`),
       age: ageFromTimestamp(item.metadata.creationTimestamp),
+      podCount: 0,
     }),
   );
+
+  React.useEffect(() => {
+    async function loadPodCounts() {
+      try {
+        const res = await fetch(`${BASE}/api/v1/pods`);
+        if (!res.ok) return;
+        const json = await res.json() as { items?: { metadata: { namespace?: string } }[] };
+        const counts: Record<string, number> = {};
+        for (const pod of json.items ?? []) {
+          const ns = pod.metadata.namespace ?? '';
+          counts[ns] = (counts[ns] ?? 0) + 1;
+        }
+        setPodCounts(counts);
+      } catch { /* ignore */ }
+    }
+    loadPodCounts();
+  }, [rawData.length]);
+
+  const data = rawData.map((ns) => ({ ...ns, podCount: podCounts[ns.name] ?? 0 }));
 
   return (
     <ResourceListPage
