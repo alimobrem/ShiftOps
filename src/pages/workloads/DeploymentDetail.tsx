@@ -47,6 +47,36 @@ export default function DeploymentDetail() {
     loadRS();
   }, [namespace, name]);
 
+  const rolloutHistory = useMemo(() => {
+    try {
+      const sorted = [...replicaSets].sort((a, b) => {
+        const metaA = (a?.['metadata'] ?? {}) as Record<string, unknown>;
+        const metaB = (b?.['metadata'] ?? {}) as Record<string, unknown>;
+        const annA = (metaA['annotations'] ?? {}) as Record<string, string>;
+        const annB = (metaB['annotations'] ?? {}) as Record<string, string>;
+        return Number(annB['deployment.kubernetes.io/revision'] ?? 0) - Number(annA['deployment.kubernetes.io/revision'] ?? 0);
+      });
+      return sorted.map((rs) => {
+        const rsMeta = (rs?.['metadata'] ?? {}) as Record<string, unknown>;
+        const rsSpec = (rs?.['spec'] ?? {}) as Record<string, unknown>;
+        const rsStatus = (rs?.['status'] ?? {}) as Record<string, unknown>;
+        const annotations = (rsMeta['annotations'] ?? {}) as Record<string, string>;
+        const template = rsSpec['template'] as Record<string, unknown> | undefined;
+        const podSpec = template?.['spec'] as Record<string, unknown> | undefined;
+        const containers = (podSpec?.['containers'] ?? []) as Record<string, unknown>[];
+        return {
+          revision: annotations['deployment.kubernetes.io/revision'] ?? '-',
+          image: containers.length > 0 ? String(containers[0]['image'] ?? '-') : '-',
+          replicas: Number(rsSpec['replicas'] ?? 0),
+          ready: Number(rsStatus['readyReplicas'] ?? 0),
+          created: String(rsMeta['creationTimestamp'] ?? '-'),
+        };
+      });
+    } catch {
+      return [];
+    }
+  }, [replicaSets]);
+
   if (loading) return <div className="os-text-muted" role="status">Loading...</div>;
   if (!deploy) return <div className="os-text-muted">Deployment not found. Check that the namespace and name are correct.</div>;
 
@@ -115,36 +145,6 @@ export default function DeploymentDetail() {
       </GridItem>
     </Grid>
   );
-
-  const rolloutHistory = useMemo(() => {
-    try {
-      const sorted = [...replicaSets].sort((a, b) => {
-        const metaA = (a?.['metadata'] ?? {}) as Record<string, unknown>;
-        const metaB = (b?.['metadata'] ?? {}) as Record<string, unknown>;
-        const annA = (metaA['annotations'] ?? {}) as Record<string, string>;
-        const annB = (metaB['annotations'] ?? {}) as Record<string, string>;
-        return Number(annB['deployment.kubernetes.io/revision'] ?? 0) - Number(annA['deployment.kubernetes.io/revision'] ?? 0);
-      });
-      return sorted.map((rs) => {
-        const rsMeta = (rs?.['metadata'] ?? {}) as Record<string, unknown>;
-        const rsSpec = (rs?.['spec'] ?? {}) as Record<string, unknown>;
-        const rsStatus = (rs?.['status'] ?? {}) as Record<string, unknown>;
-        const annotations = (rsMeta['annotations'] ?? {}) as Record<string, string>;
-        const template = rsSpec['template'] as Record<string, unknown> | undefined;
-        const podSpec = template?.['spec'] as Record<string, unknown> | undefined;
-        const containers = (podSpec?.['containers'] ?? []) as Record<string, unknown>[];
-        return {
-          revision: annotations['deployment.kubernetes.io/revision'] ?? '-',
-          image: containers.length > 0 ? String(containers[0]['image'] ?? '-') : '-',
-          replicas: Number(rsSpec['replicas'] ?? 0),
-          ready: Number(rsStatus['readyReplicas'] ?? 0),
-          created: String(rsMeta['creationTimestamp'] ?? '-'),
-        };
-      });
-    } catch {
-      return [];
-    }
-  }, [replicaSets]);
 
   const rolloutTab = (
     <Card>
