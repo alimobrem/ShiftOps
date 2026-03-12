@@ -84,6 +84,16 @@ export default function TaskRuns() {
       loading={loading}
       getRowKey={(t) => `${t.namespace}-${t.name}`}
       nameField="name"
+      createLabel="Start TaskRun"
+      createConfig={{
+        apiVersion: 'tekton.dev/v1', kind: 'TaskRun', apiBase: '/apis/tekton.dev/v1', plural: 'taskruns',
+        extraFields: [{ name: 'taskName', label: 'Task Name', placeholder: 'my-task', required: true }],
+        buildBody: (f) => ({
+          apiVersion: 'tekton.dev/v1', kind: 'TaskRun',
+          metadata: { generateName: `${f['taskName']}-run-`, namespace: f['namespace'] || 'default' },
+          spec: { taskRef: { name: f['taskName'] } },
+        }),
+      }}
     />
   );
 }

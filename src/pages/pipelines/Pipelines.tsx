@@ -43,6 +43,16 @@ export default function Pipelines() {
       loading={loading}
       getRowKey={(p) => `${p.namespace}-${p.name}`}
       nameField="name"
+      createLabel="Create Pipeline"
+      createConfig={{
+        apiVersion: 'tekton.dev/v1', kind: 'Pipeline', apiBase: '/apis/tekton.dev/v1', plural: 'pipelines',
+        extraFields: [{ name: 'taskName', label: 'First Task Name', placeholder: 'build', required: true }, { name: 'image', label: 'Task Image', placeholder: 'alpine', required: true }],
+        buildBody: (f) => ({
+          apiVersion: 'tekton.dev/v1', kind: 'Pipeline',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          spec: { tasks: [{ name: f['taskName'], taskRef: { name: f['taskName'] } }] },
+        }),
+      }}
     />
   );
 }

@@ -84,6 +84,16 @@ export default function PipelineRuns() {
       loading={loading}
       getRowKey={(p) => `${p.namespace}-${p.name}`}
       nameField="name"
+      createLabel="Start PipelineRun"
+      createConfig={{
+        apiVersion: 'tekton.dev/v1', kind: 'PipelineRun', apiBase: '/apis/tekton.dev/v1', plural: 'pipelineruns',
+        extraFields: [{ name: 'pipelineName', label: 'Pipeline Name', placeholder: 'my-pipeline', required: true }],
+        buildBody: (f) => ({
+          apiVersion: 'tekton.dev/v1', kind: 'PipelineRun',
+          metadata: { generateName: `${f['pipelineName']}-run-`, namespace: f['namespace'] || 'default' },
+          spec: { pipelineRef: { name: f['pipelineName'] } },
+        }),
+      }}
     />
   );
 }
