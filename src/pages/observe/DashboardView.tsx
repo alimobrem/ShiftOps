@@ -102,6 +102,30 @@ async function fetchVariableOptions(): Promise<Record<string, string[]>> {
     if (res.ok) {
       const data = await res.json() as { data?: string[] };
       result['job'] = (data.data ?? []).slice(0, 50);
+      // etcd dashboards use $cluster which maps to job label
+      result['cluster'] = result['job'];
+    }
+  } catch {
+    // ignore
+  }
+
+  // Fetch instance label values
+  try {
+    const res = await fetch(`${PROM_BASE}/api/v1/label/instance/values`);
+    if (res.ok) {
+      const data = await res.json() as { data?: string[] };
+      result['instance'] = (data.data ?? []).slice(0, 50);
+    }
+  } catch {
+    // ignore
+  }
+
+  // Fetch role label values (for node dashboards)
+  try {
+    const res = await fetch(`${PROM_BASE}/api/v1/label/role/values`);
+    if (res.ok) {
+      const data = await res.json() as { data?: string[] };
+      result['role'] = data.data ?? [];
     }
   } catch {
     // ignore
