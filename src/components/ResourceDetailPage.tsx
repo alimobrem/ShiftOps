@@ -20,6 +20,7 @@ import {
 import { TrashIcon, EditIcon, DownloadIcon, CopyIcon } from '@patternfly/react-icons';
 import StatusIndicator from './StatusIndicator';
 import ConfirmDialog from './ConfirmDialog';
+import RelatedResources from './RelatedResources';
 import { useUIStore } from '@/store/useUIStore';
 
 interface DetailTab {
@@ -37,6 +38,7 @@ interface ResourceDetailPageProps {
   backLabel: string;
   tabs: DetailTab[];
   yaml?: string;
+  labels?: Record<string, string>;
 }
 
 export default function ResourceDetailPage({
@@ -49,6 +51,7 @@ export default function ResourceDetailPage({
   backLabel,
   tabs,
   yaml,
+  labels,
 }: ResourceDetailPageProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -56,8 +59,15 @@ export default function ResourceDetailPage({
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
+  const relatedKinds = ['Deployment', 'StatefulSet', 'DaemonSet', 'ReplicaSet', 'Job', 'Pod', 'Service'];
+  const showRelated = relatedKinds.includes(kind) && namespace;
+
   const allTabs = [
     ...tabs,
+    ...(showRelated ? [{
+      title: 'Related',
+      content: <RelatedResources kind={kind} name={name} namespace={namespace} labels={labels} />,
+    }] : []),
     ...(yaml
       ? [{
           title: 'YAML',

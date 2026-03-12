@@ -62,6 +62,7 @@ const navigation = [
       { id: 'overview', name: 'Overview', href: '/home/overview' },
       { id: 'topology', name: 'Topology', href: '/home/topology' },
       { id: 'search', name: 'Search', href: '/home/search' },
+      { id: 'troubleshoot', name: 'Troubleshoot', href: '/home/troubleshoot' },
     ],
   },
   {

@@ -8,6 +8,7 @@ import Overview from './pages/home/Overview';
 import Search from './pages/home/Search';
 import Events from './pages/home/Events';
 import Topology from './pages/home/Topology';
+import Troubleshoot from './pages/home/Troubleshoot';
 
 // Operators
 import OperatorHub from './pages/operators/OperatorHub';
@@ -122,6 +123,7 @@ function App() {
             <Route path="search" element={<Search />} />
             <Route path="events" element={<Events />} />
             <Route path="topology" element={<Topology />} />
+            <Route path="troubleshoot" element={<Troubleshoot />} />
           </Route>
 
           {/* Operators */}

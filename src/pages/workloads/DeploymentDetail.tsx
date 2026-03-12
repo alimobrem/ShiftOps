@@ -108,6 +108,7 @@ export default function DeploymentDetail() {
       backPath="/workloads/deployments"
       backLabel="Deployments"
       yaml={yaml}
+      labels={labels}
       tabs={[{ title: 'Details', content: detailsTab }]}
     />
   );
