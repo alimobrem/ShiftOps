@@ -68,6 +68,22 @@ export default function PersistentVolumeClaims() {
       loading={loading}
       getRowKey={(pvc) => `${pvc.namespace}-${pvc.name}`}
       createLabel="Create PVC"
+      createConfig={{
+        apiVersion: 'v1', kind: 'PersistentVolumeClaim', apiBase: '/api/v1', plural: 'persistentvolumeclaims',
+        extraFields: [
+          { name: 'storage', label: 'Storage Size', placeholder: '1Gi', required: true },
+          { name: 'storageClass', label: 'Storage Class', placeholder: 'gp3-csi' },
+        ],
+        buildBody: (f) => ({
+          apiVersion: 'v1', kind: 'PersistentVolumeClaim',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          spec: {
+            accessModes: ['ReadWriteOnce'],
+            resources: { requests: { storage: f['storage'] || '1Gi' } },
+            ...(f['storageClass'] ? { storageClassName: f['storageClass'] } : {}),
+          },
+        }),
+      }}
       statusField="status"
       nameField="name"
       onRowClick={(item) => navigate(`/storage/persistentvolumeclaims/${item.namespace}/${item.name}`)}

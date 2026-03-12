@@ -71,6 +71,19 @@ export default function RoutesPage() {
       loading={loading}
       getRowKey={(r) => `${r.namespace}-${r.name}`}
       createLabel="Create Route"
+      createConfig={{
+        apiVersion: 'route.openshift.io/v1', kind: 'Route', apiBase: '/apis/route.openshift.io/v1', plural: 'routes',
+        extraFields: [
+          { name: 'host', label: 'Hostname', placeholder: 'app.example.com' },
+          { name: 'serviceName', label: 'Target Service', placeholder: 'my-service', required: true },
+          { name: 'servicePort', label: 'Target Port', placeholder: '8080', required: true },
+        ],
+        buildBody: (f) => ({
+          apiVersion: 'route.openshift.io/v1', kind: 'Route',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          spec: { ...(f['host'] ? { host: f['host'] } : {}), to: { kind: 'Service', name: f['serviceName'], weight: 100 }, port: { targetPort: parseInt(f['servicePort'] || '8080') } },
+        }),
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/networking/routes/${item.namespace}/${item.name}`)}
     />

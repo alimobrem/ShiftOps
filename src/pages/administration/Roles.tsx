@@ -63,6 +63,14 @@ export default function Roles() {
       loading={loading}
       getRowKey={(r) => `${r.kind}-${r.namespace}-${r.name}`}
       createLabel="Create Role"
+      createConfig={{
+        apiVersion: 'rbac.authorization.k8s.io/v1', kind: 'Role', apiBase: '/apis/rbac.authorization.k8s.io/v1', plural: 'roles',
+        buildBody: (f) => ({
+          apiVersion: 'rbac.authorization.k8s.io/v1', kind: 'Role',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          rules: [],
+        }),
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/administration/roles/${item.namespace}/${item.name}`)}
       filterFn={(r, s) => {

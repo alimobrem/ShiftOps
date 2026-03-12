@@ -56,6 +56,18 @@ export default function StatefulSets() {
       loading={loading}
       getRowKey={(s) => `${s.namespace}-${s.name}`}
       createLabel="Create StatefulSet"
+      createConfig={{
+        apiVersion: 'apps/v1', kind: 'StatefulSet', apiBase: '/apis/apps/v1', plural: 'statefulsets',
+        extraFields: [{ name: 'image', label: 'Container Image', placeholder: 'nginx:latest', required: true }],
+        buildBody: (f) => ({
+          apiVersion: 'apps/v1', kind: 'StatefulSet',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default', labels: { app: f['name'] } },
+          spec: {
+            replicas: 1, selector: { matchLabels: { app: f['name'] } }, serviceName: f['name'],
+            template: { metadata: { labels: { app: f['name'] } }, spec: { containers: [{ name: f['name'], image: f['image'], ports: [{ containerPort: 8080 }] }] } },
+          },
+        }),
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/workloads/statefulsets/${item.namespace}/${item.name}`)}
     />

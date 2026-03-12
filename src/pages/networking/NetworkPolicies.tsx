@@ -59,6 +59,14 @@ export default function NetworkPolicies() {
       loading={loading}
       getRowKey={(n) => `${n.namespace}-${n.name}`}
       createLabel="Create Network Policy"
+      createConfig={{
+        apiVersion: 'networking.k8s.io/v1', kind: 'NetworkPolicy', apiBase: '/apis/networking.k8s.io/v1', plural: 'networkpolicies',
+        buildBody: (f) => ({
+          apiVersion: 'networking.k8s.io/v1', kind: 'NetworkPolicy',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          spec: { podSelector: {}, policyTypes: ['Ingress', 'Egress'] },
+        }),
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/networking/networkpolicies/${item.namespace}/${item.name}`)}
     />

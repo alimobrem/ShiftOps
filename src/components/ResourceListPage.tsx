@@ -27,6 +27,21 @@ export interface ColumnDef<T> {
   sortable?: boolean;
 }
 
+interface CreateResourceConfig {
+  /** e.g. "apps/v1" or "v1" */
+  apiVersion: string;
+  /** e.g. "Deployment" */
+  kind: string;
+  /** e.g. "/apis/apps/v1" or "/api/v1" */
+  apiBase: string;
+  /** e.g. "deployments" */
+  plural: string;
+  /** Extra fields beyond name/namespace */
+  extraFields?: { name: string; label: string; placeholder: string; required?: boolean }[];
+  /** Build the resource body from form data. If omitted, creates a minimal resource. */
+  buildBody?: (formData: Record<string, string>) => Record<string, unknown>;
+}
+
 interface ResourceListPageProps<T> {
   title: string;
   description: string;
@@ -38,6 +53,8 @@ interface ResourceListPageProps<T> {
   onRowClick?: (item: T) => void;
   createLabel?: string;
   createHref?: string;
+  createConfig?: CreateResourceConfig;
+  onCreated?: () => void;
   statusField?: keyof T;
   nameField?: keyof T;
   toolbarExtra?: React.ReactNode;
@@ -53,6 +70,8 @@ export default function ResourceListPage<T>({
   getRowKey,
   onRowClick,
   createLabel,
+  createConfig,
+  onCreated,
   statusField,
   nameField,
   toolbarExtra,
@@ -115,10 +134,11 @@ export default function ResourceListPage<T>({
     setCreateOpen(true);
   };
 
-  const resourceKind = title.replace(/s$/, '').replace(/ /g, '');
+  const resourceKind = createConfig?.kind ?? title.replace(/s$/, '').replace(/ /g, '');
   const createFields = [
     { name: 'name', label: 'Name', placeholder: `my-${resourceKind.toLowerCase()}`, required: true },
     { name: 'namespace', label: 'Namespace', placeholder: 'default', required: true },
+    ...(createConfig?.extraFields ?? []),
   ];
 
   const renderCell = (item: T, col: ColumnDef<T>) => {
@@ -247,9 +267,34 @@ export default function ResourceListPage<T>({
           onClose={() => setCreateOpen(false)}
           resourceKind={resourceKind}
           fields={createFields}
-          onSubmit={(formData) => {
+          onSubmit={async (formData) => {
+            if (createConfig) {
+              const ns = formData['namespace'] || 'default';
+              const name = formData['name'];
+              const body = createConfig.buildBody
+                ? createConfig.buildBody(formData)
+                : {
+                    apiVersion: createConfig.apiVersion,
+                    kind: createConfig.kind,
+                    metadata: { name, namespace: ns },
+                  };
+              try {
+                const url = `/api/kubernetes${createConfig.apiBase}/namespaces/${encodeURIComponent(ns)}/${createConfig.plural}`;
+                const res = await fetch(url, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(body),
+                });
+                if (!res.ok) throw new Error(await res.text());
+                addToast({ type: 'success', title: `${resourceKind} created`, description: `${name} in ${ns}` });
+                onCreated?.();
+              } catch (err) {
+                addToast({ type: 'error', title: 'Create failed', description: err instanceof Error ? err.message : String(err) });
+              }
+            } else {
+              addToast({ type: 'success', title: `${resourceKind} created`, description: `${formData['name']} has been created` });
+            }
             setCreateOpen(false);
-            addToast({ type: 'success', title: `${resourceKind} created`, description: `${formData['name']} has been created in ${formData['namespace']}` });
           }}
         />
       )}

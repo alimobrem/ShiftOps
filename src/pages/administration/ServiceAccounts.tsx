@@ -43,6 +43,9 @@ export default function ServiceAccounts() {
       loading={loading}
       getRowKey={(sa) => `${sa.namespace}-${sa.name}`}
       createLabel="Create Service Account"
+      createConfig={{
+        apiVersion: 'v1', kind: 'ServiceAccount', apiBase: '/api/v1', plural: 'serviceaccounts',
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/administration/serviceaccounts/${item.namespace}/${item.name}`)}
       filterFn={(sa, s) => {

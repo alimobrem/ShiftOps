@@ -43,6 +43,9 @@ export default function ConfigMaps() {
       loading={loading}
       getRowKey={(c) => `${c.namespace}-${c.name}`}
       createLabel="Create ConfigMap"
+      createConfig={{
+        apiVersion: 'v1', kind: 'ConfigMap', apiBase: '/api/v1', plural: 'configmaps',
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/workloads/configmaps/${item.namespace}/${item.name}`)}
     />

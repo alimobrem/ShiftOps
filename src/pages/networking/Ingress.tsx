@@ -60,6 +60,19 @@ export default function Ingress() {
       loading={loading}
       getRowKey={(i) => `${i.namespace}-${i.name}`}
       createLabel="Create Ingress"
+      createConfig={{
+        apiVersion: 'networking.k8s.io/v1', kind: 'Ingress', apiBase: '/apis/networking.k8s.io/v1', plural: 'ingresses',
+        extraFields: [
+          { name: 'host', label: 'Host', placeholder: 'app.example.com', required: true },
+          { name: 'serviceName', label: 'Backend Service', placeholder: 'my-service', required: true },
+          { name: 'servicePort', label: 'Service Port', placeholder: '80', required: true },
+        ],
+        buildBody: (f) => ({
+          apiVersion: 'networking.k8s.io/v1', kind: 'Ingress',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          spec: { rules: [{ host: f['host'], http: { paths: [{ path: '/', pathType: 'Prefix', backend: { service: { name: f['serviceName'], port: { number: parseInt(f['servicePort'] || '80') } } } }] } }] },
+        }),
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/networking/ingress/${item.namespace}/${item.name}`)}
     />

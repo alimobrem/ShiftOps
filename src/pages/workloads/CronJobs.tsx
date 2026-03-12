@@ -56,6 +56,18 @@ export default function CronJobs() {
       loading={loading}
       getRowKey={(c) => `${c.namespace}-${c.name}`}
       createLabel="Create CronJob"
+      createConfig={{
+        apiVersion: 'batch/v1', kind: 'CronJob', apiBase: '/apis/batch/v1', plural: 'cronjobs',
+        extraFields: [
+          { name: 'image', label: 'Container Image', placeholder: 'busybox', required: true },
+          { name: 'schedule', label: 'Schedule (cron)', placeholder: '*/5 * * * *', required: true },
+        ],
+        buildBody: (f) => ({
+          apiVersion: 'batch/v1', kind: 'CronJob',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          spec: { schedule: f['schedule'], jobTemplate: { spec: { template: { spec: { containers: [{ name: f['name'], image: f['image'] }], restartPolicy: 'Never' } } } } },
+        }),
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/workloads/cronjobs/${item.namespace}/${item.name}`)}
     />

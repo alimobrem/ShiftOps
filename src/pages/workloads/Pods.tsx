@@ -150,6 +150,16 @@ export default function Pods() {
       getRowKey={(p) => `${p.namespace}-${p.name}`}
       onRowClick={(p) => navigate(`/workloads/pods/${p.namespace}/${p.name}`)}
       createLabel="Create Pod"
+      createConfig={{
+        apiVersion: 'v1', kind: 'Pod', apiBase: '/api/v1', plural: 'pods',
+        extraFields: [{ name: 'image', label: 'Container Image', placeholder: 'nginx:latest', required: true }],
+        buildBody: (f) => ({
+          apiVersion: 'v1', kind: 'Pod',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default', labels: { app: f['name'] } },
+          spec: { containers: [{ name: f['name'], image: f['image'], ports: [{ containerPort: 80 }] }] },
+        }),
+      }}
+      onCreated={refetch}
       statusField="status"
       nameField="name"
       filterFn={(p, s) => p.name.toLowerCase().includes(s.toLowerCase()) || p.namespace.toLowerCase().includes(s.toLowerCase())}

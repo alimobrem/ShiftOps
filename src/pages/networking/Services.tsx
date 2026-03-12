@@ -71,6 +71,21 @@ export default function Services() {
       loading={loading}
       getRowKey={(s) => `${s.namespace}-${s.name}`}
       createLabel="Create Service"
+      createConfig={{
+        apiVersion: 'v1', kind: 'Service', apiBase: '/api/v1', plural: 'services',
+        extraFields: [
+          { name: 'port', label: 'Port', placeholder: '80', required: true },
+          { name: 'targetPort', label: 'Target Port', placeholder: '8080', required: true },
+        ],
+        buildBody: (f) => ({
+          apiVersion: 'v1', kind: 'Service',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          spec: {
+            selector: { app: f['name'] },
+            ports: [{ port: parseInt(f['port'] || '80'), targetPort: parseInt(f['targetPort'] || '8080'), protocol: 'TCP' }],
+          },
+        }),
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/networking/services/${item.namespace}/${item.name}`)}
     />

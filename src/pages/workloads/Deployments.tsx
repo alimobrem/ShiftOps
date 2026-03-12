@@ -104,6 +104,26 @@ export default function Deployments() {
       getRowKey={(d) => `${d.namespace}-${d.name}`}
       onRowClick={(d) => navigate(`/workloads/deployments/${d.namespace}/${d.name}`)}
       createLabel="Create Deployment"
+      createConfig={{
+        apiVersion: 'apps/v1', kind: 'Deployment', apiBase: '/apis/apps/v1', plural: 'deployments',
+        extraFields: [
+          { name: 'image', label: 'Container Image', placeholder: 'nginx:latest', required: true },
+          { name: 'replicas', label: 'Replicas', placeholder: '1' },
+        ],
+        buildBody: (f) => ({
+          apiVersion: 'apps/v1', kind: 'Deployment',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default', labels: { app: f['name'] } },
+          spec: {
+            replicas: parseInt(f['replicas'] || '1'),
+            selector: { matchLabels: { app: f['name'] } },
+            template: {
+              metadata: { labels: { app: f['name'] } },
+              spec: { containers: [{ name: f['name'], image: f['image'], ports: [{ containerPort: 8080 }] }] },
+            },
+          },
+        }),
+      }}
+      onCreated={refetch}
       statusField="status"
       nameField="name"
       filterFn={(d, s) => d.name.toLowerCase().includes(s.toLowerCase()) || d.namespace.toLowerCase().includes(s.toLowerCase())}

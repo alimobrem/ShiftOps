@@ -64,6 +64,18 @@ export default function DaemonSets() {
       loading={loading}
       getRowKey={(ds) => `${ds.namespace}-${ds.name}`}
       createLabel="Create DaemonSet"
+      createConfig={{
+        apiVersion: 'apps/v1', kind: 'DaemonSet', apiBase: '/apis/apps/v1', plural: 'daemonsets',
+        extraFields: [{ name: 'image', label: 'Container Image', placeholder: 'nginx:latest', required: true }],
+        buildBody: (f) => ({
+          apiVersion: 'apps/v1', kind: 'DaemonSet',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default', labels: { app: f['name'] } },
+          spec: {
+            selector: { matchLabels: { app: f['name'] } },
+            template: { metadata: { labels: { app: f['name'] } }, spec: { containers: [{ name: f['name'], image: f['image'] }] } },
+          },
+        }),
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/workloads/daemonsets/${item.namespace}/${item.name}`)}
     />

@@ -62,6 +62,15 @@ export default function Jobs() {
       loading={loading}
       getRowKey={(j) => `${j.namespace}-${j.name}`}
       createLabel="Create Job"
+      createConfig={{
+        apiVersion: 'batch/v1', kind: 'Job', apiBase: '/apis/batch/v1', plural: 'jobs',
+        extraFields: [{ name: 'image', label: 'Container Image', placeholder: 'busybox', required: true }],
+        buildBody: (f) => ({
+          apiVersion: 'batch/v1', kind: 'Job',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          spec: { template: { spec: { containers: [{ name: f['name'], image: f['image'] }], restartPolicy: 'Never' } } },
+        }),
+      }}
       statusField="status"
       nameField="name"
       onRowClick={(item) => navigate(`/workloads/jobs/${item.namespace}/${item.name}`)}

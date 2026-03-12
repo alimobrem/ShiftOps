@@ -56,6 +56,14 @@ export default function Secrets() {
       loading={loading}
       getRowKey={(s) => `${s.namespace}-${s.name}`}
       createLabel="Create Secret"
+      createConfig={{
+        apiVersion: 'v1', kind: 'Secret', apiBase: '/api/v1', plural: 'secrets',
+        buildBody: (f) => ({
+          apiVersion: 'v1', kind: 'Secret',
+          metadata: { name: f['name'], namespace: f['namespace'] || 'default' },
+          type: 'Opaque', data: {},
+        }),
+      }}
       nameField="name"
       onRowClick={(item) => navigate(`/workloads/secrets/${item.namespace}/${item.name}`)}
     />
