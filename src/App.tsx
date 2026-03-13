@@ -72,6 +72,7 @@ import GitImport from './pages/developer/GitImport';
 // Helm
 import HelmReleases from './pages/helm/HelmReleases';
 import HelmCharts from './pages/helm/HelmCharts';
+import HelmChartCatalog from './pages/helm/HelmChartCatalog';
 
 // Pipelines
 import Pipelines from './pages/pipelines/Pipelines';
@@ -366,7 +367,8 @@ function App() {
           {/* Helm */}
           <Route path="helm">
             <Route path="releases" element={<HelmReleases />} />
-            <Route path="charts" element={<HelmCharts />} />
+            <Route path="charts" element={<HelmChartCatalog />} />
+            <Route path="repos" element={<HelmCharts />} />
           </Route>
 
           {/* Pipelines */}

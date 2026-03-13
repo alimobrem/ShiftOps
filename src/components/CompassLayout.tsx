@@ -90,6 +90,8 @@ const navigation = [
       { id: 'secrets', name: 'Secrets', href: '/workloads/secrets' },
       { id: 'configmaps', name: 'ConfigMaps', href: '/workloads/configmaps' },
       { id: 'helm', name: 'Helm Releases', href: '/helm/releases' },
+      { id: 'helm-charts', name: 'Helm Charts', href: '/helm/charts' },
+      { id: 'helm-repos', name: 'Helm Repos', href: '/helm/repos' },
       { id: 'pipelines', name: 'Pipelines', href: '/pipelines/pipelines' },
     ],
   },

@@ -256,6 +256,22 @@ body::before, body::after {
   -webkit-text-fill-color: var(--modern-text) !important;
 }
 
+/* --- Form Controls (TextInput, Select, etc.) --- */
+.pf-v6-c-form-control {
+  --pf-v6-c-form-control--Color: var(--modern-text) !important;
+  --pf-v6-c-form-control--BackgroundColor: var(--modern-card) !important;
+  --pf-v6-c-form-control--m-placeholder--Color: var(--modern-text-muted) !important;
+  --pf-v6-c-form-control--before--BorderColor: var(--modern-border) !important;
+}
+.pf-v6-c-form-control input,
+.pf-v6-c-form-control textarea,
+.pf-v6-c-form-control select {
+  color: var(--modern-text) !important;
+  background-color: var(--modern-card) !important;
+  caret-color: var(--modern-text) !important;
+  -webkit-text-fill-color: var(--modern-text) !important;
+}
+
 /* --- Toolbar --- */
 .pf-v6-c-toolbar { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 0 12px !important; }
 
