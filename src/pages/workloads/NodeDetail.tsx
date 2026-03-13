@@ -14,9 +14,14 @@ interface NodePod {
   containers: string[];
 }
 
-type LogMode = 'journal' | 'pod';
+type LogMode = 'journal' | 'audit' | 'pod';
 
 const JOURNAL_UNITS = ['kubelet', 'crio', 'kernel'] as const;
+const AUDIT_LOG_PATHS = [
+  { label: 'API Server', path: 'kube-apiserver' },
+  { label: 'OAuth Server', path: 'oauth-apiserver' },
+  { label: 'OpenShift API', path: 'openshift-apiserver' },
+] as const;
 
 export default function NodeDetail() {
   const { name } = useParams();
@@ -31,6 +36,10 @@ export default function NodeDetail() {
   const [journalLoading, setJournalLoading] = useState(false);
   const [journalUnit, setJournalUnit] = useState<string>(JOURNAL_UNITS[0]);
   const [unitSelectOpen, setUnitSelectOpen] = useState(false);
+  const [auditLogs, setAuditLogs] = useState('');
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditSource, setAuditSource] = useState<string>(AUDIT_LOG_PATHS[0].path);
+  const [auditSourceOpen, setAuditSourceOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -103,6 +112,72 @@ export default function NodeDetail() {
     fetchJournal();
     return () => { cancelled = true; };
   }, [name, logMode, journalUnit]);
+
+  // Fetch audit logs from node
+  useEffect(() => {
+    if (!name || logMode !== 'audit') return;
+    let cancelled = false;
+    async function fetchAudit() {
+      setAuditLoading(true);
+      setAuditLogs('');
+
+      // Try multiple paths where OpenShift stores audit logs
+      const paths = [
+        `/api/v1/nodes/${encodeURIComponent(name!)}/proxy/logs/${auditSource}/audit.log`,
+        `/api/v1/nodes/${encodeURIComponent(name!)}/proxy/logs/audit/audit.log`,
+        `/api/v1/nodes/${encodeURIComponent(name!)}/proxy/logs/${auditSource}-audit.log`,
+      ];
+
+      let found = false;
+      for (const path of paths) {
+        try {
+          const res = await fetch(`${BASE}${path}`);
+          if (res.ok) {
+            const text = await res.text();
+            if (!cancelled && text.trim()) {
+              // Audit logs are JSONL — parse and format for readability
+              const lines = text.trim().split('\n');
+              const formatted = lines.slice(-500).map((line) => {
+                try {
+                  const entry = JSON.parse(line) as Record<string, unknown>;
+                  const ts = String(entry['requestReceivedTimestamp'] ?? entry['stageTimestamp'] ?? '');
+                  const verb = String(entry['verb'] ?? '');
+                  const user = ((entry['user'] ?? {}) as Record<string, unknown>)['username'] ?? '-';
+                  const resource = ((entry['objectRef'] ?? {}) as Record<string, unknown>);
+                  const resourceStr = [resource['resource'], resource['namespace'], resource['name']].filter(Boolean).join('/');
+                  const code = ((entry['responseStatus'] ?? {}) as Record<string, unknown>)['code'] ?? '';
+                  const stage = String(entry['stage'] ?? '');
+                  return `${ts}  ${String(user).padEnd(24)} ${String(verb).padEnd(8)} ${resourceStr.padEnd(50)} ${code} ${stage}`;
+                } catch {
+                  return line;
+                }
+              }).join('\n');
+              setAuditLogs(formatted);
+              found = true;
+              break;
+            }
+          }
+        } catch { /* try next path */ }
+      }
+
+      if (!cancelled && !found) {
+        setAuditLogs(
+          `No audit logs found at expected paths on this node.\n\n` +
+          `OpenShift audit logs are stored on control plane nodes at:\n` +
+          `  /var/log/kube-apiserver/audit.log\n` +
+          `  /var/log/openshift-apiserver/audit.log\n` +
+          `  /var/log/oauth-apiserver/audit.log\n\n` +
+          `Access requires the node proxy API and the node must be a control plane node.\n` +
+          `Worker nodes do not have API server audit logs.\n\n` +
+          `To view audit logs manually:\n` +
+          `  oc adm node-logs --role=master --path=kube-apiserver/audit.log | tail -100`
+        );
+      }
+      if (!cancelled) setAuditLoading(false);
+    }
+    fetchAudit();
+    return () => { cancelled = true; };
+  }, [name, logMode, auditSource]);
 
   if (loading) return <div className="os-text-muted" role="status">Loading...</div>;
   if (!node) return <div className="os-text-muted">Node not found</div>;
@@ -179,11 +254,40 @@ export default function NodeDetail() {
             onChange={() => setLogMode('journal')}
           />
           <ToggleGroupItem
+            text="Audit Log"
+            isSelected={logMode === 'audit'}
+            onChange={() => setLogMode('audit')}
+          />
+          <ToggleGroupItem
             text="Pod Logs"
             isSelected={logMode === 'pod'}
             onChange={() => setLogMode('pod')}
           />
         </ToggleGroup>
+
+        {logMode === 'audit' && (
+          <>
+            <span className="os-text-muted">Source:</span>
+            <Select
+              isOpen={auditSourceOpen}
+              selected={auditSource}
+              onSelect={(_event, selection) => {
+                setAuditSource(selection as string);
+                setAuditSourceOpen(false);
+              }}
+              onOpenChange={(isOpen) => setAuditSourceOpen(isOpen)}
+              toggle={(toggleRef) => (
+                <MenuToggle ref={toggleRef} onClick={() => setAuditSourceOpen(!auditSourceOpen)}>
+                  {AUDIT_LOG_PATHS.find((p) => p.path === auditSource)?.label ?? auditSource}
+                </MenuToggle>
+              )}
+            >
+              {AUDIT_LOG_PATHS.map((source) => (
+                <SelectOption key={source.path} value={source.path}>{source.label}</SelectOption>
+              ))}
+            </Select>
+          </>
+        )}
 
         {logMode === 'journal' && (
           <>
@@ -236,6 +340,16 @@ export default function NodeDetail() {
           </>
         )}
       </div>
+
+      {logMode === 'audit' && (
+        <LogViewer
+          podName={name ?? ''}
+          namespace=""
+          containers={[]}
+          rawText={auditLogs}
+          rawLoading={auditLoading}
+        />
+      )}
 
       {logMode === 'journal' && (
         <LogViewer
