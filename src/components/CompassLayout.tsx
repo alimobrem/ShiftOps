@@ -104,6 +104,7 @@ const navigation = [
       { id: 'events', name: 'Events', href: '/home/events' },
       { id: 'pod-resources', name: 'Resource Usage', href: '/observe/pod-resources' },
       { id: 'costs', name: 'Cost Dashboard', href: '/observe/costs' },
+      { id: 'user-activity', name: 'User Activity', href: '/observe/user-activity' },
     ],
   },
   {
@@ -127,6 +128,7 @@ const navigation = [
       { id: 'operators', name: 'Operators', href: '/operators/installed' },
       { id: 'operatorhub', name: 'OperatorHub', href: '/operators/operatorhub' },
       { id: 'runbooks', name: 'Runbooks', href: '/operations/runbooks' },
+      { id: 'config-compare', name: 'Config Compare', href: '/cluster/config-compare' },
       { id: 'cluster-settings', name: 'Settings & Updates', href: '/administration/cluster-settings' },
     ],
   },
@@ -139,6 +141,7 @@ const navigation = [
       { id: 'rolebindings', name: 'Role Bindings', href: '/administration/rolebindings' },
       { id: 'serviceaccounts', name: 'Service Accounts', href: '/administration/serviceaccounts' },
       { id: 'oauth', name: 'OAuth', href: '/administration/oauth' },
+      { id: 'access-history', name: 'Access History', href: '/administration/access-history' },
       { id: 'crds', name: 'Custom Resources', href: '/administration/crds' },
     ],
   },

@@ -35,6 +35,7 @@ interface PodData {
 export default function PodDetail() {
   const { namespace, name } = useParams();
   const [pod, setPod] = useState<PodData | null>(null);
+  const [rawResource, setRawResource] = useState<Record<string, unknown> | null>(null);
   const [yaml, setYaml] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -76,6 +77,7 @@ export default function PodDetail() {
             containers,
             conditions,
           });
+          setRawResource(raw);
           setYaml(JSON.stringify(raw, null, 2));
         }
       } catch {
@@ -162,6 +164,7 @@ export default function PodDetail() {
       yaml={yaml}
       apiUrl={`${BASE}/api/v1/namespaces/${namespace}/pods/${name}`}
       onYamlSaved={(newYaml) => setYaml(newYaml)}
+      rawResource={rawResource ?? undefined}
       tabs={[
         { title: 'Details', content: detailsTab },
         { title: 'Logs', content: logsTab },

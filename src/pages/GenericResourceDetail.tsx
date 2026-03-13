@@ -193,6 +193,7 @@ export default function GenericResourceDetail({ kind, apiPath, backPath, backLab
       yaml={yamlContent}
       apiUrl={resourceApiUrl}
       onYamlSaved={(newYaml) => setResource(JSON.parse(newYaml))}
+      rawResource={resource}
       tabs={[{ title: 'Details', content: detailsTab }]}
     />
   );

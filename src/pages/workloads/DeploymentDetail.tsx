@@ -184,6 +184,7 @@ export default function DeploymentDetail() {
       apiUrl={`${BASE}/apis/apps/v1/namespaces/${namespace}/deployments/${name}`}
       onYamlSaved={(newYaml) => { setYaml(newYaml); setDeploy(JSON.parse(newYaml)); }}
       labels={labels}
+      rawResource={deploy}
       tabs={[
         { title: 'Details', content: detailsTab },
         { title: 'Rollout History', content: rolloutTab },

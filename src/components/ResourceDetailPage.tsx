@@ -17,6 +17,8 @@ import { TrashIcon, EditIcon } from '@patternfly/react-icons';
 import StatusIndicator from './StatusIndicator';
 import ConfirmDialog from './ConfirmDialog';
 import RelatedResources from './RelatedResources';
+import OwnershipBadge from './OwnershipBadge';
+import DependencyGraphView from './DependencyGraphView';
 import YamlEditor from './YamlEditor';
 import { useUIStore } from '@/store/useUIStore';
 
@@ -40,6 +42,8 @@ interface ResourceDetailPageProps {
   /** Called when YAML is saved successfully */
   onYamlSaved?: (newYaml: string) => void;
   labels?: Record<string, string>;
+  /** Raw K8s resource object (for ownership detection) */
+  rawResource?: Record<string, unknown>;
 }
 
 export default function ResourceDetailPage({
@@ -55,6 +59,7 @@ export default function ResourceDetailPage({
   apiUrl,
   onYamlSaved,
   labels,
+  rawResource,
 }: ResourceDetailPageProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -64,9 +69,15 @@ export default function ResourceDetailPage({
 
   const relatedKinds = ['Deployment', 'StatefulSet', 'DaemonSet', 'ReplicaSet', 'Job', 'Pod', 'Service'];
   const showRelated = relatedKinds.includes(kind) && namespace;
+  const graphKinds = ['Deployment', 'StatefulSet', 'DaemonSet', 'Service', 'Pod', 'Ingress', 'Route', 'Job'];
+  const showGraph = graphKinds.includes(kind) && namespace;
 
   const allTabs = [
     ...tabs,
+    ...(showGraph ? [{
+      title: 'Dependencies',
+      content: <DependencyGraphView kind={kind} name={name} namespace={namespace} />,
+    }] : []),
     ...(showRelated ? [{
       title: 'Related',
       content: <RelatedResources kind={kind} name={name} namespace={namespace} labels={labels} />,
@@ -120,6 +131,7 @@ export default function ResourceDetailPage({
             <Title headingLevel="h1" size="2xl">{name}</Title>
             <div className="os-detail__meta">
               {status && <StatusIndicator status={status} />}
+              {rawResource && <OwnershipBadge resource={rawResource} />}
               {namespace && (
                 <span className="os-detail__namespace">
                   Namespace: {namespace}

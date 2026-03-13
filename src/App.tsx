@@ -13,6 +13,9 @@ import ServiceMap from './pages/home/ServiceMap';
 import MultiCluster from './pages/home/MultiCluster';
 import Timeline from './pages/observe/Timeline';
 import CostDashboard from './pages/observe/CostDashboard';
+import UserActivity from './pages/observe/UserActivity';
+import AccessHistory from './pages/administration/AccessHistory';
+import ConfigCompare from './pages/cluster/ConfigCompare';
 import Runbooks from './pages/operations/Runbooks';
 
 // Operators
@@ -396,6 +399,7 @@ function App() {
             <Route path="alerts" element={<Alerts />} />
             <Route path="timeline" element={<Timeline />} />
             <Route path="costs" element={<CostDashboard />} />
+            <Route path="user-activity" element={<UserActivity />} />
             <Route path="alert-rules" element={<AlertRules />} />
             <Route path="pod-resources" element={<PodResources />} />
             <Route path="namespace-consumption" element={<NamespaceConsumption />} />
@@ -409,6 +413,11 @@ function App() {
             <Route path="certificates" element={<CertificateManagement />} />
             <Route path="runbooks" element={<Runbooks />} />
             <Route path="node-scaling" element={<NodeScaling />} />
+          </Route>
+
+          {/* Cluster */}
+          <Route path="cluster">
+            <Route path="config-compare" element={<ConfigCompare />} />
           </Route>
 
           {/* Compute */}
@@ -515,6 +524,7 @@ function App() {
               />
             } />
             <Route path="oauth" element={<OAuth />} />
+            <Route path="access-history" element={<AccessHistory />} />
           </Route>
         </Route>
       </Routes>
