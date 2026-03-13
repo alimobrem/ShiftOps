@@ -241,15 +241,17 @@ body::before, body::after {
 }
 .pf-v6-c-search-input:focus-within { border-color: var(--modern-accent) !important; box-shadow: 0 0 0 3px rgba(0,102,204,0.08) !important; transform: none !important; }
 .pf-v6-c-text-input-group {
+  --pf-v6-c-text-input-group--BackgroundColor: var(--modern-card) !important;
   --pf-v6-c-text-input-group__text-input--Color: var(--modern-text) !important;
-  --pf-v6-c-text-input-group__text-input--BackgroundColor: transparent !important;
+  --pf-v6-c-text-input-group__text-input--BackgroundColor: var(--modern-card) !important;
   --pf-v6-c-text-input-group__text-input--placeholder--Color: var(--modern-text-muted) !important;
+  background-color: var(--modern-card) !important;
 }
 .pf-v6-c-text-input-group__text-input,
 .pf-v6-c-search-input input,
 .pf-v6-c-text-input-group input {
   color: var(--modern-text) !important;
-  background-color: transparent !important;
+  background-color: var(--modern-card) !important;
   caret-color: var(--modern-text) !important;
   -webkit-text-fill-color: var(--modern-text) !important;
 }

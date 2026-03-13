@@ -36,7 +36,6 @@ describe('UserActivity page', () => {
       Promise.resolve({ ok: true, json: () => Promise.resolve(mockResponse) })
     ));
 
-    // Verify managedFields parsing logic
     const items = mockResponse.items;
     const entries: { manager: string; fields: string[] }[] = [];
 
@@ -64,8 +63,8 @@ describe('UserActivity page', () => {
     const now = Date.now();
     const entries = [
       { timestamp: new Date(now - 1000), manager: 'kubectl' },
-      { timestamp: new Date(now - 7200000), manager: 'argocd' }, // 2h ago
-      { timestamp: new Date(now - 172800000), manager: 'helm' }, // 2d ago
+      { timestamp: new Date(now - 7200000), manager: 'argocd' },
+      { timestamp: new Date(now - 172800000), manager: 'helm' },
     ];
 
     const cutoff1h = new Date(now - 3600000);
@@ -78,34 +77,79 @@ describe('UserActivity page', () => {
     expect(filtered24h).toHaveLength(2);
   });
 
-  it('groups entries by date', () => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    function formatDate(d: Date): string {
-      const t = new Date();
-      if (d.toDateString() === t.toDateString()) return 'Today';
-      const y = new Date(t);
-      y.setDate(y.getDate() - 1);
-      if (d.toDateString() === y.toDateString()) return 'Yesterday';
-      return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  it('correlates user sessions with resource changes', () => {
+    interface UserSession {
+      userName: string;
+      tokenCreated: Date;
+      tokenExpiry: Date | null;
     }
 
-    const entries = [
-      { timestamp: today, manager: 'kubectl' },
-      { timestamp: yesterday, manager: 'helm' },
+    function findActiveUsers(sessions: UserSession[], timestamp: Date): string[] {
+      return [...new Set(
+        sessions
+          .filter((s) => {
+            const end = s.tokenExpiry ?? new Date();
+            return s.tokenCreated <= timestamp && end >= timestamp;
+          })
+          .map((s) => s.userName)
+      )];
+    }
+
+    const sessions: UserSession[] = [
+      { userName: 'kubeadmin', tokenCreated: new Date('2024-06-01T08:00:00Z'), tokenExpiry: new Date('2024-06-01T20:00:00Z') },
+      { userName: 'developer', tokenCreated: new Date('2024-06-01T10:00:00Z'), tokenExpiry: new Date('2024-06-01T18:00:00Z') },
     ];
 
-    const groups = new Map<string, typeof entries>();
-    for (const entry of entries) {
-      const key = formatDate(entry.timestamp);
-      const list = groups.get(key) ?? [];
-      list.push(entry);
-      groups.set(key, list);
+    // At 09:00, only kubeadmin was active
+    const at9am = findActiveUsers(sessions, new Date('2024-06-01T09:00:00Z'));
+    expect(at9am).toEqual(['kubeadmin']);
+
+    // At 12:00, both were active
+    const atNoon = findActiveUsers(sessions, new Date('2024-06-01T12:00:00Z'));
+    expect(atNoon).toHaveLength(2);
+    expect(atNoon).toContain('kubeadmin');
+    expect(atNoon).toContain('developer');
+
+    // At 19:00, only kubeadmin was active
+    const at7pm = findActiveUsers(sessions, new Date('2024-06-01T19:00:00Z'));
+    expect(at7pm).toEqual(['kubeadmin']);
+
+    // At 21:00, nobody was active
+    const at9pm = findActiveUsers(sessions, new Date('2024-06-01T21:00:00Z'));
+    expect(at9pm).toHaveLength(0);
+  });
+
+  it('extracts user from resource annotations', () => {
+    function extractUser(metadata: Record<string, unknown>): string | undefined {
+      const annotations = (metadata['annotations'] ?? {}) as Record<string, string>;
+      if (annotations['openshift.io/requester']) return annotations['openshift.io/requester'];
+      if (annotations['kubectl.kubernetes.io/last-applied-by']) return annotations['kubectl.kubernetes.io/last-applied-by'];
+      return undefined;
     }
 
-    expect(groups.has('Today')).toBe(true);
-    expect(groups.has('Yesterday')).toBe(true);
+    expect(extractUser({ annotations: { 'openshift.io/requester': 'kubeadmin' } })).toBe('kubeadmin');
+    expect(extractUser({ annotations: { 'kubectl.kubernetes.io/last-applied-by': 'developer' } })).toBe('developer');
+    expect(extractUser({ annotations: {} })).toBeUndefined();
+    expect(extractUser({})).toBeUndefined();
+  });
+
+  it('search matches on user field', () => {
+    const entries = [
+      { user: 'kubeadmin', manager: 'kubectl', name: 'my-deploy', kind: 'Deployment', namespace: 'default', operation: 'Apply' },
+      { user: 'developer', manager: 'Mozilla', name: 'my-svc', kind: 'Service', namespace: 'staging', operation: 'Update' },
+      { user: '', manager: 'argocd', name: 'argo-app', kind: 'Deployment', namespace: 'argocd', operation: 'Update' },
+    ];
+
+    const q = 'kubeadmin'.toLowerCase();
+    const filtered = entries.filter((e) =>
+      e.manager.toLowerCase().includes(q) ||
+      e.user.toLowerCase().includes(q) ||
+      e.name.toLowerCase().includes(q) ||
+      e.kind.toLowerCase().includes(q) ||
+      e.namespace.toLowerCase().includes(q)
+    );
+
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].user).toBe('kubeadmin');
   });
 });
