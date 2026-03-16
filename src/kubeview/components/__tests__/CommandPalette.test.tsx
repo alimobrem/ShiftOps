@@ -105,6 +105,27 @@ describe('KubeView CommandPalette', () => {
     expect(screen.getByPlaceholderText(/Search resources/)).toBeDefined();
   });
 
+  it('handles registry entries with missing fields', () => {
+    // Real clusters can have entries with undefined plural/kind/group
+    mockRegistry!.set('bad/v1/incomplete', {
+      group: undefined,
+      version: 'v1',
+      kind: undefined,
+      plural: undefined,
+      singularName: '',
+      namespaced: true,
+      verbs: ['get', 'list'],
+      shortNames: [],
+      categories: [],
+    });
+
+    // Should not throw
+    renderPalette();
+    const input = screen.getByPlaceholderText(/Search resources/);
+    fireEvent.change(input, { target: { value: 'node' } });
+    expect(screen.getAllByText('nodes').length).toBeGreaterThanOrEqual(1);
+  });
+
   it('shows resource types from registry', () => {
     renderPalette();
     expect(screen.getAllByText('nodes').length).toBeGreaterThanOrEqual(1);

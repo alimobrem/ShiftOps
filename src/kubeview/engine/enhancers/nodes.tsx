@@ -59,7 +59,7 @@ export const nodeEnhancer: ResourceEnhancer = {
             {roleList.map((role) => (
               <span
                 key={role}
-                className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800"
+                className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-blue-900 text-blue-300"
               >
                 {role}
               </span>
@@ -80,10 +80,10 @@ export const nodeEnhancer: ResourceEnhancer = {
       },
       render: (value) => {
         if (!value || value === '-') {
-          return <span className="text-gray-400">-</span>;
+          return <span className="text-slate-500">-</span>;
         }
 
-        return <span className="font-mono text-xs text-gray-700">{String(value)}</span>;
+        return <span className="font-mono text-xs text-slate-300">{String(value)}</span>;
       },
       sortable: true,
       priority: 12,
@@ -100,10 +100,10 @@ export const nodeEnhancer: ResourceEnhancer = {
       },
       render: (value) => {
         if (!value || value === '-/-') {
-          return <span className="text-gray-400">-</span>;
+          return <span className="text-slate-500">-</span>;
         }
 
-        return <span className="text-xs text-gray-700">{String(value)}</span>;
+        return <span className="text-xs text-slate-300">{String(value)}</span>;
       },
       sortable: false,
       priority: 13,
@@ -123,11 +123,11 @@ export const nodeEnhancer: ResourceEnhancer = {
       },
       render: (value) => {
         if (!value || value === '-/-') {
-          return <span className="text-gray-400">-</span>;
+          return <span className="text-slate-500">-</span>;
         }
 
         return (
-          <span className="font-mono text-sm text-gray-700" title="Allocatable/Capacity">
+          <span className="font-mono text-sm text-slate-300" title="Allocatable/Capacity">
             {String(value)}
           </span>
         );
@@ -151,8 +151,8 @@ export const nodeEnhancer: ResourceEnhancer = {
             onClick={() => onAction(unschedulable ? 'uncordon' : 'cordon', { resource })}
             className={`inline-flex items-center px-2 py-1 text-xs rounded ${
               unschedulable
-                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-green-900 text-green-300 hover:bg-green-800'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
             title={unschedulable ? 'Uncordon (allow scheduling)' : 'Cordon (prevent scheduling)'}
           >
@@ -195,7 +195,7 @@ export const nodeEnhancer: ResourceEnhancer = {
           <button
             onClick={() => onAction('drain', { resource })}
             disabled={!unschedulable}
-            className="inline-flex items-center px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded hover:bg-orange-200 disabled:opacity-50 disabled:cursor-not-allowed ml-2"
+            className="inline-flex items-center px-2 py-1 text-xs bg-orange-900 text-orange-300 rounded hover:bg-orange-800 disabled:opacity-50 disabled:cursor-not-allowed ml-2"
             title={unschedulable ? 'Drain node' : 'Cordon first to drain'}
           >
             <svg

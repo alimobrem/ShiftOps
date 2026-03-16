@@ -192,9 +192,11 @@ function getCommandItems(
         const dedup = `${resource.group}/${resource.kind}`;
         if (!seen.has(dedup)) {
           seen.add(dedup);
+          const kind = resource.kind || '';
+          const plural = resource.plural || '';
           const match = !cleanQuery ||
-            resource.kind.toLowerCase().includes(cleanQuery) ||
-            resource.plural.toLowerCase().includes(cleanQuery);
+            kind.toLowerCase().includes(cleanQuery) ||
+            plural.toLowerCase().includes(cleanQuery);
           if (match) {
             items.push({
               type: 'resource',
