@@ -327,16 +327,12 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
                   Node Logs
                 </button>
                 <button
-                  onClick={() => {
-                    const cmd = `oc debug node/${name}`;
-                    navigator.clipboard.writeText(cmd);
-                    addToast({ type: 'success', title: 'Debug command copied', detail: cmd });
-                  }}
+                  onClick={() => setShowTerminal(true)}
                   className="px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700 flex items-center gap-1.5"
-                  title="Copy oc debug command to clipboard"
+                  title="Open node terminal"
                 >
                   <Terminal className="w-3 h-3" />
-                  Debug Node
+                  Terminal
                 </button>
               </>
             )}
@@ -737,13 +733,22 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
       </div>
     </div>
 
-    {/* Pod Terminal */}
+    {/* Terminal */}
     {showTerminal && resource.kind === 'Pod' && namespace && (
       <PodTerminal
         namespace={namespace}
         podName={name}
         containerName={(spec.containers as any[])?.[0]?.name || ''}
         onClose={() => setShowTerminal(false)}
+      />
+    )}
+    {showTerminal && resource.kind === 'Node' && (
+      <PodTerminal
+        namespace="default"
+        podName={name}
+        containerName=""
+        onClose={() => setShowTerminal(false)}
+        isNode
       />
     )}
     </>

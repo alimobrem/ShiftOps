@@ -34,7 +34,8 @@ export const podEnhancer: ResourceEnhancer = {
           color = 'yellow';
         }
 
-        const dotClass = `inline-block w-2 h-2 rounded-full mr-2 bg-${color}-500`;
+        const colorMap: Record<string, string> = { green: 'bg-green-500', yellow: 'bg-yellow-500', red: 'bg-red-500', gray: 'bg-slate-500' };
+        const dotClass = `inline-block w-2 h-2 rounded-full mr-2 ${colorMap[color] || 'bg-slate-500'}`;
 
         return (
           <span className="inline-flex items-center text-sm">

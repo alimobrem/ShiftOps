@@ -47,6 +47,15 @@ export function getNestedValue(obj: unknown, path: string): unknown {
   return current;
 }
 
+// Static Tailwind color map to avoid dynamic class generation
+const statusDotColors: Record<string, string> = {
+  green: 'bg-green-500',
+  yellow: 'bg-yellow-500',
+  red: 'bg-red-500',
+  gray: 'bg-slate-500',
+  blue: 'bg-blue-500',
+};
+
 /**
  * Convert a K8s kind to its plural resource name.
  * Handles irregular plurals common in Kubernetes.
@@ -154,7 +163,7 @@ export function renderStatus(value: unknown): ReactNode {
     color = 'orange';
   }
 
-  const dotClass = `inline-block w-2 h-2 rounded-full mr-2 bg-${color}-500`;
+  const dotClass = `inline-block w-2 h-2 rounded-full mr-2 ${statusDotColors[color] || 'bg-slate-500'}`;
 
   return (
     <span className="inline-flex items-center text-sm">

@@ -17,9 +17,16 @@ import { k8sList } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
 import { getDeploymentStatus, getPodStatus, getNodeStatus } from '../engine/renderers/statusUtils';
 import { queryInstant } from '../components/metrics/prometheus';
+import { useUIStore } from '../store/uiStore';
+
+function filterByNs<T extends { metadata: { namespace?: string } }>(items: T[], ns: string): T[] {
+  if (ns === '*') return items;
+  return items.filter((i) => i.metadata.namespace === ns);
+}
 
 export default function DashboardView() {
   const navigate = useNavigate();
+  const selectedNamespace = useUIStore((s) => s.selectedNamespace);
 
   const { data: deployments = [], isLoading: deploymentsLoading } = useQuery<K8sResource[]>({
     queryKey: ['dashboard', 'deployments'],
@@ -58,10 +65,15 @@ export default function DashboardView() {
     refetchInterval: 30000,
   });
 
+  // Apply namespace filter
+  const filteredPods = React.useMemo(() => filterByNs(pods as any[], selectedNamespace), [pods, selectedNamespace]);
+  const filteredDeployments = React.useMemo(() => filterByNs(deployments as any[], selectedNamespace), [deployments, selectedNamespace]);
+  const filteredEvents = React.useMemo(() => filterByNs(events as any[], selectedNamespace), [events, selectedNamespace]);
+
   // Pod status summary
   const podStatusSummary = React.useMemo(() => {
     const summary = { running: 0, pending: 0, failed: 0, succeeded: 0, other: 0 };
-    for (const pod of pods) {
+    for (const pod of filteredPods) {
       const status = getPodStatus(pod);
       const phase = status.phase.toLowerCase();
       if (phase === 'running') summary.running++;
@@ -71,7 +83,7 @@ export default function DashboardView() {
       else summary.other++;
     }
     return summary;
-  }, [pods]);
+  }, [filteredPods]);
 
   // Node summary
   const nodeSummary = React.useMemo(() => {
@@ -85,11 +97,11 @@ export default function DashboardView() {
 
   // Unhealthy deployments
   const unhealthyDeploys = React.useMemo(() => {
-    return deployments.filter((d) => {
+    return filteredDeployments.filter((d) => {
       const status = getDeploymentStatus(d);
       return !status.available;
     });
-  }, [deployments]);
+  }, [filteredDeployments]);
 
   // Top namespaces by pod count
   const namespacePodCounts = React.useMemo(() => {
@@ -101,11 +113,11 @@ export default function DashboardView() {
     return Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8);
-  }, [pods]);
+  }, [filteredPods]);
 
   // Recent warnings
   const recentWarnings = React.useMemo(() => {
-    return events
+    return filteredEvents
       .filter((e) => (e as any).type === 'Warning')
       .sort((a, b) => {
         const aTime = (a as any).lastTimestamp || (a as any).firstTimestamp || '';
@@ -113,7 +125,7 @@ export default function DashboardView() {
         return new Date(bTime).getTime() - new Date(aTime).getTime();
       })
       .slice(0, 8);
-  }, [events]);
+  }, [filteredEvents]);
 
   const cpuPercent = cpuMetrics?.[0]?.value ?? null;
   const memPercent = memMetrics?.[0]?.value ?? null;

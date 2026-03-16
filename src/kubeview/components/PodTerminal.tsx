@@ -7,6 +7,7 @@ interface PodTerminalProps {
   podName: string;
   containerName: string;
   onClose: () => void;
+  isNode?: boolean;
 }
 
 interface TerminalLine {
@@ -16,16 +17,19 @@ interface TerminalLine {
 
 const BASE = '/api/kubernetes';
 
-export default function PodTerminal({ namespace, podName, containerName, onClose }: PodTerminalProps) {
+export default function PodTerminal({ namespace, podName, containerName, onClose, isNode }: PodTerminalProps) {
   const [command, setCommand] = useState('');
+  const shellCmd = isNode
+    ? `oc debug node/${podName}`
+    : `oc exec -it ${podName} -n ${namespace}${containerName ? ` -c ${containerName}` : ''} -- /bin/sh`;
+
   const [lines, setLines] = useState<TerminalLine[]>([
-    { type: 'output', text: `Terminal: ${podName}/${containerName} in ${namespace}` },
+    { type: 'output', text: isNode ? `Node Terminal: ${podName}` : `Terminal: ${podName}/${containerName} in ${namespace}` },
     { type: 'output', text: '' },
-    { type: 'output', text: 'Note: exec requires WebSocket. Commands are sent via HTTP POST.' },
-    { type: 'output', text: 'For a full interactive shell, copy and run locally:' },
-    { type: 'input', text: `$ oc exec -it ${podName} -n ${namespace} -c ${containerName} -- /bin/sh` },
+    { type: 'output', text: 'Note: exec requires WebSocket upgrade. For a full interactive shell:' },
+    { type: 'input', text: `$ ${shellCmd}` },
     { type: 'output', text: '' },
-    { type: 'output', text: 'Try simple commands like: ls, cat /etc/hostname, env, whoami' },
+    { type: 'output', text: isNode ? 'Try: cat /etc/os-release, df -h, free -m, uptime' : 'Try: ls, cat /etc/hostname, env, whoami' },
     { type: 'output', text: '' },
   ]);
   const [running, setRunning] = useState(false);
