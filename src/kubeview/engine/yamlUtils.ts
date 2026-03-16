@@ -83,6 +83,17 @@ export function resourceToYaml(resource: Record<string, unknown>): string {
     delete meta.uid;
     delete meta.creationTimestamp;
     delete meta.generation;
+    delete meta.selfLink;
+    // Clean noisy annotations
+    if (meta.annotations && typeof meta.annotations === 'object') {
+      const annotations = { ...(meta.annotations as Record<string, unknown>) };
+      delete annotations['kubectl.kubernetes.io/last-applied-configuration'];
+      if (Object.keys(annotations).length === 0) {
+        delete meta.annotations;
+      } else {
+        meta.annotations = annotations;
+      }
+    }
     clean.metadata = meta;
   }
 

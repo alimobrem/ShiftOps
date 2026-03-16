@@ -574,16 +574,24 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
               Object.keys(resource.metadata.annotations).length > 0 && (
                 <DetailSection title="Annotations" collapsible>
                   <div className="space-y-2">
-                    {Object.entries(resource.metadata.annotations).map(([key, value]) => (
-                      <div key={key} className="flex items-start gap-2">
-                        <span className="text-xs text-slate-400 font-mono flex-shrink-0 w-48">
-                          {key}
-                        </span>
-                        <span className="text-xs text-slate-200 font-mono break-all">
-                          {value}
-                        </span>
-                      </div>
-                    ))}
+                    {Object.entries(resource.metadata.annotations)
+                      .filter(([key]) => !key.includes('last-applied-configuration') && !key.includes('managedFields'))
+                      .map(([key, value]) => (
+                        <div key={key} className="flex items-start gap-2 group">
+                          <span className="text-xs text-slate-400 font-mono flex-shrink-0 w-48 truncate" title={key}>
+                            {key}
+                          </span>
+                          <span className="text-xs text-slate-200 font-mono break-all flex-1">
+                            {String(value).length > 200 ? String(value).slice(0, 200) + '...' : value}
+                          </span>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(`${key}: ${value}`); addToast({ type: 'success', title: 'Annotation copied' }); }}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-500 hover:text-slate-300 transition-opacity flex-shrink-0"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
                   </div>
                 </DetailSection>
               )}
