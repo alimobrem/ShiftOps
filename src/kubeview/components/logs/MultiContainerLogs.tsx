@@ -221,7 +221,6 @@ export default function MultiContainerLogs({
             namespace={namespace}
             podName={podName}
             containerName={selectedContainer}
-            follow={true}
             timestamps={true}
           />
         )}

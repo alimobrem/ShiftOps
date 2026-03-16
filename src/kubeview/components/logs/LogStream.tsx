@@ -24,7 +24,7 @@ export default function LogStream({
   namespace,
   podName,
   containerName,
-  follow = true,
+  follow = false,
   timestamps = true,
   tailLines = 1000,
   sinceSeconds,
