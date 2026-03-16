@@ -26,6 +26,7 @@ const CorrelationView = lazy(() => import('./views/CorrelationView'));
 const DashboardView = lazy(() => import('./views/DashboardView'));
 const CreateView = lazy(() => import('./views/CreateView'));
 const DependencyView = lazy(() => import('./views/DependencyView'));
+const ConfigCompareView = lazy(() => import('./views/ConfigCompareView'));
 
 function LoadingFallback() {
   return (
@@ -158,6 +159,13 @@ export default function KubeViewApp() {
 
             {/* Dependencies: /deps/apps~v1~deployments/:namespace/:name */}
             <Route path="deps/:gvr/:namespace/:name" element={<DependencyRoute />} />
+
+            {/* Config Compare */}
+            <Route path="config-compare" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ConfigCompareView />
+              </Suspense>
+            } />
 
             {/* Timeline */}
             <Route path="timeline" element={<TimelineView />} />

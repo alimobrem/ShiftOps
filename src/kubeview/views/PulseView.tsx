@@ -96,6 +96,27 @@ export default function PulseView() {
       .slice(0, 10);
   }, [events]);
 
+  // Recent changes — group events by action type
+  const recentChanges = React.useMemo(() => {
+    const changeReasons = new Set(['Created', 'Started', 'Killing', 'Deleted', 'Pulled', 'Scheduled',
+      'ScalingReplicaSet', 'SuccessfulCreate', 'SuccessfulDelete', 'ScaledUp', 'ScaledDown',
+      'Scaled', 'DeploymentRollback', 'DeploymentUpdated']);
+
+    const changes = events
+      .filter((e) => {
+        const reason = (e as any).reason || '';
+        return changeReasons.has(reason) || reason.includes('Scaled') || reason.includes('Create') || reason.includes('Delete');
+      })
+      .sort((a, b) => {
+        const at = (a as any).lastTimestamp || (a as any).firstTimestamp || '';
+        const bt = (b as any).lastTimestamp || (b as any).firstTimestamp || '';
+        return new Date(bt).getTime() - new Date(at).getTime();
+      })
+      .slice(0, 8);
+
+    return changes;
+  }, [events]);
+
   const totalIssues = failingPods.length + unhealthyDeploys.length + unreadyNodes.length + pendingPVCs.length;
   const isHealthy = totalIssues === 0;
 
@@ -258,6 +279,62 @@ export default function PulseView() {
               />
             ))}
           </IssueSection>
+        )}
+
+        {/* Recent Changes */}
+        {recentChanges.length > 0 && (
+          <div className="bg-slate-900 rounded-lg border border-slate-800">
+            <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-blue-400" />
+                Recent Changes
+              </h2>
+              <button
+                onClick={() => navigate('/timeline')}
+                className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+              >
+                View all <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="divide-y divide-slate-800">
+              {recentChanges.map((event, idx) => {
+                const e = event as any;
+                const reason = e.reason || '';
+                const time = e.lastTimestamp || e.firstTimestamp;
+                const obj = e.involvedObject || {};
+
+                let icon = <Activity className="w-3.5 h-3.5 text-blue-400" />;
+                let color = 'text-blue-400';
+                if (reason.includes('Create') || reason === 'Created' || reason === 'Started' || reason === 'Scheduled') {
+                  icon = <CheckCircle className="w-3.5 h-3.5 text-green-400" />;
+                  color = 'text-green-400';
+                } else if (reason.includes('Delete') || reason === 'Killing') {
+                  icon = <XCircle className="w-3.5 h-3.5 text-red-400" />;
+                  color = 'text-red-400';
+                } else if (reason.includes('Scal')) {
+                  icon = <Activity className="w-3.5 h-3.5 text-purple-400" />;
+                  color = 'text-purple-400';
+                }
+
+                return (
+                  <div key={idx} className="px-4 py-2.5 hover:bg-slate-800/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      {icon}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-medium ${color}`}>{reason}</span>
+                          <span className="text-xs text-slate-500">{obj.kind} {obj.name}</span>
+                        </div>
+                      </div>
+                      <span className="text-xs text-slate-500 flex-shrink-0">
+                        {time ? new Date(time).toLocaleTimeString() : ''}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         {/* Recent Warnings */}

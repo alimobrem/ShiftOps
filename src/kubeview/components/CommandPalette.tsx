@@ -190,6 +190,7 @@ function getCommandItems(
       { type: 'nav', id: 'pulse', title: 'Cluster Pulse', subtitle: 'Health overview', icon: 'Activity', path: '/pulse' },
       { type: 'nav', id: 'timeline', title: 'Timeline', subtitle: 'Cluster event feed', icon: 'Clock', path: '/timeline' },
       { type: 'nav', id: 'dashboard', title: 'Dashboard', subtitle: 'Grafana-style panels', icon: 'LayoutDashboard', path: '/dashboard' },
+      { type: 'nav', id: 'config-compare', title: 'Config Compare', subtitle: 'Snapshot & diff cluster config', icon: 'GitCompare', path: '/config-compare' },
       { type: 'nav', id: 'create', title: 'Create Resource', subtitle: 'Create from YAML', icon: 'FilePlus', path: '/create/v1~pods' },
     ];
 
