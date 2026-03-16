@@ -175,6 +175,7 @@ export function ResourceBrowser() {
             { label: 'Storage', icon: Icons.HardDrive, path: '/storage', color: 'text-orange-400' },
             { label: 'Access Control', icon: Icons.Shield, path: '/access-control', color: 'text-indigo-400' },
             { label: 'Operators', icon: Icons.Puzzle, path: '/operators', color: 'text-violet-400' },
+            { label: 'Administration', icon: Icons.Settings, path: '/admin', color: 'text-slate-400' },
             { label: 'Troubleshoot', icon: Icons.Activity, path: '/troubleshoot', color: 'text-orange-400' },
             { label: 'Config Compare', icon: Icons.GitCompare, path: '/config-compare', color: 'text-pink-400' },
             { label: 'Create Resource', icon: Icons.FilePlus, path: '/create/v1~pods', color: 'text-amber-400' },

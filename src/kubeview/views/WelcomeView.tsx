@@ -89,31 +89,19 @@ export default function WelcomeView() {
             <Eye className="w-5 h-5 text-cyan-400" />
             Built-in Views
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <PageLink
-              icon={<HeartPulse className="w-5 h-5 text-blue-400" />}
-              title="Cluster Pulse"
-              description="Ops alerts — what needs attention right now"
-              onClick={() => go('/pulse', 'Pulse')}
-            />
-            <PageLink
-              icon={<LayoutDashboard className="w-5 h-5 text-purple-400" />}
-              title="Dashboard"
-              description="Metrics overview with CPU, memory, pod breakdown"
-              onClick={() => go('/dashboard', 'Dashboard')}
-            />
-            <PageLink
-              icon={<Clock className="w-5 h-5 text-blue-400" />}
-              title="Timeline"
-              description="Chronological event feed with filters"
-              onClick={() => go('/timeline', 'Timeline')}
-            />
-            <PageLink
-              icon={<GitCompare className="w-5 h-5 text-pink-400" />}
-              title="Config Compare"
-              description="Snapshot and diff cluster configuration"
-              onClick={() => go('/config-compare', 'Config Compare')}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <PageLink icon={<HeartPulse className="w-5 h-5 text-blue-400" />} title="Cluster Pulse" description="What needs attention right now" onClick={() => go('/pulse', 'Pulse')} />
+            <PageLink icon={<LayoutDashboard className="w-5 h-5 text-purple-400" />} title="Dashboard" description="Metrics, pods, CPU, memory overview" onClick={() => go('/dashboard', 'Dashboard')} />
+            <PageLink icon={<GitBranch className="w-5 h-5 text-orange-400" />} title="Troubleshoot" description="Auto-diagnose cluster issues" onClick={() => go('/troubleshoot', 'Troubleshoot')} />
+            <PageLink icon={<Search className="w-5 h-5 text-blue-400" />} title="Workloads" description="Deployments, StatefulSets, DaemonSets, Jobs" onClick={() => go('/workloads', 'Workloads')} />
+            <PageLink icon={<GitCompare className="w-5 h-5 text-cyan-400" />} title="Networking" description="Services, Ingresses, Routes, Policies" onClick={() => go('/networking', 'Networking')} />
+            <PageLink icon={<Shield className="w-5 h-5 text-indigo-400" />} title="Access Control" description="RBAC roles, bindings, service accounts" onClick={() => go('/access-control', 'Access Control')} />
+            <PageLink icon={<Terminal className="w-5 h-5 text-orange-400" />} title="Storage" description="PVs, PVCs, StorageClasses" onClick={() => go('/storage', 'Storage')} />
+            <PageLink icon={<Clock className="w-5 h-5 text-blue-400" />} title="Timeline" description="Chronological event feed" onClick={() => go('/timeline', 'Timeline')} />
+            <PageLink icon={<GitCompare className="w-5 h-5 text-pink-400" />} title="Config Compare" description="Snapshot and diff cluster config" onClick={() => go('/config-compare', 'Config Compare')} />
+            <PageLink icon={<FilePlus className="w-5 h-5 text-violet-400" />} title="Operators" description="ClusterOperator health & versions" onClick={() => go('/operators', 'Operators')} />
+            <PageLink icon={<Keyboard className="w-5 h-5 text-slate-400" />} title="Administration" description="Settings, nodes, CRDs, quotas" onClick={() => go('/admin', 'Administration')} />
+            <PageLink icon={<FilePlus className="w-5 h-5 text-amber-400" />} title="Create Resource" description="YAML templates with autocomplete" onClick={() => go('/create/v1~pods', 'Create')} />
           </div>
         </div>
 
