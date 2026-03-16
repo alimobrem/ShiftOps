@@ -17,6 +17,7 @@ import {
   Minus,
   GitBranch,
   Search,
+  Copy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sGet, k8sList, k8sDelete, k8sPatch } from '../engine/query';
@@ -24,6 +25,7 @@ import type { K8sResource } from '../engine/renderers';
 import { diagnoseResource, type Diagnosis } from '../engine/diagnosis';
 import { buildApiPath } from '../hooks/useResourceUrl';
 import { useUIStore } from '../store/uiStore';
+import { jsonToYaml, resourceToYaml } from '../engine/yamlUtils';
 
 interface DetailViewProps {
   gvrKey: string;
@@ -223,6 +225,13 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <h1 className="text-2xl font-bold text-slate-100">{resource.metadata.name}</h1>
+              <button
+                onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(resource.metadata.name); addToast({ type: 'success', title: 'Name copied' }); }}
+                className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+                title="Copy name"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
               {resource.metadata.namespace && (
                 <span className="px-2 py-1 text-xs bg-purple-900/50 text-purple-300 rounded border border-purple-700">
                   {resource.metadata.namespace}
@@ -373,11 +382,28 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
 
         {/* YAML tab */}
         {detailTab === 'yaml' && (
-          <DetailSection title="Resource YAML">
-            <pre className="text-xs text-slate-300 font-mono bg-slate-950 p-3 rounded overflow-auto max-h-[600px]">
-              {JSON.stringify(resource, null, 2)}
+          <div className="bg-slate-900 rounded-lg border border-slate-800">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800">
+              <h2 className="text-sm font-semibold text-slate-100">Resource YAML</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { navigator.clipboard.writeText(resourceToYaml(resource as any)); addToast({ type: 'success', title: 'YAML copied to clipboard' }); }}
+                  className="px-2 py-1 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700 transition-colors"
+                >
+                  Copy YAML
+                </button>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(JSON.stringify(resource, null, 2)); addToast({ type: 'success', title: 'JSON copied to clipboard' }); }}
+                  className="px-2 py-1 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700 transition-colors"
+                >
+                  Copy JSON
+                </button>
+              </div>
+            </div>
+            <pre className="text-xs text-emerald-400 font-mono bg-slate-950 p-4 overflow-auto max-h-[600px] leading-relaxed">
+              {resourceToYaml(resource as any)}
             </pre>
-          </DetailSection>
+          </div>
         )}
 
         {/* Events tab */}
@@ -523,7 +549,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
             {spec && Object.keys(spec).length > 0 && (
               <DetailSection title="Spec" collapsible>
                 <pre className="text-xs text-slate-300 font-mono bg-slate-950 p-3 rounded overflow-auto max-h-96">
-                  {JSON.stringify(spec, null, 2)}
+                  {jsonToYaml(spec)}
                 </pre>
               </DetailSection>
             )}
@@ -532,7 +558,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
             {status && Object.keys(status).length > 0 && (
               <DetailSection title="Status" collapsible>
                 <pre className="text-xs text-slate-300 font-mono bg-slate-950 p-3 rounded overflow-auto max-h-96">
-                  {JSON.stringify(status, null, 2)}
+                  {jsonToYaml(status)}
                 </pre>
               </DetailSection>
             )}

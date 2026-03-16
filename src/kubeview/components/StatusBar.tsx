@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../store/uiStore';
 import { cn } from '@/lib/utils';
 
 function formatRelativeTime(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-
   if (seconds < 60) return `${seconds}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
@@ -14,63 +14,69 @@ function formatRelativeTime(timestamp: number): string {
 export function StatusBar() {
   const connectionStatus = useUIStore((s) => s.connectionStatus);
   const lastSyncTime = useUIStore((s) => s.lastSyncTime);
-  const activeWatches = useUIStore((s) => s.activeWatches);
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
   const activeOperation = useUIStore((s) => s.activeOperation);
+  const tabs = useUIStore((s) => s.tabs);
+  const location = useLocation();
 
   const [relativeTime, setRelativeTime] = useState(formatRelativeTime(lastSyncTime));
 
-  // Update relative time every second
   useEffect(() => {
-    const interval = setInterval(() => {
-      setRelativeTime(formatRelativeTime(lastSyncTime));
-    }, 1000);
-
+    const interval = setInterval(() => setRelativeTime(formatRelativeTime(lastSyncTime)), 1000);
     return () => clearInterval(interval);
   }, [lastSyncTime]);
 
+  // Derive current page info from URL
+  const pageInfo = (() => {
+    const path = location.pathname;
+    if (path === '/welcome') return 'Welcome';
+    if (path === '/pulse') return 'Cluster Pulse';
+    if (path === '/dashboard') return 'Dashboard';
+    if (path === '/troubleshoot') return 'Troubleshoot';
+    if (path === '/workloads') return 'Workloads';
+    if (path === '/networking') return 'Networking';
+    if (path === '/storage') return 'Storage';
+    if (path === '/access-control') return 'Access Control';
+    if (path === '/operators') return 'Operators';
+    if (path === '/admin') return 'Administration';
+    if (path === '/timeline') return 'Timeline';
+    if (path === '/config-compare') return 'Config Compare';
+    if (path.startsWith('/r/')) {
+      const parts = path.split('/').filter(Boolean);
+      if (parts.length === 2) {
+        const gvr = parts[1].split('~');
+        return gvr[gvr.length - 1];
+      }
+      if (parts.length >= 4) return `${parts[parts.length - 1]}`;
+    }
+    if (path.startsWith('/create/')) return 'Create Resource';
+    if (path.startsWith('/yaml/')) return 'YAML Editor';
+    if (path.startsWith('/logs/')) return 'Logs';
+    if (path.startsWith('/metrics/')) return 'Metrics';
+    if (path.startsWith('/deps/')) return 'Dependencies';
+    return '';
+  })();
+
+  const openTabCount = tabs.filter((t) => t.closable).length;
+
   return (
-    <div className="flex h-6 items-center justify-between border-t border-slate-700 bg-slate-800 px-4 text-xs text-slate-400">
-      {/* Left side */}
-      <div className="flex items-center gap-4">
-        {/* Connection status */}
+    <div className="flex h-6 items-center justify-between border-t border-slate-700 bg-slate-800 px-4 text-[11px] text-slate-500">
+      {/* Left */}
+      <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5">
-          <div
-            className={cn(
-              'h-1.5 w-1.5 rounded-full',
-              connectionStatus === 'connected' && 'bg-emerald-500',
-              connectionStatus === 'reconnecting' && 'bg-yellow-500',
-              connectionStatus === 'disconnected' && 'bg-red-500'
-            )}
-          />
-          <span className="capitalize">{connectionStatus}</span>
+          <div className={cn('h-1.5 w-1.5 rounded-full', connectionStatus === 'connected' ? 'bg-emerald-500' : connectionStatus === 'reconnecting' ? 'bg-yellow-500' : 'bg-red-500')} />
+          <span>{connectionStatus === 'connected' ? 'Connected' : connectionStatus}</span>
         </div>
-
-        {/* Watch count */}
-        {activeWatches > 0 && (
-          <div>
-            watching {activeWatches} resource{activeWatches !== 1 ? 's' : ''}
-          </div>
-        )}
-
-        {/* Last sync */}
-        <div>last sync {relativeTime}</div>
-
-        {/* Active operation */}
-        {activeOperation && (
-          <div className="text-emerald-400">{activeOperation}</div>
-        )}
+        <span>synced {relativeTime} ago</span>
+        {activeOperation && <span className="text-emerald-400">{activeOperation}</span>}
+        {pageInfo && <span className="text-slate-400">· {pageInfo}</span>}
       </div>
 
-      {/* Right side */}
-      <div className="flex items-center gap-4">
-        {/* Namespace */}
-        <div>
-          {selectedNamespace === '*' ? 'all namespaces' : selectedNamespace}
-        </div>
-
-        {/* User */}
-        <div>admin</div>
+      {/* Right */}
+      <div className="flex items-center gap-3">
+        {openTabCount > 0 && <span>{openTabCount} tab{openTabCount !== 1 ? 's' : ''}</span>}
+        <span>{selectedNamespace === '*' ? 'all namespaces' : selectedNamespace}</span>
+        <span>⌘K search · ⌘B browse</span>
       </div>
     </div>
   );

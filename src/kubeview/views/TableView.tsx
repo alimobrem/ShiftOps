@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, ChevronUp, ChevronDown, Trash2, Tag, Plus, Filter, Columns3, X, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sList, k8sPatch, k8sDelete } from '../engine/query';
+import { jsonToYaml } from '../engine/yamlUtils';
 import { useClusterStore } from '../store/clusterStore';
 import { useUIStore } from '../store/uiStore';
 import type { K8sResource, ColumnDef } from '../engine/renderers';
@@ -85,6 +86,7 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
   });
   const [selectedRows, setSelectedRows] = React.useState<Set<string>>(new Set());
   const [perPage, setPerPage] = React.useState(25);
+  const [previewResource, setPreviewResource] = React.useState<K8sResource | null>(null);
 
   // Column visibility & ordering
   const [hiddenColumns, setHiddenColumns] = React.useState<Set<string>>(new Set());
@@ -348,18 +350,23 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
     addToast({ type: 'success', title: `Deleted ${deleted} resource${deleted !== 1 ? 's' : ''}` });
   }, [selectedRows, stampedResources, addToast]);
 
-  // Row click to navigate to detail
+  // Row click: single = preview, double = navigate
   const handleRowClick = React.useCallback((resource: K8sResource, e: React.MouseEvent) => {
-    // Don't navigate if clicking checkbox, button, or link
     const target = e.target as HTMLElement;
     if (target.closest('input') || target.closest('button') || target.closest('a')) return;
 
-    const gvrUrl = gvrKey.replace(/\//g, '~');
-    const ns = resource.metadata.namespace;
-    const name = resource.metadata.name;
-    const path = ns ? `/r/${gvrUrl}/${ns}/${name}` : `/r/${gvrUrl}/_/${name}`;
-    addTab({ title: name, path, pinned: false, closable: true });
-    navigate(path);
+    if (e.detail === 2) {
+      // Double click → navigate
+      const gvrUrl = gvrKey.replace(/\//g, '~');
+      const ns = resource.metadata.namespace;
+      const name = resource.metadata.name;
+      const path = ns ? `/r/${gvrUrl}/${ns}/${name}` : `/r/${gvrUrl}/_/${name}`;
+      addTab({ title: name, path, pinned: false, closable: true });
+      navigate(path);
+    } else {
+      // Single click → toggle preview
+      setPreviewResource((prev) => prev?.metadata.uid === resource.metadata.uid ? null : resource);
+    }
   }, [gvrKey, navigate, addTab]);
 
   if (error) {
@@ -492,8 +499,9 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
         </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
+      {/* Table + Preview */}
+      <div className="flex-1 flex overflow-hidden">
+      <div className={cn('overflow-auto', previewResource ? 'flex-1' : 'w-full')}>
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-slate-500 text-sm">Loading...</div>
@@ -621,6 +629,64 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* Preview panel */}
+      {previewResource && (
+        <div className="w-80 border-l border-slate-800 bg-slate-900 overflow-auto flex-shrink-0">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
+            <span className="text-sm font-semibold text-slate-200 truncate">{previewResource.metadata.name}</span>
+            <button onClick={() => setPreviewResource(null)} className="text-slate-500 hover:text-slate-300"><X className="w-4 h-4" /></button>
+          </div>
+          <div className="p-3 space-y-3 text-xs">
+            <div>
+              <span className="text-slate-500">Kind:</span>
+              <span className="ml-2 text-slate-200">{previewResource.kind}</span>
+            </div>
+            {previewResource.metadata.namespace && (
+              <div>
+                <span className="text-slate-500">Namespace:</span>
+                <span className="ml-2 text-slate-200">{previewResource.metadata.namespace}</span>
+              </div>
+            )}
+            <div>
+              <span className="text-slate-500">Created:</span>
+              <span className="ml-2 text-slate-200">{previewResource.metadata.creationTimestamp ? new Date(previewResource.metadata.creationTimestamp).toLocaleString() : '—'}</span>
+            </div>
+            {previewResource.metadata.labels && Object.keys(previewResource.metadata.labels).length > 0 && (
+              <div>
+                <div className="text-slate-500 mb-1">Labels:</div>
+                <div className="flex flex-wrap gap-1">
+                  {Object.entries(previewResource.metadata.labels).slice(0, 8).map(([k, v]) => (
+                    <span key={k} className="px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-mono">{k.split('/').pop()}={v}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {previewResource.spec && (
+              <div>
+                <div className="text-slate-500 mb-1">Spec:</div>
+                <pre className="text-[10px] text-emerald-400 font-mono bg-slate-950 p-2 rounded overflow-auto max-h-48">{jsonToYaml(previewResource.spec).slice(0, 500)}</pre>
+              </div>
+            )}
+            <div className="pt-2 border-t border-slate-800">
+              <button
+                onClick={() => {
+                  const gvrUrl = gvrKey.replace(/\//g, '~');
+                  const ns = previewResource.metadata.namespace;
+                  const name = previewResource.metadata.name;
+                  const path = ns ? `/r/${gvrUrl}/${ns}/${name}` : `/r/${gvrUrl}/_/${name}`;
+                  addTab({ title: name, path, pinned: false, closable: true });
+                  navigate(path);
+                }}
+                className="w-full px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"
+              >
+                Open Detail Page →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Footer with pagination */}
