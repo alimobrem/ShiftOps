@@ -197,12 +197,12 @@ function getCommandItems(
             items.push({
               type: 'resource',
               id: key,
-              title: resource.name || key,
+              title: resource.plural || key,
               subtitle: resource.group ? `${resource.group}/${resource.version}` : resource.version,
               icon: getResourceIcon(resource.kind),
               path: resource.group
-                ? `/r/${resource.group}~${resource.version}~${resource.name}`
-                : `/r/${resource.version}~${resource.name}`,
+                ? `/r/${resource.group}~${resource.version}~${resource.plural}`
+                : `/r/${resource.version}~${resource.plural}`,
             });
           }
         }

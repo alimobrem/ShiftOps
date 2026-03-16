@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 interface GroupedResources {
   [groupName: string]: Array<{
     kind: string;
-    name: string;
+    plural: string;
     group: string;
     version: string;
     namespaced: boolean;
@@ -89,7 +89,7 @@ export function ResourceBrowser() {
     return (
       group.toLowerCase().includes(query) ||
       groupedResources[group].some((r) =>
-        r.kind.toLowerCase().includes(query) || r.name.toLowerCase().includes(query)
+        r.kind.toLowerCase().includes(query) || r.plural.toLowerCase().includes(query)
       )
     );
   });
@@ -108,10 +108,10 @@ export function ResourceBrowser() {
 
   function handleResourceClick(resource: any) {
     const path = resource.group
-      ? `/r/${resource.group}~${resource.version}~${resource.name}`
-      : `/r/${resource.version}~${resource.name}`;
+      ? `/r/${resource.group}~${resource.version}~${resource.plural}`
+      : `/r/${resource.version}~${resource.plural}`;
     addTab({
-      title: resource.name,
+      title: resource.plural,
       icon: getResourceIcon(resource.kind),
       path,
       pinned: false,
@@ -187,7 +187,7 @@ export function ResourceBrowser() {
               ? resources.filter(
                   (r) =>
                     r.kind.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    r.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    r.plural.toLowerCase().includes(searchQuery.toLowerCase())
                 )
               : resources;
 
@@ -216,12 +216,12 @@ export function ResourceBrowser() {
                       const Icon = getIcon(getResourceIcon(resource.kind));
                       return (
                         <button
-                          key={`${resource.group}-${resource.version}-${resource.name}`}
+                          key={`${resource.group}-${resource.version}-${resource.plural}`}
                           onClick={() => handleResourceClick(resource)}
                           className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-700 hover:text-slate-200"
                         >
                           <Icon className="h-3.5 w-3.5" />
-                          <span className="flex-1 truncate text-left">{resource.name}</span>
+                          <span className="flex-1 truncate text-left">{resource.plural}</span>
                         </button>
                       );
                     })}
