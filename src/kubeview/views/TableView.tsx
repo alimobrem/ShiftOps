@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronUp, ChevronDown, Trash2, Tag, Plus, Filter, Columns3, X } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, Trash2, Tag, Plus, Filter, Columns3, X, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sList, k8sPatch, k8sDelete } from '../engine/query';
 import { useClusterStore } from '../store/clusterStore';
@@ -279,6 +279,89 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
     }
   };
 
+  // Export table data
+  const handleExport = React.useCallback((format: 'csv' | 'json') => {
+    const data = sortedResources.map((r) => {
+      const row: Record<string, string> = {};
+      for (const col of visibleColumns) {
+        row[col.header] = String(col.accessorFn(r) ?? '');
+      }
+      return row;
+    });
+
+    let content: string;
+    let mimeType: string;
+    let ext: string;
+
+    if (format === 'csv') {
+      const headers = visibleColumns.map((c) => c.header);
+      const rows = data.map((row) => headers.map((h) => `"${(row[h] || '').replace(/"/g, '""')}"`).join(','));
+      content = [headers.join(','), ...rows].join('\n');
+      mimeType = 'text/csv';
+      ext = 'csv';
+    } else {
+      content = JSON.stringify(sortedResources.map((r) => ({ apiVersion: r.apiVersion, kind: r.kind, metadata: r.metadata, spec: r.spec, status: r.status })), null, 2);
+      mimeType = 'application/json';
+      ext = 'json';
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${resourceKind.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    addToast({ type: 'success', title: `Exported ${sortedResources.length} ${resourceKind.toLowerCase()} as ${ext.toUpperCase()}` });
+  }, [sortedResources, visibleColumns, resourceKind, addToast]);
+
+  // Bulk delete
+  const handleBulkDelete = React.useCallback(async () => {
+    if (selectedRows.size === 0) return;
+    const confirmed = window.confirm(`Delete ${selectedRows.size} selected resource${selectedRows.size !== 1 ? 's' : ''}?`);
+    if (!confirmed) return;
+
+    let deleted = 0;
+    for (const uid of selectedRows) {
+      const resource = stampedResources.find((r) => r.metadata.uid === uid);
+      if (!resource) continue;
+
+      const apiVersion = resource.apiVersion || '';
+      const kind = resource.kind || '';
+      const [group, version] = apiVersion.includes('/') ? apiVersion.split('/') : ['', apiVersion];
+      let basePath = group ? `/apis/${apiVersion}` : `/api/${version}`;
+      if (resource.metadata.namespace) basePath += `/namespaces/${resource.metadata.namespace}`;
+      const plural = kind.toLowerCase() + 's';
+      const resourcePath = `${basePath}/${plural}/${resource.metadata.name}`;
+
+      try {
+        await k8sDelete(resourcePath);
+        deleted++;
+      } catch {
+        // Continue with others
+      }
+    }
+
+    setSelectedRows(new Set());
+    addToast({ type: 'success', title: `Deleted ${deleted} resource${deleted !== 1 ? 's' : ''}` });
+  }, [selectedRows, stampedResources, addToast]);
+
+  // Row click to navigate to detail
+  const handleRowClick = React.useCallback((resource: K8sResource, e: React.MouseEvent) => {
+    // Don't navigate if clicking checkbox, button, or link
+    const target = e.target as HTMLElement;
+    if (target.closest('input') || target.closest('button') || target.closest('a')) return;
+
+    const gvrUrl = gvrKey.replace(/\//g, '~');
+    const ns = resource.metadata.namespace;
+    const name = resource.metadata.name;
+    const path = ns ? `/r/${gvrUrl}/${ns}/${name}` : `/r/${gvrUrl}/_/${name}`;
+    addTab({ title: name, path, pinned: false, closable: true });
+    navigate(path);
+  }, [gvrKey, navigate, addTab]);
+
   if (error) {
     return (
       <div className="h-full flex items-center justify-center bg-slate-950">
@@ -320,16 +403,25 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
             {/* Batch actions when items selected */}
             {selectedRows.size > 0 && (
               <div className="flex items-center gap-2 mr-4">
-                <button className="px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1.5">
+                <button
+                  onClick={handleBulkDelete}
+                  className="px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1.5"
+                >
                   <Trash2 className="w-3 h-3" />
                   Delete {selectedRows.size}
                 </button>
-                <button className="px-3 py-1.5 text-xs bg-slate-700 text-slate-200 rounded hover:bg-slate-600 flex items-center gap-1.5">
-                  <Tag className="w-3 h-3" />
-                  Add Label
-                </button>
               </div>
             )}
+            {/* Export */}
+            <div className="relative group">
+              <button className="p-1.5 bg-slate-900 border border-slate-700 rounded text-slate-400 hover:text-slate-200 transition-colors" title="Export">
+                <Download className="w-4 h-4" />
+              </button>
+              <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded border border-slate-600 bg-slate-800 shadow-xl py-1 hidden group-hover:block">
+                <button onClick={() => handleExport('csv')} className="w-full px-3 py-1.5 text-left text-sm text-slate-300 hover:bg-slate-700">Export CSV</button>
+                <button onClick={() => handleExport('json')} className="w-full px-3 py-1.5 text-left text-sm text-slate-300 hover:bg-slate-700">Export JSON</button>
+              </div>
+            </div>
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -490,8 +582,9 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
                 return (
                   <tr
                     key={uid}
+                    onClick={(e) => handleRowClick(resource, e)}
                     className={cn(
-                      'hover:bg-slate-900/50 transition-colors',
+                      'hover:bg-slate-900/50 transition-colors cursor-pointer',
                       isSelected && 'bg-slate-900/70'
                     )}
                   >

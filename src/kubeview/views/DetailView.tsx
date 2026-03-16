@@ -183,6 +183,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
 
   const isScalable = resource?.kind === 'Deployment' || resource?.kind === 'StatefulSet' || resource?.kind === 'ReplicaSet';
   const isRestartable = resource?.kind === 'Deployment';
+  const [detailTab, setDetailTab] = React.useState<'overview' | 'yaml' | 'events'>('overview');
 
   if (error) {
     return (
@@ -361,7 +362,61 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
           </div>
         )}
 
-        {/* Two-column layout */}
+        {/* Detail tabs */}
+        <div className="flex gap-1 bg-slate-900 rounded-lg p-1 w-fit">
+          {(['overview', 'yaml', 'events'] as const).map((tab) => (
+            <button key={tab} onClick={() => setDetailTab(tab)} className={cn('px-4 py-1.5 text-xs rounded-md transition-colors capitalize', detailTab === tab ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200')}>
+              {tab === 'events' ? `Events (${sortedEvents.length})` : tab}
+            </button>
+          ))}
+        </div>
+
+        {/* YAML tab */}
+        {detailTab === 'yaml' && (
+          <DetailSection title="Resource YAML">
+            <pre className="text-xs text-slate-300 font-mono bg-slate-950 p-3 rounded overflow-auto max-h-[600px]">
+              {JSON.stringify(resource, null, 2)}
+            </pre>
+          </DetailSection>
+        )}
+
+        {/* Events tab */}
+        {detailTab === 'events' && (
+          <div className="bg-slate-900 rounded-lg border border-slate-800">
+            <div className="px-4 py-3 border-b border-slate-800">
+              <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Events ({sortedEvents.length})
+              </h2>
+            </div>
+            <div className="divide-y divide-slate-800 max-h-[500px] overflow-auto">
+              {sortedEvents.length === 0 ? (
+                <div className="px-4 py-8 text-center text-slate-500 text-xs">No events found</div>
+              ) : (
+                sortedEvents.map((event, idx) => {
+                  const eventAny = event as any;
+                  const timestamp = eventAny.lastTimestamp || eventAny.firstTimestamp || '';
+                  const type = eventAny.type || 'Normal';
+                  return (
+                    <div key={idx} className="px-4 py-3">
+                      <div className="flex items-start gap-2">
+                        {type === 'Warning' ? <AlertCircle className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0 mt-0.5" /> : <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0 mt-0.5" />}
+                        <div className="flex-1">
+                          <div className="text-xs text-slate-500 mb-0.5">{timestamp ? new Date(timestamp).toLocaleString() : ''}</div>
+                          <div className="text-xs font-medium text-slate-200">{eventAny.reason}</div>
+                          <div className="text-xs text-slate-400 mt-0.5">{eventAny.message}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Overview tab */}
+        {detailTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column - Details */}
           <div className="lg:col-span-2 space-y-6">
@@ -506,56 +561,24 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
               </div>
             )}
 
-            {/* Timeline */}
-            <div className="bg-slate-900 rounded-lg border border-slate-800">
-              <div className="px-4 py-3 border-b border-slate-800">
-                <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                  <Activity className="w-4 h-4" />
-                  Events ({sortedEvents.length})
-                </h2>
-              </div>
-              <div className="divide-y divide-slate-800 max-h-96 overflow-auto">
-                {sortedEvents.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-slate-500 text-xs">
-                    No events found
-                  </div>
-                ) : (
-                  sortedEvents.slice(0, 20).map((event, idx) => {
-                    const eventAny = event as any;
-                    const timestamp =
-                      eventAny.lastTimestamp || eventAny.firstTimestamp || '';
-                    const type = eventAny.type || 'Normal';
-                    const reason = eventAny.reason || '';
-                    const message = eventAny.message || '';
-
-                    return (
-                      <div key={idx} className="px-4 py-3">
-                        <div className="flex items-start gap-2 mb-1">
-                          {type === 'Warning' ? (
-                            <AlertCircle className="w-3 h-3 text-yellow-500 flex-shrink-0 mt-0.5" />
-                          ) : (
-                            <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-slate-400 mb-1">
-                              {timestamp
-                                ? new Date(timestamp).toLocaleTimeString()
-                                : 'Unknown time'}
-                            </div>
-                            <div className="text-xs font-medium text-slate-200 mb-1">
-                              {reason}
-                            </div>
-                            <div className="text-xs text-slate-400">{message}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+            {/* Quick event count */}
+            {sortedEvents.length > 0 && (
+              <button
+                onClick={() => setDetailTab('events')}
+                className="w-full bg-slate-900 rounded-lg border border-slate-800 p-3 text-left hover:bg-slate-800/50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-200 flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    {sortedEvents.length} Event{sortedEvents.length !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-xs text-blue-400">View →</span>
+                </div>
+              </button>
+            )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );
