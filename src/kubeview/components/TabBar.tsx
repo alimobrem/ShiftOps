@@ -116,12 +116,13 @@ export function TabBar() {
         const isActive = tab.id === activeTabId;
 
         return (
-          <button
+          <div
             key={tab.id}
+            role="tab"
             onClick={() => handleTabClick(tab.id)}
             onMouseDown={(e) => handleMiddleClick(e, tab.id)}
             className={cn(
-              'group flex h-7 items-center gap-1.5 rounded px-2.5 text-sm transition-colors',
+              'group flex h-7 items-center gap-1.5 rounded px-2.5 text-sm transition-colors cursor-pointer select-none',
               tab.pinned ? 'min-w-0 px-2' : 'min-w-[100px] max-w-[200px]',
               isActive
                 ? 'bg-slate-900 text-slate-100 shadow-sm'
@@ -143,7 +144,7 @@ export function TabBar() {
               <span className="flex-1 truncate">{tab.title}</span>
             )}
 
-            {/* Close button (hidden for non-closable and shown on hover for others) */}
+            {/* Close button */}
             {tab.closable && !tab.pinned && (
               <button
                 onClick={(e) => handleTabClose(e, tab.id)}
@@ -152,7 +153,7 @@ export function TabBar() {
                 <X className="h-3 w-3" />
               </button>
             )}
-          </button>
+          </div>
         );
       })}
 

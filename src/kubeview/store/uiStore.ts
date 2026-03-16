@@ -83,7 +83,7 @@ interface UIState {
   setActiveOperation: (op: string | null) => void;
 }
 
-let tabIdCounter = 0;
+let tabIdCounter = Date.now();
 let toastIdCounter = 0;
 
 const DEFAULT_TABS: Tab[] = [
