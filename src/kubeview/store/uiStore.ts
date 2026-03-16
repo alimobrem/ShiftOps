@@ -113,6 +113,22 @@ export const useUIStore = create<UIState>()(
       activeTabId: 'pulse',
 
       addTab: (tab) => {
+        // Reuse existing tab with same path
+        const { tabs } = get();
+        const existing = tabs.find((t) => t.path === tab.path);
+        if (existing) {
+          // Update title if different, and activate
+          if (existing.title !== tab.title) {
+            set((state) => ({
+              tabs: state.tabs.map((t) => t.id === existing.id ? { ...t, title: tab.title } : t),
+              activeTabId: existing.id,
+            }));
+          } else {
+            set({ activeTabId: existing.id });
+          }
+          return existing.id;
+        }
+
         const id = `tab-${++tabIdCounter}`;
         const newTab: Tab = { ...tab, id };
         set((state) => ({
