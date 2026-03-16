@@ -196,7 +196,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
 
   const isScalable = resource?.kind === 'Deployment' || resource?.kind === 'StatefulSet' || resource?.kind === 'ReplicaSet';
   const isRestartable = resource?.kind === 'Deployment';
-  const [detailTab, setDetailTab] = React.useState<'overview' | 'related' | 'events'>('overview');
+  const [detailTab, setDetailTab] = React.useState<'overview' | 'conditions' | 'events'>('overview');
   const currentPath = namespace ? `/r/${gvrUrl}/${namespace}/${name}` : `/r/${gvrUrl}/_/${name}`;
   const [starred, setStarred] = React.useState(() => isFavorite(currentPath));
 
@@ -427,76 +427,67 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
 
         {/* Detail tabs */}
         <div className="flex gap-1 bg-slate-900 rounded-lg p-1 w-fit">
-          {(['overview', 'related', 'events'] as const).map((tab) => (
+          {(['overview', 'conditions', 'events'] as const).map((tab) => {
+            const conditions = (status.conditions || []) as any[];
+            return (
             <button key={tab} onClick={() => setDetailTab(tab)} className={cn('px-4 py-1.5 text-xs rounded-md transition-colors capitalize', detailTab === tab ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200')}>
-              {tab === 'events' ? `Events (${sortedEvents.length})` : tab === 'related' ? `Related (${relatedResources.length})` : tab}
+              {tab === 'events' ? `Events (${sortedEvents.length})` : tab === 'conditions' ? `Conditions (${conditions.length})` : tab}
             </button>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Related tab */}
-        {detailTab === 'related' && (
-          <div className="space-y-4">
-            {/* Owner chain */}
-            {relatedResources.length > 0 && (
-              <div className="bg-slate-900 rounded-lg border border-slate-800">
-                <div className="px-4 py-3 border-b border-slate-800">
-                  <h2 className="text-sm font-semibold text-slate-100">Owner References</h2>
+        {/* Conditions tab */}
+        {detailTab === 'conditions' && (() => {
+          const conditions = (status.conditions || []) as Array<{ type: string; status: string; reason?: string; message?: string; lastTransitionTime?: string; lastHeartbeatTime?: string }>;
+          return (
+            <div className="bg-slate-900 rounded-lg border border-slate-800">
+              {conditions.length === 0 ? (
+                <div className="px-4 py-8 text-center text-slate-500 text-sm">No conditions reported for this resource</div>
+              ) : (
+                <div className="overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-800">
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-400 w-8"></th>
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Type</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Status</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Reason</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Last Transition</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Message</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {conditions.map((cond, idx) => {
+                        const isGood = (cond.type === 'Ready' || cond.type === 'Available' || cond.type === 'Initialized' || cond.type === 'PodScheduled' || cond.type === 'ContainersReady') ? cond.status === 'True' : cond.type.includes('Pressure') || cond.type === 'Degraded' ? cond.status !== 'True' : cond.status === 'True';
+                        return (
+                          <tr key={idx} className="hover:bg-slate-800/30">
+                            <td className="px-4 py-2.5">
+                              {isGood ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />}
+                            </td>
+                            <td className="px-4 py-2.5 text-slate-200 font-medium">{cond.type}</td>
+                            <td className="px-4 py-2.5">
+                              <span className={cn('text-xs px-2 py-0.5 rounded', isGood ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300')}>
+                                {cond.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-400">{cond.reason || '—'}</td>
+                            <td className="px-4 py-2.5 text-xs text-slate-500">
+                              {cond.lastTransitionTime ? new Date(cond.lastTransitionTime).toLocaleString() : '—'}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-400 max-w-xs truncate" title={cond.message}>
+                              {cond.message || '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="divide-y divide-slate-800">
-                  {relatedResources.map((related, idx) => (
-                    <button key={idx} onClick={() => { addTab({ title: related.name, path: related.path, pinned: false, closable: true }); navigate(related.path); }} className="w-full px-4 py-3 text-left hover:bg-slate-800/50 transition-colors flex items-center gap-3">
-                      <Package className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-slate-200 font-medium">{related.name}</div>
-                        <div className="text-xs text-slate-500">{related.type}</div>
-                      </div>
-                      <ArrowRight className="w-3 h-3 text-slate-600" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Mounted volumes (for Pods) */}
-            {resource.kind === 'Pod' && spec.volumes && (spec.volumes as any[]).length > 0 && (
-              <div className="bg-slate-900 rounded-lg border border-slate-800">
-                <div className="px-4 py-3 border-b border-slate-800">
-                  <h2 className="text-sm font-semibold text-slate-100">Volumes ({(spec.volumes as any[]).length})</h2>
-                </div>
-                <div className="divide-y divide-slate-800">
-                  {(spec.volumes as any[]).map((vol: any, idx: number) => {
-                    const source = vol.configMap ? `ConfigMap: ${vol.configMap.name}` : vol.secret ? `Secret: ${vol.secret.secretName}` : vol.persistentVolumeClaim ? `PVC: ${vol.persistentVolumeClaim.claimName}` : vol.emptyDir ? 'EmptyDir' : vol.hostPath ? `HostPath: ${vol.hostPath.path}` : 'Other';
-                    return (
-                      <div key={idx} className="px-4 py-2.5 flex items-center gap-3">
-                        <HardDrive className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-                        <div className="flex-1">
-                          <div className="text-sm text-slate-200">{vol.name}</div>
-                          <div className="text-xs text-slate-500">{source}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Copy actions */}
-            <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
-              <h2 className="text-sm font-semibold text-slate-100 mb-3">Quick Actions</h2>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => { navigator.clipboard.writeText(resourceToYaml(resource as any)); addToast({ type: 'success', title: 'YAML copied' }); }} className="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700">Copy as YAML</button>
-                <button onClick={() => { navigator.clipboard.writeText(JSON.stringify(resource, null, 2)); addToast({ type: 'success', title: 'JSON copied' }); }} className="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700">Copy as JSON</button>
-                {namespace && <button onClick={() => { const gvrUrl2 = gvrKey.replace(/\//g, '~'); addTab({ title: `${name} (Deps)`, path: `/deps/${gvrUrl2}/${namespace}/${name}`, pinned: false, closable: true }); navigate(`/deps/${gvrUrl2}/${namespace}/${name}`); }} className="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700">View Dependency Graph</button>}
-                <button onClick={handleViewYaml} className="px-3 py-1.5 text-xs bg-slate-800 text-slate-300 rounded hover:bg-slate-700">Edit YAML</button>
-              </div>
+              )}
             </div>
-
-            {relatedResources.length === 0 && (!spec.volumes || (spec.volumes as any[]).length === 0) && (
-              <div className="text-center py-8 text-slate-500 text-sm">No related resources found</div>
-            )}
-          </div>
-        )}
+          );
+        })()}
 
         {/* Events tab */}
         {detailTab === 'events' && (
