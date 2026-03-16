@@ -280,6 +280,30 @@ export const useUIStore = create<UIState>()(
         selectedNamespace: state.selectedNamespace,
         dockHeight: state.dockHeight,
       }),
+      merge: (persisted: any, current: any) => {
+        if (!persisted) return current;
+
+        // Re-assign unique IDs to persisted tabs to avoid key collisions
+        const seen = new Set<string>();
+        const tabs = (persisted.tabs || current.tabs).map((tab: Tab) => {
+          // Deduplicate by path
+          if (seen.has(tab.path)) return null;
+          seen.add(tab.path);
+          // Keep pulse tab ID stable, re-assign others
+          if (tab.id === 'pulse') return tab;
+          return { ...tab, id: `tab-${++tabIdCounter}` };
+        }).filter(Boolean) as Tab[];
+
+        // Find active tab in the cleaned list
+        const activeTab = tabs.find((t: Tab) => t.path === (persisted.tabs || []).find((pt: Tab) => pt.id === persisted.activeTabId)?.path);
+
+        return {
+          ...current,
+          ...persisted,
+          tabs,
+          activeTabId: activeTab?.id || 'pulse',
+        };
+      },
     }
   )
 );
