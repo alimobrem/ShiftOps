@@ -32,6 +32,7 @@ import { kindToPlural } from '../engine/renderers/index';
 import { buildApiPath } from '../hooks/useResourceUrl';
 import { useUIStore } from '../store/uiStore';
 import { jsonToYaml, resourceToYaml } from '../engine/yamlUtils';
+import PodTerminal from '../components/PodTerminal';
 import { toggleFavorite, isFavorite } from '../engine/favorites';
 
 interface DetailViewProps {
@@ -199,6 +200,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   const [detailTab, setDetailTab] = React.useState<'overview' | 'conditions' | 'events'>('overview');
   const currentPath = namespace ? `/r/${gvrUrl}/${namespace}/${name}` : `/r/${gvrUrl}/_/${name}`;
   const [starred, setStarred] = React.useState(() => isFavorite(currentPath));
+  const [showTerminal, setShowTerminal] = React.useState(false);
 
   if (error) {
     return (
@@ -224,6 +226,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   const spec = (resource.spec as any) || {};
 
   return (
+    <>
     <div className="h-full overflow-auto bg-slate-950">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
@@ -279,14 +282,9 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
                   Logs
                 </button>
                 <button
-                  onClick={() => {
-                    const container = (spec.containers as any[])?.[0]?.name || '';
-                    const cmd = `oc exec -it ${name} -n ${namespace}${container ? ` -c ${container}` : ''} -- /bin/sh`;
-                    navigator.clipboard.writeText(cmd);
-                    addToast({ type: 'success', title: 'Terminal command copied', detail: cmd });
-                  }}
+                  onClick={() => setShowTerminal(true)}
                   className="px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700 flex items-center gap-1.5"
-                  title="Copy oc exec command"
+                  title="Open terminal"
                 >
                   <Terminal className="w-3 h-3" />
                   Terminal
@@ -725,6 +723,17 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
         )}
       </div>
     </div>
+
+    {/* Pod Terminal */}
+    {showTerminal && resource.kind === 'Pod' && namespace && (
+      <PodTerminal
+        namespace={namespace}
+        podName={name}
+        containerName={(spec.containers as any[])?.[0]?.name || ''}
+        onClose={() => setShowTerminal(false)}
+      />
+    )}
+    </>
   );
 }
 
