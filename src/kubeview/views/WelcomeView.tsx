@@ -1,7 +1,7 @@
 import {
   HeartPulse, Clock, Search, GitBranch, Terminal, FilePlus,
   Keyboard, ArrowRight, Zap, Eye, Shield, Bell, Settings,
-  Puzzle, HardDrive, Activity, Cpu,
+  HardDrive, Activity, Cpu, Package, Globe, Server,
 } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
@@ -78,10 +78,12 @@ export default function WelcomeView() {
             <PageLink icon={<Activity className="w-5 h-5 text-orange-400" />} title="Troubleshoot" description="Auto-diagnose issues with interactive runbooks" onClick={() => go('/troubleshoot', 'Troubleshoot')} />
             <PageLink icon={<Bell className="w-5 h-5 text-red-400" />} title="Alerts" description="Prometheus alerts, rules, and silences" onClick={() => go('/alerts', 'Alerts')} />
             <PageLink icon={<Clock className="w-5 h-5 text-blue-400" />} title="Timeline" description="Chronological cluster event feed" onClick={() => go('/timeline', 'Timeline')} />
+            <PageLink icon={<Package className="w-5 h-5 text-blue-400" />} title="Workloads" description="Deployments, StatefulSets, DaemonSets, Jobs, Pods" onClick={() => go('/workloads', 'Workloads')} />
+            <PageLink icon={<Globe className="w-5 h-5 text-cyan-400" />} title="Networking" description="Services, Routes, Ingresses, Network Policies" onClick={() => go('/networking', 'Networking')} />
+            <PageLink icon={<Server className="w-5 h-5 text-blue-400" />} title="Compute" description="Nodes, machines, capacity, autoscaling" onClick={() => go('/compute', 'Compute')} />
             <PageLink icon={<HardDrive className="w-5 h-5 text-orange-400" />} title="Storage" description="PVCs, PVs, StorageClasses, capacity" onClick={() => go('/storage', 'Storage')} />
             <PageLink icon={<Shield className="w-5 h-5 text-indigo-400" />} title="Access Control" description="RBAC roles, cluster-admin audit" onClick={() => go('/access-control', 'Access Control')} />
-            <PageLink icon={<Puzzle className="w-5 h-5 text-violet-400" />} title="Operators" description="ClusterOperator health and versions" onClick={() => go('/operators', 'Operators')} />
-            <PageLink icon={<Settings className="w-5 h-5 text-slate-400" />} title="Administration" description="Cluster config, updates, snapshots, quotas" onClick={() => go('/admin', 'Administration')} />
+            <PageLink icon={<Settings className="w-5 h-5 text-slate-400" />} title="Administration" description="Operators, config, updates, snapshots, quotas" onClick={() => go('/admin', 'Administration')} />
             <PageLink icon={<FilePlus className="w-5 h-5 text-amber-400" />} title="Create Resource" description="YAML templates with autocomplete" onClick={() => go('/create/v1~pods', 'Create')} />
           </div>
         </div>

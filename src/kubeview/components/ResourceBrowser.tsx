@@ -174,7 +174,6 @@ export function ResourceBrowser() {
             { label: 'Storage', icon: Icons.HardDrive, path: '/storage', color: 'text-orange-400' },
             { label: 'Timeline', icon: Icons.Clock, path: '/timeline', color: 'text-blue-400' },
             { label: 'Access Control', icon: Icons.Shield, path: '/access-control', color: 'text-indigo-400' },
-            { label: 'Operators', icon: Icons.Puzzle, path: '/admin', color: 'text-violet-400' },
             { label: 'Alerts', icon: Icons.Bell, path: '/alerts', color: 'text-red-400' },
             { label: 'Administration', icon: Icons.Settings, path: '/admin', color: 'text-slate-400' },
             { label: 'Troubleshoot', icon: Icons.Activity, path: '/troubleshoot', color: 'text-orange-400' },
