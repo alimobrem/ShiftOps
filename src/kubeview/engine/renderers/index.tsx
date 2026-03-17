@@ -143,7 +143,7 @@ export function renderAge(value: unknown): ReactNode {
   const age = ageFromTimestamp(timestamp);
 
   return (
-    <span className="text-sm text-gray-600" title={timestamp}>
+    <span className="text-sm text-slate-400" title={timestamp}>
       {age}
     </span>
   );
@@ -179,7 +179,7 @@ export function renderLabels(value: unknown): ReactNode {
   const labels = value as Record<string, string>;
   const entries = Object.entries(labels);
 
-  if (entries.length === 0) return <span className="text-gray-400 text-xs">None</span>;
+  if (entries.length === 0) return <span className="text-slate-500 text-xs">None</span>;
 
   // Show first 3 labels, then a count
   const visible = entries.slice(0, 3);
@@ -190,14 +190,14 @@ export function renderLabels(value: unknown): ReactNode {
       {visible.map(([key, val]) => (
         <span
           key={key}
-          className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-700 rounded border border-gray-300"
+          className="inline-block px-1.5 py-0.5 text-xs bg-slate-800 text-slate-300 rounded border border-slate-600"
           title={`${key}=${val}`}
         >
           {key.length > 15 ? `${key.slice(0, 12)}...` : key}
         </span>
       ))}
       {remaining > 0 && (
-        <span className="inline-block px-1.5 py-0.5 text-xs text-gray-500">
+        <span className="inline-block px-1.5 py-0.5 text-xs text-slate-500">
           +{remaining}
         </span>
       )}
@@ -213,7 +213,7 @@ export function renderReplicas(value: unknown, resource: K8sResource): ReactNode
   const desired = Number(spec?.replicas ?? 0);
 
   const allReady = ready === desired && desired > 0;
-  const color = allReady ? 'text-green-600' : ready > 0 ? 'text-yellow-600' : 'text-red-600';
+  const color = allReady ? 'text-green-400' : ready > 0 ? 'text-yellow-400' : 'text-red-400';
 
   return (
     <span className={`font-mono text-sm ${color} font-semibold`}>
@@ -223,14 +223,14 @@ export function renderReplicas(value: unknown, resource: K8sResource): ReactNode
 }
 
 export function renderContainers(value: unknown): ReactNode {
-  if (!value || !Array.isArray(value)) return <span className="text-gray-400">-</span>;
+  if (!value || !Array.isArray(value)) return <span className="text-slate-500">-</span>;
 
   const containers = value as Array<Record<string, unknown>>;
   const count = containers.length;
   const ready = containers.filter((c) => c.ready === true).length;
 
   const allReady = ready === count;
-  const color = allReady ? 'text-green-600' : 'text-yellow-600';
+  const color = allReady ? 'text-green-400' : 'text-yellow-400';
 
   return (
     <span className={`font-mono text-sm ${color}`}>
@@ -243,18 +243,18 @@ export function renderBoolean(value: unknown): ReactNode {
   const bool = Boolean(value);
 
   return bool ? (
-    <span className="text-green-600 font-semibold">✓</span>
+    <span className="text-green-400 font-semibold">✓</span>
   ) : (
-    <span className="text-gray-400">✗</span>
+    <span className="text-slate-500">✗</span>
   );
 }
 
 export function renderQuantity(value: unknown): ReactNode {
-  if (!value) return <span className="text-gray-400">-</span>;
+  if (!value) return <span className="text-slate-500">-</span>;
 
   const qty = String(value);
   return (
-    <span className="font-mono text-sm text-gray-700">
+    <span className="font-mono text-sm text-slate-300">
       {qty}
     </span>
   );
@@ -278,14 +278,14 @@ export function renderLink(value: unknown): ReactNode {
 
 export function renderDefault(value: unknown): ReactNode {
   if (value === null || value === undefined) {
-    return <span className="text-gray-400">-</span>;
+    return <span className="text-slate-500">-</span>;
   }
 
   if (typeof value === 'object') {
-    return <span className="text-gray-400 text-xs">Object</span>;
+    return <span className="text-slate-500 text-xs">Object</span>;
   }
 
-  return <span className="text-sm text-gray-700">{String(value)}</span>;
+  return <span className="text-sm text-slate-300">{String(value)}</span>;
 }
 
 export function renderConditions(value: unknown): ReactNode {
@@ -299,7 +299,7 @@ export function renderConditions(value: unknown): ReactNode {
         const type = String(cond.type ?? '');
         const status = String(cond.status ?? '');
         const isTrue = status === 'True';
-        const color = isTrue ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600';
+        const color = isTrue ? 'bg-green-900/50 text-green-300' : 'bg-slate-800 text-slate-400';
 
         return (
           <span

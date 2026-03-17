@@ -193,25 +193,32 @@ function diagnosePod(resource: K8sResource): Diagnosis[] {
         title: `Container ${name} was killed due to OOM`,
         detail: `Container exceeded memory limit${currentMemoryLimit ? ` (${currentMemoryLimit})` : ''}`,
         suggestion: 'Increase memory limits or optimize memory usage in the application.',
-        fix: currentMemoryLimit ? {
-          label: 'Increase memory limit',
-          patch: {
-            spec: {
-              containers: [
-                {
-                  name,
-                  resources: {
-                    limits: {
-                      memory: increaseMemory(currentMemoryLimit),
-                    },
+        fix: currentMemoryLimit ? (() => {
+          // Target the owning Deployment/StatefulSet, not the Pod (K8s rejects pod resource patches)
+          const owner = (resource.metadata.ownerReferences || []).find(o => o.controller);
+          if (!owner) return undefined;
+          const ownerKind = owner.kind; // ReplicaSet, StatefulSet, etc.
+          // For ReplicaSet, target the parent Deployment
+          const isRS = ownerKind === 'ReplicaSet';
+          const targetKind = isRS ? 'deployments' : `${ownerKind.toLowerCase()}s`;
+          const targetName = isRS ? owner.name.replace(/-[a-f0-9]+$/, '') : owner.name;
+          const group = isRS || ownerKind === 'Deployment' || ownerKind === 'StatefulSet' ? 'apps' : '';
+          const basePath = group ? `/apis/${group}/v1` : '/api/v1';
+          return {
+            label: 'Increase memory limit',
+            patch: {
+              spec: {
+                template: {
+                  spec: {
+                    containers: [{ name, resources: { limits: { memory: increaseMemory(currentMemoryLimit) } } }],
                   },
                 },
-              ],
+              },
             },
-          },
-          patchTarget: `/api/v1/namespaces/${resource.metadata.namespace}/pods/${resource.metadata.name}`,
-          patchType: 'application/strategic-merge-patch+json',
-        } : undefined,
+            patchTarget: `${basePath}/namespaces/${resource.metadata.namespace}/${targetKind}/${targetName}`,
+            patchType: 'application/strategic-merge-patch+json',
+          };
+        })() : undefined,
       });
     }
 
@@ -392,41 +399,6 @@ function diagnoseCertificate(resource: K8sResource): Diagnosis[] {
     }
   }
 
-  // Check TLS secret data
-  const data = resource.data as Record<string, string> | undefined;
-  if (data && data['tls.crt']) {
-    try {
-      const cert = parseCertificate(data['tls.crt']);
-      const now = new Date();
-      const daysUntilExpiry = Math.floor((cert.notAfter.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (daysUntilExpiry < 0) {
-        diagnoses.push({
-          severity: 'critical',
-          title: 'TLS certificate has expired',
-          detail: `Certificate expired on ${cert.notAfter.toLocaleDateString()}`,
-          suggestion: 'Renew the certificate immediately.',
-        });
-      } else if (daysUntilExpiry < 7) {
-        diagnoses.push({
-          severity: 'critical',
-          title: 'TLS certificate expiring soon',
-          detail: `Certificate expires in ${daysUntilExpiry} day(s)`,
-          suggestion: 'Renew the certificate to prevent service disruption.',
-        });
-      } else if (daysUntilExpiry < 30) {
-        diagnoses.push({
-          severity: 'warning',
-          title: 'TLS certificate expiring soon',
-          detail: `Certificate expires in ${daysUntilExpiry} day(s)`,
-          suggestion: 'Plan to renew the certificate.',
-        });
-      }
-    } catch (error) {
-      // Ignore certificate parsing errors
-    }
-  }
-
   return diagnoses;
 }
 
@@ -480,30 +452,6 @@ function increaseMemory(current: string): string {
   const newValue = Math.ceil(numValue * 1.5);
 
   return `${newValue}${unit}`;
-}
-
-/**
- * Helper: Parse certificate (simplified)
- */
-function parseCertificate(base64Cert: string): { notAfter: Date } {
-  // This is a simplified parser - in production, use a proper X.509 parser
-  // For now, just return a placeholder
-  const decoded = atob(base64Cert);
-
-  // Look for validity period in the certificate
-  // This is a very basic implementation
-  const notAfterMatch = decoded.match(/Not After : (.+?)\n/);
-
-  if (notAfterMatch) {
-    return {
-      notAfter: new Date(notAfterMatch[1]),
-    };
-  }
-
-  // Default to 90 days from now if we can't parse
-  return {
-    notAfter: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-  };
 }
 
 /**

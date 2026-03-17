@@ -26,9 +26,9 @@ export interface ActionContext {
 }
 
 export interface ToastData {
+  type: 'success' | 'error' | 'warning' | 'undo';
   title: string;
-  description?: string;
-  variant: 'default' | 'success' | 'warning' | 'danger';
+  detail?: string;
 }
 
 export interface ActionResult {
@@ -102,8 +102,8 @@ const deleteAction: ResourceAction = {
 
       context.addToast({
         title: 'Resource deleted',
-        description: `${resource.kind} ${resource.metadata.name} has been deleted`,
-        variant: 'success',
+        detail: `${resource.kind} ${resource.metadata.name} has been deleted`,
+        type: 'success',
       });
 
       return {
@@ -115,8 +115,8 @@ const deleteAction: ResourceAction = {
 
       context.addToast({
         title: 'Delete failed',
-        description: message,
-        variant: 'danger',
+        detail: message,
+        type: 'error',
       });
 
       return {
@@ -134,8 +134,9 @@ const editYamlAction: ResourceAction = {
   category: 'navigate',
   available: (resource, resourceType) => resourceType.verbs.includes('update'),
   execute: async (resource, context) => {
-    const path = getResourcePath(resource);
-    context.navigate(`${path}?tab=yaml`);
+    const gvrUrl = `${resource.apiVersion}~${kindToPlural(resource.kind)}`.replace(/\//g, '~');
+    const ns = resource.metadata.namespace || '_';
+    context.navigate(`/yaml/${gvrUrl}/${ns}/${resource.metadata.name}`);
 
     return {
       success: true,
@@ -194,52 +195,16 @@ const scaleAction: ResourceAction = {
     return ['Deployment', 'StatefulSet', 'ReplicaSet'].includes(resource.kind);
   },
   execute: async (resource, context) => {
-    const path = getResourcePath(resource);
-    const spec = resource.spec as { replicas?: number } | undefined;
-    const currentReplicas = spec?.replicas || 0;
+    // Scale is handled by the DetailView UI with +/- buttons.
+    // The action registry should not auto-scale — navigating to the resource instead.
+    const gvrUrl = `${resource.apiVersion}~${kindToPlural(resource.kind)}`.replace(/\//g, '~');
+    const ns = resource.metadata.namespace || '_';
+    context.navigate(`/r/${gvrUrl}/${ns}/${resource.metadata.name}`);
 
-    // This should prompt for new replica count in the UI
-    // For now, we'll increment by 1 as an example
-    const newReplicas = currentReplicas + 1;
-
-    try {
-      await k8sPatch(path, {
-        spec: {
-          replicas: newReplicas,
-        },
-      });
-
-      context.addToast({
-        title: 'Scaled successfully',
-        description: `${resource.kind} ${resource.metadata.name} scaled to ${newReplicas} replicas`,
-        variant: 'success',
-      });
-
-      return {
-        success: true,
-        message: `Scaled to ${newReplicas} replicas`,
-        undo: async () => {
-          await k8sPatch(path, {
-            spec: {
-              replicas: currentReplicas,
-            },
-          });
-        },
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-
-      context.addToast({
-        title: 'Scale failed',
-        description: message,
-        variant: 'danger',
-      });
-
-      return {
-        success: false,
-        message,
-      };
-    }
+    return {
+      success: true,
+      message: 'Navigated to resource for scaling',
+    };
   },
 };
 
@@ -270,8 +235,8 @@ const restartRolloutAction: ResourceAction = {
 
       context.addToast({
         title: 'Rollout restarted',
-        description: `${resource.kind} ${resource.metadata.name} rollout has been restarted`,
-        variant: 'success',
+        detail: `${resource.kind} ${resource.metadata.name} rollout has been restarted`,
+        type: 'success',
       });
 
       return {
@@ -283,8 +248,8 @@ const restartRolloutAction: ResourceAction = {
 
       context.addToast({
         title: 'Restart failed',
-        description: message,
-        variant: 'danger',
+        detail: message,
+        type: 'error',
       });
 
       return {
@@ -318,8 +283,8 @@ const cordonAction: ResourceAction = {
 
       context.addToast({
         title: 'Node cordoned',
-        description: `${resource.metadata.name} has been marked unschedulable`,
-        variant: 'success',
+        detail: `${resource.metadata.name} has been marked unschedulable`,
+        type: 'success',
       });
 
       return {
@@ -338,8 +303,8 @@ const cordonAction: ResourceAction = {
 
       context.addToast({
         title: 'Cordon failed',
-        description: message,
-        variant: 'danger',
+        detail: message,
+        type: 'error',
       });
 
       return {
@@ -373,8 +338,8 @@ const uncordonAction: ResourceAction = {
 
       context.addToast({
         title: 'Node uncordoned',
-        description: `${resource.metadata.name} is now schedulable`,
-        variant: 'success',
+        detail: `${resource.metadata.name} is now schedulable`,
+        type: 'success',
       });
 
       return {
@@ -386,8 +351,8 @@ const uncordonAction: ResourceAction = {
 
       context.addToast({
         title: 'Uncordon failed',
-        description: message,
-        variant: 'danger',
+        detail: message,
+        type: 'error',
       });
 
       return {
@@ -417,13 +382,13 @@ const drainAction: ResourceAction = {
         },
       });
 
-      // Then evict all pods (simplified - real implementation would list and evict)
-      // This would require listing pods on the node and creating eviction objects
+      // Note: Full drain requires listing and evicting all pods on the node.
+      // This only cordons the node (marks unschedulable). Use `oc adm drain` for full drain.
 
       context.addToast({
-        title: 'Node drain started',
-        description: `${resource.metadata.name} is being drained`,
-        variant: 'success',
+        title: 'Node cordoned',
+        detail: `${resource.metadata.name} marked unschedulable. Use "oc adm drain ${resource.metadata.name}" for full drain.`,
+        type: 'warning',
       });
 
       return {
@@ -435,8 +400,8 @@ const drainAction: ResourceAction = {
 
       context.addToast({
         title: 'Drain failed',
-        description: message,
-        variant: 'danger',
+        detail: message,
+        type: 'error',
       });
 
       return {

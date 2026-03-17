@@ -184,7 +184,7 @@ export class WatchManager {
         this.stopHeartbeat(connection);
 
         // Handle 410 Gone (resourceVersion too old)
-        if (event.code === 1008 || event.reason.includes('410')) {
+        if (event.code === 1008 || (event.reason && event.reason.includes('410'))) {
           console.log('Resource version too old, resetting');
           connection.resourceVersion = '';
         }

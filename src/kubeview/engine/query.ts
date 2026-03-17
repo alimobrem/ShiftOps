@@ -3,9 +3,7 @@
  * Provides hooks for fetching, creating, updating, and watching K8s resources.
  */
 
-import { useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
-import { useEffect, useState, useMemo } from 'react';
-import { watchManager, type WatchEvent } from './watch';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 
 import { K8S_BASE as BASE } from './gvr';
 
@@ -47,8 +45,9 @@ export async function k8sList<T>(
   const response = await fetch(url);
 
   if (!response.ok) {
-    const error: K8sError = await response.json();
-    throw new Error(error.message || `Failed to list resources: ${response.statusText}`);
+    let message = `Failed to list resources: ${response.statusText}`;
+    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
+    throw new Error(message);
   }
 
   const data: K8sListResponse<T> = await response.json();
@@ -62,8 +61,9 @@ export async function k8sGet<T>(apiPath: string): Promise<T> {
   const response = await fetch(`${BASE}${apiPath}`);
 
   if (!response.ok) {
-    const error: K8sError = await response.json();
-    throw new Error(error.message || `Failed to get resource: ${response.statusText}`);
+    let message = `Failed to get resource: ${response.statusText}`;
+    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
+    throw new Error(message);
   }
 
   return response.json();
@@ -82,8 +82,9 @@ export async function k8sCreate<T>(apiPath: string, body: T): Promise<T> {
   });
 
   if (!response.ok) {
-    const error: K8sError = await response.json();
-    throw new Error(error.message || `Failed to create resource: ${response.statusText}`);
+    let message = `Failed to create resource: ${response.statusText}`;
+    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
+    throw new Error(message);
   }
 
   return response.json();
@@ -102,8 +103,9 @@ export async function k8sUpdate<T>(apiPath: string, body: T): Promise<T> {
   });
 
   if (!response.ok) {
-    const error: K8sError = await response.json();
-    throw new Error(error.message || `Failed to update resource: ${response.statusText}`);
+    let message = `Failed to update resource: ${response.statusText}`;
+    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
+    throw new Error(message);
   }
 
   return response.json();
@@ -126,8 +128,9 @@ export async function k8sPatch<T>(
   });
 
   if (!response.ok) {
-    const error: K8sError = await response.json();
-    throw new Error(error.message || `Failed to patch resource: ${response.statusText}`);
+    let message = `Failed to patch resource: ${response.statusText}`;
+    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
+    throw new Error(message);
   }
 
   return response.json();
@@ -142,8 +145,9 @@ export async function k8sDelete(apiPath: string): Promise<void> {
   });
 
   if (!response.ok && response.status !== 404) {
-    const error: K8sError = await response.json();
-    throw new Error(error.message || `Failed to delete resource: ${response.statusText}`);
+    let message = `Failed to delete resource: ${response.statusText}`;
+    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
+    throw new Error(message);
   }
 }
 
@@ -182,96 +186,9 @@ export function useK8sGet<T>(
   } as UseQueryOptions<T, Error>);
 }
 
-/**
- * Hook to watch resources with real-time updates
- * Combines initial list fetch with WebSocket watch for live updates
- */
-export function useK8sWatch<T extends { metadata: { uid: string; resourceVersion?: string } }>(
-  apiPath: string,
-  namespace?: string
-) {
-  const queryClient = useQueryClient();
-  const queryKey = useMemo(() => ['k8s', 'list', apiPath, namespace], [apiPath, namespace]);
-
-  // Initial fetch
-  const { data: initialData, isLoading, error } = useK8sList<T>(apiPath, namespace, {
-    refetchInterval: false, // Don't poll, we'll use watch
-  });
-
-  const [data, setData] = useState<T[]>(initialData || []);
-
-  useEffect(() => {
-    if (initialData) {
-      setData(initialData);
-    }
-  }, [initialData]);
-
-  useEffect(() => {
-    if (!initialData) {
-      return;
-    }
-
-    // Build watch path
-    let watchPath = apiPath;
-    if (namespace && namespace !== 'all' && !apiPath.includes('/namespaces/')) {
-      const parts = apiPath.split('/');
-      const resourceIndex = parts.length - 1;
-      parts.splice(resourceIndex, 0, 'namespaces', namespace);
-      watchPath = parts.join('/');
-    }
-
-    // Get latest resource version from initial data
-    const resourceVersion = initialData.length > 0
-      ? initialData[0].metadata.resourceVersion
-      : undefined;
-
-    // Start watching
-    const subscription = watchManager.watch<T>(
-      watchPath,
-      (event: WatchEvent<T>) => {
-        setData((current) => {
-          const updated = [...current];
-          const uid = event.object.metadata.uid;
-          const index = updated.findIndex((item) => item.metadata.uid === uid);
-
-          if (event.type === 'ADDED') {
-            if (index === -1) {
-              updated.push(event.object);
-            }
-          } else if (event.type === 'MODIFIED') {
-            if (index !== -1) {
-              updated[index] = event.object;
-            } else {
-              updated.push(event.object);
-            }
-          } else if (event.type === 'DELETED') {
-            if (index !== -1) {
-              updated.splice(index, 1);
-            }
-          }
-
-          // Update the query cache
-          queryClient.setQueryData(queryKey, updated);
-
-          return updated;
-        });
-      },
-      resourceVersion
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [apiPath, namespace, initialData, queryClient, queryKey]);
-
-  return {
-    data,
-    isLoading,
-    error,
-  };
-}
-
-// Note: useK8sCreate, useK8sUpdate, useK8sPatch, useK8sDelete hooks were removed
+// Note: useK8sWatch was removed — it had race conditions (stale data, missing list resourceVersion).
+// Real-time updates are handled by useClusterHealthData which uses WebSocket watches to invalidate queries.
+// useK8sCreate, useK8sUpdate, useK8sPatch, useK8sDelete hooks were also removed
 // as they were never adopted. Views use raw k8sCreate/k8sPatch/k8sDelete directly.
 // If hooks are needed in the future, wrap the raw functions with useMutation.
 
@@ -299,8 +216,9 @@ export async function k8sSubresource<T>(
   const response = await fetch(url, options);
 
   if (!response.ok) {
-    const error: K8sError = await response.json();
-    throw new Error(error.message || `Failed to execute ${subresource}: ${response.statusText}`);
+    let message = `Failed to execute ${subresource}: ${response.statusText}`;
+    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
+    throw new Error(message);
   }
 
   return response.json();
@@ -344,8 +262,9 @@ export async function k8sLogs(
   const response = await fetch(url);
 
   if (!response.ok) {
-    const error: K8sError = await response.json();
-    throw new Error(error.message || `Failed to get logs: ${response.statusText}`);
+    let message = `Failed to get logs: ${response.statusText}`;
+    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
+    throw new Error(message);
   }
 
   return response.text();
