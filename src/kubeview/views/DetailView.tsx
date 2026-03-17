@@ -36,6 +36,7 @@ import { jsonToYaml, resourceToYaml } from '../engine/yamlUtils';
 import PodTerminal from '../components/PodTerminal';
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 import DataEditor from '../components/DataEditor';
+import DeployProgress from '../components/DeployProgress';
 import { toggleFavorite, isFavorite } from '../engine/favorites';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 
@@ -149,14 +150,14 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
     setDeleting(true);
     try {
       await k8sDelete(apiPath);
-      // Optimistically remove from all list caches before navigating
+      // Optimistically remove from all list caches
       queryClient.setQueriesData({ queryKey: ['k8s', 'list'] }, (old: any) => {
         if (!old || !Array.isArray(old)) return old;
         return old.filter((r: any) => r.metadata?.uid !== resource.metadata.uid);
       });
-      addToast({ type: 'success', title: `${resource.kind} "${resource.metadata.name}" deleted` });
       setShowDeleteConfirm(false);
-      go(`/r/${gvrUrl}`, resourcePlural);
+      // Show delete progress instead of navigating away
+      setShowDeleteProgress(true);
     } catch (err) {
       addToast({
         type: 'error',
@@ -224,6 +225,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   const [starred, setStarred] = React.useState(() => isFavorite(currentPath));
   const [showTerminal, setShowTerminal] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [showDeleteProgress, setShowDeleteProgress] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
 
   if (error) {
@@ -727,6 +729,24 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
         )}
       </div>
     </div>
+
+    {/* Delete Progress */}
+    {showDeleteProgress && resource && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
+        <div className="w-full max-w-2xl">
+          <DeployProgress
+            type={resource.kind === 'Job' ? 'job' : 'deployment'}
+            name={resource.metadata.name}
+            namespace={namespace || 'default'}
+            mode="delete"
+            onClose={() => {
+              setShowDeleteProgress(false);
+              go(`/r/${gvrUrl}`, resourcePlural);
+            }}
+          />
+        </div>
+      </div>
+    )}
 
     {/* Delete Confirmation */}
     {showDeleteConfirm && resource && (

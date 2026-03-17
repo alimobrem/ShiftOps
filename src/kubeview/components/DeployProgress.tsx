@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   CheckCircle, XCircle, Loader2, Clock, Box, AlertTriangle,
-  FileText, ArrowRight, ExternalLink, ChevronDown, ChevronRight,
+  FileText, ArrowRight, ChevronDown, ChevronRight, Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sList, k8sGet } from '../engine/query';
@@ -10,32 +10,23 @@ import { K8S_BASE as BASE } from '../engine/gvr';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 
 interface DeployProgressProps {
-  /** "deployment" or "job" */
   type: 'deployment' | 'job';
   name: string;
   namespace: string;
+  /** 'deploy' (default) or 'delete' */
+  mode?: 'deploy' | 'delete';
   onClose: () => void;
 }
 
-type Phase = 'creating' | 'scheduling' | 'pulling' | 'starting' | 'running' | 'failed' | 'succeeded';
-
-const phaseLabels: Record<Phase, string> = {
-  creating: 'Creating resources...',
-  scheduling: 'Scheduling pods...',
-  pulling: 'Pulling container image...',
-  starting: 'Starting containers...',
-  running: 'Running',
-  failed: 'Failed',
-  succeeded: 'Completed',
-};
-
-export default function DeployProgress({ type, name, namespace, onClose }: DeployProgressProps) {
+export default function DeployProgress({ type, name, namespace, mode = 'deploy', onClose }: DeployProgressProps) {
   const go = useNavigateTab();
   const [showLogs, setShowLogs] = useState(false);
   const [showEvents, setShowEvents] = useState(true);
 
-  // Poll the resource
-  const { data: resource } = useQuery({
+  const isDelete = mode === 'delete';
+
+  // Poll the resource (null = gone)
+  const { data: resource, dataUpdatedAt } = useQuery({
     queryKey: ['deploy-progress', type, namespace, name],
     queryFn: () => {
       const path = type === 'deployment'
@@ -46,7 +37,7 @@ export default function DeployProgress({ type, name, namespace, onClose }: Deplo
     refetchInterval: 2000,
   });
 
-  // Poll pods owned by this resource
+  // Poll pods
   const { data: pods = [] } = useQuery({
     queryKey: ['deploy-progress-pods', namespace, name],
     queryFn: async () => {
@@ -80,10 +71,9 @@ export default function DeployProgress({ type, name, namespace, onClose }: Deplo
     enabled: showEvents,
   });
 
-  // Determine overall phase
-  const phase = React.useMemo((): Phase => {
+  // === DEPLOY phase logic ===
+  const deployPhase = React.useMemo(() => {
     if (!resource) return 'creating';
-
     if (type === 'job') {
       const status = resource.status || {};
       if (status.succeeded > 0) return 'succeeded';
@@ -91,16 +81,11 @@ export default function DeployProgress({ type, name, namespace, onClose }: Deplo
       if (status.active > 0) return 'running';
       return 'creating';
     }
-
-    // Deployment
     const status = resource.status || {};
     const desired = resource.spec?.replicas || 1;
     const available = status.availableReplicas || 0;
     const ready = status.readyReplicas || 0;
-
     if (available >= desired && ready >= desired) return 'running';
-
-    // Check pod states for more detail
     for (const pod of pods) {
       const cs = pod.status?.containerStatuses || [];
       for (const c of cs) {
@@ -108,21 +93,31 @@ export default function DeployProgress({ type, name, namespace, onClose }: Deplo
         if (c.state?.waiting?.reason === 'CrashLoopBackOff') return 'failed';
         if (c.state?.waiting?.reason === 'ContainerCreating') return 'pulling';
       }
-      if (pod.status?.phase === 'Pending') {
-        const scheduled = (pod.status?.conditions || []).find((c: any) => c.type === 'PodScheduled');
-        if (scheduled?.status === 'False') return 'scheduling';
-        return 'pulling';
-      }
+      if (pod.status?.phase === 'Pending') return 'pulling';
     }
-
     if (pods.length === 0) return 'creating';
     return 'starting';
   }, [resource, pods, type]);
 
-  const isTerminal = phase === 'running' || phase === 'failed' || phase === 'succeeded';
-  const isFailed = phase === 'failed';
+  // === DELETE phase logic ===
+  const deletePhase = React.useMemo(() => {
+    if (!resource && pods.length === 0) return 'gone';
+    if (!resource && pods.length > 0) return 'cleaning-pods';
+    const hasTimestamp = !!resource?.metadata?.deletionTimestamp;
+    if (!hasTimestamp) return 'deleting'; // not yet marked
+    const terminating = pods.filter((p: any) => p.status?.phase === 'Running' || p.metadata?.deletionTimestamp);
+    if (terminating.length > 0) return 'terminating';
+    if (pods.length > 0) return 'cleaning-pods';
+    return 'cleaning';
+  }, [resource, pods]);
 
-  // Find failure reason from pods
+  const phase = isDelete ? deletePhase : deployPhase;
+  const isTerminal = isDelete
+    ? phase === 'gone'
+    : (phase === 'running' || phase === 'failed' || phase === 'succeeded');
+  const isFailed = !isDelete && phase === 'failed';
+
+  // Failure reason from pods
   const failureReason = React.useMemo(() => {
     for (const pod of pods) {
       for (const cs of [...(pod.status?.containerStatuses || []), ...(pod.status?.initContainerStatuses || [])]) {
@@ -130,21 +125,22 @@ export default function DeployProgress({ type, name, namespace, onClose }: Deplo
         if (waiting?.reason && waiting.reason !== 'ContainerCreating') {
           return `${cs.name}: ${waiting.reason}${waiting.message ? ' — ' + waiting.message : ''}`;
         }
-        const terminated = cs.state?.terminated;
-        if (terminated?.reason === 'Error' || terminated?.exitCode !== 0) {
-          return `${cs.name}: exited with code ${terminated?.exitCode}`;
-        }
       }
     }
     return null;
   }, [pods]);
 
-  // Progress steps
-  const steps = type === 'deployment'
+  // Steps
+  const steps = isDelete
+    ? [
+        { id: 'deleting', label: 'Mark for Deletion', done: phase !== 'deleting' },
+        { id: 'terminating', label: 'Terminating Pods', done: phase === 'cleaning-pods' || phase === 'cleaning' || phase === 'gone' },
+        { id: 'cleaning', label: 'Cleanup', done: phase === 'gone' },
+      ]
+    : type === 'deployment'
     ? [
         { id: 'creating', label: 'Create Deployment', done: phase !== 'creating' },
-        { id: 'scheduling', label: 'Schedule Pods', done: !['creating', 'scheduling'].includes(phase) },
-        { id: 'pulling', label: 'Pull Image', done: !['creating', 'scheduling', 'pulling'].includes(phase) },
+        { id: 'pulling', label: 'Pull Image', done: !['creating', 'pulling'].includes(phase) },
         { id: 'starting', label: 'Start Containers', done: isTerminal },
         { id: 'running', label: 'Ready', done: phase === 'running' },
       ]
@@ -154,29 +150,37 @@ export default function DeployProgress({ type, name, namespace, onClose }: Deplo
         { id: 'succeeded', label: 'Complete', done: phase === 'succeeded' },
       ];
 
+  const phaseLabel = isDelete
+    ? { deleting: 'Marking for deletion...', terminating: 'Terminating pods...', 'cleaning-pods': 'Cleaning up pods...', cleaning: 'Cleaning up resources...', gone: 'Deleted' }[phase] || phase
+    : { creating: 'Creating...', pulling: 'Pulling image...', starting: 'Starting...', running: 'Running', failed: 'Failed', succeeded: 'Completed' }[phase] || phase;
+
   return (
     <div className="bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
       {/* Header */}
       <div className={cn('px-4 py-3 border-b flex items-center justify-between',
-        isFailed ? 'border-red-800 bg-red-950/30' : isTerminal ? 'border-green-800 bg-green-950/20' : 'border-slate-800'
+        isFailed ? 'border-red-800 bg-red-950/30' :
+        isTerminal ? (isDelete ? 'border-slate-700 bg-slate-800/50' : 'border-green-800 bg-green-950/20') :
+        'border-slate-800'
       )}>
         <div className="flex items-center gap-3">
           {isFailed ? <XCircle className="w-5 h-5 text-red-400" /> :
-           isTerminal ? <CheckCircle className="w-5 h-5 text-green-400" /> :
+           isTerminal ? (isDelete ? <Trash2 className="w-5 h-5 text-slate-400" /> : <CheckCircle className="w-5 h-5 text-green-400" />) :
            <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />}
           <div>
             <div className="text-sm font-medium text-slate-200">{name}</div>
-            <div className="text-xs text-slate-500">{phaseLabels[phase]} · {namespace}</div>
+            <div className="text-xs text-slate-500">{phaseLabel} · {namespace}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isTerminal && (
+          {isTerminal && !isDelete && (
             <button onClick={() => go(`/r/apps~v1~deployments/${namespace}/${name}`, name)}
               className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded">
               View Resource <ArrowRight className="w-3 h-3" />
             </button>
           )}
-          <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1">Close</button>
+          <button onClick={onClose} className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1">
+            {isTerminal ? 'Close' : 'Hide'}
+          </button>
         </div>
       </div>
 
@@ -222,21 +226,28 @@ export default function DeployProgress({ type, name, namespace, onClose }: Deplo
               const ready = containers.filter((c: any) => c.ready).length;
               const total = containers.length || (pod.spec?.containers?.length || 1);
               const waiting = containers.find((c: any) => c.state?.waiting)?.state?.waiting;
+              const isTerminating = !!pod.metadata?.deletionTimestamp;
 
               return (
                 <div key={pod.metadata.uid} className="flex items-center justify-between py-1 px-2 rounded hover:bg-slate-800/50">
                   <div className="flex items-center gap-2">
-                    <Box className={cn('w-3.5 h-3.5', podPhase === 'Running' ? 'text-green-400' : podPhase === 'Failed' ? 'text-red-400' : 'text-yellow-400')} />
+                    <Box className={cn('w-3.5 h-3.5',
+                      isTerminating ? 'text-orange-400' :
+                      podPhase === 'Running' ? 'text-green-400' :
+                      podPhase === 'Failed' ? 'text-red-400' : 'text-yellow-400'
+                    )} />
                     <span className="text-xs text-slate-300 font-mono">{pod.metadata.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {waiting && <span className="text-[10px] text-yellow-400">{waiting.reason}</span>}
                     <span className={cn('text-xs font-mono', ready === total && total > 0 ? 'text-green-400' : 'text-slate-500')}>{ready}/{total}</span>
                     <span className={cn('text-[10px] px-1.5 py-0.5 rounded',
+                      isTerminating ? 'bg-orange-900/50 text-orange-300' :
                       podPhase === 'Running' ? 'bg-green-900/50 text-green-300' :
                       podPhase === 'Failed' ? 'bg-red-900/50 text-red-300' :
+                      podPhase === 'Succeeded' ? 'bg-blue-900/50 text-blue-300' :
                       'bg-yellow-900/50 text-yellow-300'
-                    )}>{podPhase}</span>
+                    )}>{isTerminating ? 'Terminating' : podPhase}</span>
                   </div>
                 </div>
               );
@@ -266,24 +277,25 @@ export default function DeployProgress({ type, name, namespace, onClose }: Deplo
         )}
       </div>
 
-      {/* Logs */}
-      <div>
-        <button onClick={() => setShowLogs(!showLogs)} className="w-full flex items-center justify-between px-4 py-2 hover:bg-slate-800/30">
-          <span className="text-xs text-slate-400 flex items-center gap-1.5"><FileText className="w-3 h-3" /> Logs</span>
-          {showLogs ? <ChevronDown className="w-3.5 h-3.5 text-slate-500" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-500" />}
-        </button>
-        {showLogs && pods.length > 0 && (
-          <PodLogs namespace={namespace} podName={pods[0].metadata.name} />
-        )}
-        {showLogs && pods.length === 0 && (
-          <div className="px-4 pb-3 text-xs text-slate-500">Waiting for pods...</div>
-        )}
-      </div>
+      {/* Logs (only for deploy mode) */}
+      {!isDelete && (
+        <div>
+          <button onClick={() => setShowLogs(!showLogs)} className="w-full flex items-center justify-between px-4 py-2 hover:bg-slate-800/30">
+            <span className="text-xs text-slate-400 flex items-center gap-1.5"><FileText className="w-3 h-3" /> Logs</span>
+            {showLogs ? <ChevronDown className="w-3.5 h-3.5 text-slate-500" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-500" />}
+          </button>
+          {showLogs && pods.length > 0 && (
+            <PodLogs namespace={namespace} podName={pods[0].metadata.name} />
+          )}
+          {showLogs && pods.length === 0 && (
+            <div className="px-4 pb-3 text-xs text-slate-500">Waiting for pods...</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-// Inline log viewer
 function PodLogs({ namespace, podName }: { namespace: string; podName: string }) {
   const [logs, setLogs] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
