@@ -286,11 +286,15 @@ export default function AdminView() {
   };
 
   const handleDeleteSnapshot = (id: string) => {
+    const snap = savedSnapshots.find(s => s.id === id);
+    if (!snap) return;
+    if (!confirm(`Delete snapshot "${snap.label}"?`)) return;
     const updated = savedSnapshots.filter(s => s.id !== id);
     setSavedSnapshots(updated);
     saveSnapshots(updated);
     if (compareLeft === id) { setCompareLeft(''); setDiff(null); }
     if (compareRight === id) { setCompareRight(''); setDiff(null); }
+    addToast({ type: 'success', title: 'Snapshot deleted', detail: snap.label });
   };
 
   const handleExportSnapshot = (snap: ClusterSnapshot) => {
@@ -303,6 +307,7 @@ export default function AdminView() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    addToast({ type: 'success', title: 'Snapshot exported', detail: snap.label });
   };
 
   const handleImportSnapshot = () => {

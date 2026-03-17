@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Save, Eye, EyeOff, Copy, Check, FileText, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sPatch } from '../engine/query';
@@ -13,6 +14,7 @@ interface DataEditorProps {
 
 export default function DataEditor({ resourcePath, data, kind, readOnly }: DataEditorProps) {
   const addToast = useUIStore((s) => s.addToast);
+  const queryClient = useQueryClient();
   const [entries, setEntries] = useState<Array<{ key: string; value: string; isNew?: boolean }>>(
     Object.entries(data || {}).map(([key, value]) => ({
       key,
@@ -60,6 +62,7 @@ export default function DataEditor({ resourcePath, data, kind, readOnly }: DataE
       const patchField = kind === 'Secret' ? 'data' : 'data';
       await k8sPatch(resourcePath, { [patchField]: newData });
       addToast({ type: 'success', title: `${kind} updated` });
+      queryClient.invalidateQueries({ queryKey: ['detail'] });
     } catch (err) {
       addToast({ type: 'error', title: 'Save failed', detail: err instanceof Error ? err.message : '' });
     } finally {

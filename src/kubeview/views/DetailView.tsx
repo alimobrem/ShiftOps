@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -48,7 +48,9 @@ interface DetailViewProps {
 export default function DetailView({ gvrKey, namespace, name }: DetailViewProps) {
   const navigate = useNavigate();
   const go = useNavigateTab();
+  const queryClient = useQueryClient();
   const addToast = useUIStore((s) => s.addToast);
+  const [actionLoading, setActionLoading] = React.useState<string | null>(null);
 
   // Build GVR URL segment for navigation
   const gvrUrl = gvrKey.replace(/\//g, '~');
@@ -129,11 +131,16 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
 
   const handleApplyFix = async (diagnosis: Diagnosis) => {
     if (!diagnosis.fix) return;
+    setActionLoading('fix');
     try {
       await k8sPatch(diagnosis.fix.patchTarget, diagnosis.fix.patch as any, diagnosis.fix.patchType);
       addToast({ type: 'success', title: 'Fix applied', detail: diagnosis.fix.label });
+      queryClient.invalidateQueries({ queryKey: ['detail', apiPath] });
+      queryClient.invalidateQueries({ queryKey: ['k8s', 'list'] });
     } catch (err) {
       addToast({ type: 'error', title: 'Fix failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -172,26 +179,36 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   };
 
   const handleScale = async (delta: number) => {
-    if (!resource) return;
+    if (!resource || actionLoading) return;
     const currentReplicas = (resource.spec as any)?.replicas ?? 0;
     const newReplicas = Math.max(0, currentReplicas + delta);
+    setActionLoading('scale');
     try {
       await k8sPatch(apiPath, { spec: { replicas: newReplicas } });
       addToast({ type: 'success', title: `Scaled to ${newReplicas} replicas` });
+      queryClient.invalidateQueries({ queryKey: ['detail', apiPath] });
+      queryClient.invalidateQueries({ queryKey: ['k8s', 'list'] });
     } catch (err) {
       addToast({ type: 'error', title: 'Scale failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleRestart = async () => {
-    if (!resource) return;
+    if (!resource || actionLoading) return;
+    setActionLoading('restart');
     try {
       await k8sPatch(apiPath, {
         spec: { template: { metadata: { annotations: { 'kubectl.kubernetes.io/restartedAt': new Date().toISOString() } } } },
       });
       addToast({ type: 'success', title: `Rollout restart triggered` });
+      queryClient.invalidateQueries({ queryKey: ['detail', apiPath] });
+      queryClient.invalidateQueries({ queryKey: ['k8s', 'list'] });
     } catch (err) {
       addToast({ type: 'error', title: 'Restart failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -311,20 +328,20 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
             )}
             {isScalable && (
               <div className="flex items-center gap-1">
-                <button onClick={() => handleScale(-1)} className="px-2 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700">
+                <button onClick={() => handleScale(-1)} disabled={!!actionLoading} className="px-2 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700 disabled:opacity-50">
                   <Minus className="w-3 h-3" />
                 </button>
-                <span className="px-2 py-1.5 text-xs bg-blue-900 text-blue-300 rounded font-mono">
+                <span className={cn('px-2 py-1.5 text-xs bg-blue-900 text-blue-300 rounded font-mono', actionLoading === 'scale' && 'animate-pulse')}>
                   {(resource.spec as any)?.replicas ?? 0}
                 </span>
-                <button onClick={() => handleScale(1)} className="px-2 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700">
+                <button onClick={() => handleScale(1)} disabled={!!actionLoading} className="px-2 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700 disabled:opacity-50">
                   <Plus className="w-3 h-3" />
                 </button>
               </div>
             )}
             {isRestartable && (
-              <button onClick={handleRestart} className="px-3 py-1.5 text-xs bg-orange-900 text-orange-300 rounded hover:bg-orange-800 flex items-center gap-1.5">
-                <RotateCw className="w-3 h-3" /> Restart
+              <button onClick={handleRestart} disabled={!!actionLoading} className="px-3 py-1.5 text-xs bg-orange-900 text-orange-300 rounded hover:bg-orange-800 flex items-center gap-1.5 disabled:opacity-50">
+                <RotateCw className={cn('w-3 h-3', actionLoading === 'restart' && 'animate-spin')} /> {actionLoading === 'restart' ? 'Restarting...' : 'Restart'}
               </button>
             )}
             <button onClick={handleViewYaml} className="px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700 flex items-center gap-1.5">
@@ -592,21 +609,26 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
                   ))}
                 </div>
                 <button
+                  disabled={!!actionLoading}
                   onClick={async () => {
                     const input = window.prompt('Add label (key=value):');
                     if (!input || !input.includes('=')) return;
                     const [k, ...vParts] = input.split('=');
                     const v = vParts.join('=');
+                    setActionLoading('label');
                     try {
                       await k8sPatch(apiPath, { metadata: { labels: { [k]: v } } });
                       addToast({ type: 'success', title: `Label ${k}=${v} added` });
+                      queryClient.invalidateQueries({ queryKey: ['detail', apiPath] });
                     } catch (err) {
                       addToast({ type: 'error', title: 'Failed to add label', detail: err instanceof Error ? err.message : '' });
+                    } finally {
+                      setActionLoading(null);
                     }
                   }}
-                  className="mt-2 text-xs text-blue-400 hover:text-blue-300"
+                  className="mt-2 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
                 >
-                  + Add label
+                  {actionLoading === 'label' ? 'Adding...' : '+ Add label'}
                 </button>
               </DetailSection>
             )}

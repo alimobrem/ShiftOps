@@ -281,10 +281,14 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
 
   const addToast = useUIStore((s) => s.addToast);
 
+  const [inlineActionLoading, setInlineActionLoading] = React.useState<string | null>(null);
+
   const handleAction = async (action: string, payload?: unknown) => {
     const p = payload as { resource?: any; delta?: number } | undefined;
     const resource = p?.resource;
-    if (!resource) return;
+    if (!resource || inlineActionLoading) return;
+
+    setInlineActionLoading(`${resource.metadata.uid}-${action}`);
 
     const resourceName = resource.metadata?.name || '';
     const resourceNs = resource.metadata?.namespace;
@@ -334,6 +338,8 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
         title: `Action "${action}" failed`,
         detail: err instanceof Error ? err.message : 'Unknown error',
       });
+    } finally {
+      setInlineActionLoading(null);
     }
   };
 
