@@ -207,12 +207,38 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   const [deleting, setDeleting] = React.useState(false);
 
   if (error) {
+    const isNotFound = (error as Error).message?.includes('not found') || (error as Error).message?.includes('404');
+    const listPath = `/r/${gvrUrl}`;
+    const gvrParts = gvrKey.split('/');
+    const resourcePlural = gvrParts[gvrParts.length - 1];
+
     return (
       <div className="h-full flex items-center justify-center bg-slate-950">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <XCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-          <p className="text-red-400 text-sm">Error loading resource</p>
+          <p className="text-red-400 text-sm font-medium">
+            {isNotFound ? 'Resource not found' : 'Error loading resource'}
+          </p>
           <p className="text-slate-500 text-xs mt-2">{(error as Error).message}</p>
+          {isNotFound && (
+            <p className="text-slate-400 text-xs mt-3">
+              This resource may have been deleted or replaced. Pods managed by Deployments are ephemeral and get new names on restart.
+            </p>
+          )}
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <button
+              onClick={() => navigate(listPath)}
+              className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors"
+            >
+              View all {resourcePlural}
+            </button>
+            <button
+              onClick={() => navigate(-1)}
+              className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors"
+            >
+              Go back
+            </button>
+          </div>
         </div>
       </div>
     );
