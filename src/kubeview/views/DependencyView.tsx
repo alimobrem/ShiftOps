@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, GitBranch, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildDependencyGraph, type DependencyGraph, type GraphNode } from '@/lib/dependencyGraph';
 import { useUIStore } from '../store/uiStore';
 import { resourceDetailUrl } from '../engine/gvr';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 
 interface DependencyViewProps {
   gvrKey: string;
@@ -106,8 +106,7 @@ function layoutGraph(graph: DependencyGraph): LayoutNode[] {
 }
 
 export default function DependencyView({ gvrKey, namespace, name }: DependencyViewProps) {
-  const navigate = useNavigate();
-  const addTab = useUIStore((s) => s.addTab);
+  const go = useNavigateTab();
 
   // Extract kind from gvrKey
   const kind = useMemo(() => {
@@ -166,9 +165,8 @@ export default function DependencyView({ gvrKey, namespace, name }: DependencyVi
   const handleNodeClick = useCallback((node: GraphNode) => {
     if (!node.namespace) return;
     const path = getGvrUrl(node.kind, node.namespace, node.name);
-    addTab({ title: node.name, path, pinned: false, closable: true });
-    navigate(path);
-  }, [navigate, addTab]);
+    go(path, node.name);
+  }, [go]);
 
   const gvrUrl = gvrKey.replace(/\//g, '~');
 
@@ -195,7 +193,7 @@ export default function DependencyView({ gvrKey, namespace, name }: DependencyVi
     return (
       <div className="h-full flex flex-col bg-slate-950">
         <div className="px-4 py-3 border-b border-slate-700 flex items-center gap-3">
-          <button onClick={() => navigate(`/r/${gvrUrl}/${namespace}/${name}`)} className="p-1 rounded hover:bg-slate-800 text-slate-400">
+          <button onClick={() => go(`/r/${gvrUrl}/${namespace}/${name}`, name)} className="p-1 rounded hover:bg-slate-800 text-slate-400">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <GitBranch className="w-4 h-4 text-purple-400" />
@@ -222,7 +220,7 @@ export default function DependencyView({ gvrKey, namespace, name }: DependencyVi
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(`/r/${gvrUrl}/${namespace}/${name}`)} className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200">
+          <button onClick={() => go(`/r/${gvrUrl}/${namespace}/${name}`, name)} className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <GitBranch className="w-4 h-4 text-purple-400" />

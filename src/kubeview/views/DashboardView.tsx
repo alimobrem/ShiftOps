@@ -1,6 +1,5 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   CheckCircle,
@@ -18,6 +17,7 @@ import type { K8sResource } from '../engine/renderers';
 import { getDeploymentStatus, getPodStatus, getNodeStatus } from '../engine/renderers/statusUtils';
 import { queryInstant } from '../components/metrics/prometheus';
 import { useUIStore } from '../store/uiStore';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 
 function filterByNs<T extends { metadata: { namespace?: string } }>(items: T[], ns: string): T[] {
   if (ns === '*') return items;
@@ -25,7 +25,7 @@ function filterByNs<T extends { metadata: { namespace?: string } }>(items: T[], 
 }
 
 export default function DashboardView() {
-  const navigate = useNavigate();
+  const go = useNavigateTab();
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
 
   const { data: deployments = [], isLoading: deploymentsLoading } = useQuery<K8sResource[]>({
@@ -151,7 +151,7 @@ export default function DashboardView() {
             subtitle={nodeSummary.ready === nodeSummary.total ? 'All ready' : `${nodeSummary.total - nodeSummary.ready} not ready`}
             icon={<Server className="w-5 h-5" />}
             status={nodeSummary.ready === nodeSummary.total ? 'healthy' : 'warning'}
-            onClick={() => navigate('/r/v1~nodes')}
+            onClick={() => go('/r/v1~nodes', 'Nodes')}
           />
           <MetricCard
             label="Pods"
@@ -159,7 +159,7 @@ export default function DashboardView() {
             subtitle={podStatusSummary.failed > 0 ? `${podStatusSummary.failed} failed` : podStatusSummary.pending > 0 ? `${podStatusSummary.pending} pending` : 'All running'}
             icon={<Box className="w-5 h-5" />}
             status={podStatusSummary.failed > 0 ? 'error' : podStatusSummary.pending > 0 ? 'warning' : 'healthy'}
-            onClick={() => navigate('/r/v1~pods')}
+            onClick={() => go('/r/v1~pods', 'Pods')}
           />
           <MetricCard
             label="CPU Usage"
@@ -191,7 +191,7 @@ export default function DashboardView() {
                     return (
                       <div
                         key={deployment.metadata.uid}
-                        onClick={() => navigate(`/r/apps~v1~deployments/${ns}/${deployment.metadata.name}`)}
+                        onClick={() => go(`/r/apps~v1~deployments/${ns}/${deployment.metadata.name}`, deployment.metadata.name)}
                         className="flex items-center justify-between p-2 rounded hover:bg-slate-800/50 cursor-pointer transition-colors"
                       >
                         <div className="flex items-center gap-2 min-w-0">
@@ -233,7 +233,7 @@ export default function DashboardView() {
                 {namespacePodCounts.map(([ns, count]) => (
                   <div
                     key={ns}
-                    onClick={() => navigate(`/r/v1~pods`)}
+                    onClick={() => go('/r/v1~pods', 'Pods')}
                     className="flex items-center justify-between p-2 rounded hover:bg-slate-800/50 cursor-pointer transition-colors"
                   >
                     <span className="text-sm text-slate-300">{ns}</span>
@@ -279,7 +279,7 @@ export default function DashboardView() {
                     );
                   })}
                   <button
-                    onClick={() => navigate('/timeline')}
+                    onClick={() => go('/timeline', 'Timeline')}
                     className="w-full text-center text-xs text-blue-400 hover:text-blue-300 pt-2"
                   >
                     View all events →
@@ -297,7 +297,7 @@ export default function DashboardView() {
                   return (
                     <div
                       key={deployment.metadata.uid}
-                      onClick={() => navigate(`/r/apps~v1~deployments/${ns}/${deployment.metadata.name}`)}
+                      onClick={() => go(`/r/apps~v1~deployments/${ns}/${deployment.metadata.name}`, deployment.metadata.name)}
                       className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-slate-800/50 cursor-pointer transition-colors"
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -316,7 +316,7 @@ export default function DashboardView() {
                 })}
                 {deployments.length > 15 && (
                   <button
-                    onClick={() => navigate('/r/apps~v1~deployments')}
+                    onClick={() => go('/r/apps~v1~deployments', 'Deployments')}
                     className="w-full text-center text-xs text-blue-400 hover:text-blue-300 pt-2"
                   >
                     View all {deployments.length} deployments →

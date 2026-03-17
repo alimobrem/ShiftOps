@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Search, AlertCircle, XCircle, CheckCircle, ArrowRight, Server, Box,
@@ -25,7 +24,6 @@ interface DiagnosedResource {
 }
 
 export default function TroubleshootView() {
-  const navigate = useNavigate();
   const addTab = useUIStore((s) => s.addTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedResource, setExpandedResource] = useState<string | null>(null);
@@ -388,7 +386,7 @@ export default function TroubleshootView() {
               {namespaceHealth.map(({ ns, total, healthy, critical, warning, score }) => (
                 <div
                   key={ns}
-                  onClick={() => { useUIStore.getState().setSelectedNamespace(ns); navigate('/r/v1~pods'); }}
+                  onClick={() => { useUIStore.getState().setSelectedNamespace(ns); go('/r/v1~pods', 'Pods'); }}
                   className="flex items-center gap-4 px-4 py-2.5 hover:bg-slate-800/50 transition-colors cursor-pointer"
                 >
                   <div className="w-48 min-w-0">

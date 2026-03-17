@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { ArrowLeft, Search, Download, RefreshCw, FileText, Shield, Server, Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '../store/uiStore';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 
 import { K8S_BASE as BASE } from '../engine/gvr';
 
@@ -18,7 +19,7 @@ const LOG_SOURCES: Array<{ id: LogSource; label: string; icon: React.ReactNode; 
 
 export default function NodeLogsView() {
   const { name } = useParams<{ name: string }>();
-  const navigate = useNavigate();
+  const go = useNavigateTab();
   const addToast = useUIStore((s) => s.addToast);
 
   const [activeSource, setActiveSource] = useState<LogSource>('audit');
@@ -113,7 +114,7 @@ export default function NodeLogsView() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700 shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(`/r/v1~nodes/_/${name}`)} className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200">
+          <button onClick={() => go(`/r/v1~nodes/_/${name}`, name)} className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200">
             <ArrowLeft size={16} />
           </button>
           <Server className="w-4 h-4 text-slate-400" />

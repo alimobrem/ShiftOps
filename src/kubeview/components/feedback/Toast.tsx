@@ -82,10 +82,10 @@ function Toast({ id, type, title, detail, duration, action, onClose }: ToastProp
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 pt-0.5">{icon}</div>
 
-        <div className="flex-1 space-y-1">
+        <div className="flex-1 min-w-0 space-y-1">
           <div className="font-medium text-slate-100">{title}</div>
           {detail && (
-            <div className="text-sm text-slate-400">{detail}</div>
+            <div className="text-sm text-slate-400 break-all line-clamp-3">{detail}</div>
           )}
         </div>
 

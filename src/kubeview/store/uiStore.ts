@@ -113,9 +113,13 @@ export const useUIStore = create<UIState>()(
       activeTabId: 'pulse',
 
       addTab: (tab) => {
+        // Normalize path: strip trailing slash (except root)
+        const normalizedPath = tab.path.length > 1 && tab.path.endsWith('/') ? tab.path.slice(0, -1) : tab.path;
+        tab = { ...tab, path: normalizedPath };
+
         // Reuse existing tab with same path
         const { tabs } = get();
-        const existing = tabs.find((t) => t.path === tab.path);
+        const existing = tabs.find((t) => t.path === normalizedPath);
         if (existing) {
           // Update title if different, and activate
           if (existing.title !== tab.title) {

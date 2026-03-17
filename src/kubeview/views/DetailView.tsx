@@ -36,6 +36,7 @@ import PodTerminal from '../components/PodTerminal';
 import ConfirmDialog from '../components/feedback/ConfirmDialog';
 import DataEditor from '../components/DataEditor';
 import { toggleFavorite, isFavorite } from '../engine/favorites';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 
 interface DetailViewProps {
   gvrKey: string;
@@ -45,11 +46,13 @@ interface DetailViewProps {
 
 export default function DetailView({ gvrKey, namespace, name }: DetailViewProps) {
   const navigate = useNavigate();
-  const addTab = useUIStore((s) => s.addTab);
+  const go = useNavigateTab();
   const addToast = useUIStore((s) => s.addToast);
 
   // Build GVR URL segment for navigation
   const gvrUrl = gvrKey.replace(/\//g, '~');
+  const gvrParts = gvrKey.split('/');
+  const resourcePlural = gvrParts[gvrParts.length - 1];
 
   // Build API path for this specific resource
   const apiPath = React.useMemo(
@@ -140,7 +143,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
       await k8sDelete(apiPath);
       addToast({ type: 'success', title: `${resource.kind} "${resource.metadata.name}" deleted` });
       setShowDeleteConfirm(false);
-      navigate(`/r/${gvrUrl}`);
+      go(`/r/${gvrUrl}`, resourcePlural);
     } catch (err) {
       addToast({
         type: 'error',
@@ -154,23 +157,17 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
 
   const handleViewYaml = () => {
     const ns = namespace || '_';
-    const path = `/yaml/${gvrUrl}/${ns}/${name}`;
-    addTab({ title: `${name} (YAML)`, path, pinned: false, closable: true });
-    navigate(path);
+    go(`/yaml/${gvrUrl}/${ns}/${name}`, `${name} (YAML)`);
   };
 
   const handleViewLogs = () => {
     if (!namespace) return;
-    const path = `/logs/${namespace}/${name}`;
-    addTab({ title: `${name} (Logs)`, path, pinned: false, closable: true });
-    navigate(path);
+    go(`/logs/${namespace}/${name}`, `${name} (Logs)`);
   };
 
   const handleViewMetrics = () => {
     const ns = namespace || '_';
-    const path = `/metrics/${gvrUrl}/${ns}/${name}`;
-    addTab({ title: `${name} (Metrics)`, path, pinned: false, closable: true });
-    navigate(path);
+    go(`/metrics/${gvrUrl}/${ns}/${name}`, `${name} (Metrics)`);
   };
 
   const handleScale = async (delta: number) => {
@@ -209,8 +206,6 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   if (error) {
     const isNotFound = (error as Error).message?.includes('not found') || (error as Error).message?.includes('404');
     const listPath = `/r/${gvrUrl}`;
-    const gvrParts = gvrKey.split('/');
-    const resourcePlural = gvrParts[gvrParts.length - 1];
 
     return (
       <div className="h-full flex items-center justify-center bg-slate-950">
@@ -227,7 +222,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
           )}
           <div className="flex items-center justify-center gap-3 mt-4">
             <button
-              onClick={() => navigate(listPath)}
+              onClick={() => go(listPath, resourcePlural)}
               className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors"
             >
               View all {resourcePlural}
@@ -264,7 +259,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
           <div>
             <div className="flex items-center gap-3 mb-2">
               <button
-                onClick={() => navigate(`/r/${gvrUrl}`)}
+                onClick={() => go(`/r/${gvrUrl}`, resourcePlural)}
                 className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200"
                 title="Back to list"
               >
@@ -347,9 +342,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
               <>
                 <button
                   onClick={() => {
-                    const path = `/node-logs/${name}`;
-                    addTab({ title: `${name} (Logs)`, path, pinned: false, closable: true });
-                    navigate(path);
+                    go(`/node-logs/${name}`, `${name} (Logs)`);
                   }}
                   className="px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700 flex items-center gap-1.5"
                 >
@@ -370,9 +363,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
               <>
                 <button
                   onClick={() => {
-                    const path = `/deps/${gvrUrl}/${namespace}/${name}`;
-                    addTab({ title: `${name} (Deps)`, path, pinned: false, closable: true });
-                    navigate(path);
+                    go(`/deps/${gvrUrl}/${namespace}/${name}`, `${name} (Deps)`);
                   }}
                   className="px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700 flex items-center gap-1.5"
                 >
@@ -381,9 +372,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
                 </button>
                 <button
                   onClick={() => {
-                    const path = `/investigate/${gvrUrl}/${namespace}/${name}`;
-                    addTab({ title: `${name} (Investigate)`, path, pinned: false, closable: true });
-                    navigate(path);
+                    go(`/investigate/${gvrUrl}/${namespace}/${name}`, `${name} (Investigate)`);
                   }}
                   className="px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700 flex items-center gap-1.5"
                 >
@@ -740,7 +729,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
                   {relatedResources.map((related, idx) => (
                     <button
                       key={idx}
-                      onClick={() => navigate(related.path)}
+                      onClick={() => go(related.path, related.name)}
                       className="w-full px-4 py-2 text-left hover:bg-slate-800/50 transition-colors"
                     >
                       <div className="text-xs text-slate-400">{related.type}</div>

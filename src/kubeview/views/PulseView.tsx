@@ -1,6 +1,5 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import {
   HeartPulse, AlertCircle, XCircle, CheckCircle, Server, Box, Package,
   HardDrive, ShieldAlert, Heart, ArrowRight, Puzzle, Shield, Clock,
@@ -20,7 +19,6 @@ function filterByNamespace<T extends { metadata: { namespace?: string } }>(items
 }
 
 export default function PulseView() {
-  const navigate = useNavigate();
   const go = useNavigateTab();
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
 
@@ -156,11 +154,11 @@ export default function PulseView() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatCard label="Nodes" value={`${healthyNodes}/${nodes.length}`} icon={<Server className="w-4 h-4" />} issues={unreadyNodes.length + pressureNodes.length} onClick={() => navigate('/r/v1~nodes')} />
-          <StatCard label="Pods" value={`${healthyPods}/${filteredPods.length}`} icon={<Box className="w-4 h-4" />} issues={failingPods.length} onClick={() => navigate('/r/v1~pods')} />
-          <StatCard label="Deployments" value={`${healthyDeploys}/${filteredDeployments.length}`} icon={<Package className="w-4 h-4" />} issues={unhealthyDeploys.length} onClick={() => navigate('/r/apps~v1~deployments')} />
-          <StatCard label="Operators" value={`${operators.length - degradedOperators.length}/${operators.length}`} icon={<Puzzle className="w-4 h-4" />} issues={degradedOperators.length} onClick={() => navigate('/operators')} />
-          <StatCard label="Alerts" value="" icon={<AlertCircle className="w-4 h-4" />} issues={0} onClick={() => navigate('/alerts')} extra={<span className="text-xs text-blue-400">View →</span>} />
+          <StatCard label="Nodes" value={`${healthyNodes}/${nodes.length}`} icon={<Server className="w-4 h-4" />} issues={unreadyNodes.length + pressureNodes.length} onClick={() => go('/r/v1~nodes', 'Nodes')} />
+          <StatCard label="Pods" value={`${healthyPods}/${filteredPods.length}`} icon={<Box className="w-4 h-4" />} issues={failingPods.length} onClick={() => go('/r/v1~pods', 'Pods')} />
+          <StatCard label="Deployments" value={`${healthyDeploys}/${filteredDeployments.length}`} icon={<Package className="w-4 h-4" />} issues={unhealthyDeploys.length} onClick={() => go('/r/apps~v1~deployments', 'Deployments')} />
+          <StatCard label="Operators" value={`${operators.length - degradedOperators.length}/${operators.length}`} icon={<Puzzle className="w-4 h-4" />} issues={degradedOperators.length} onClick={() => go('/operators', 'Operators')} />
+          <StatCard label="Alerts" value="" icon={<AlertCircle className="w-4 h-4" />} issues={0} onClick={() => go('/alerts', 'Alerts')} extra={<span className="text-xs text-blue-400">View →</span>} />
         </div>
 
         {/* Cluster update available */}
@@ -173,7 +171,7 @@ export default function PulseView() {
                 <span className="text-xs text-blue-400 ml-2">{updateAvailable}</span>
               </div>
             </div>
-            <button onClick={() => navigate('/admin')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+            <button onClick={() => go('/admin', 'Administration')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
               Administration <ArrowRight className="w-3 h-3" />
             </button>
           </div>
@@ -200,7 +198,7 @@ export default function PulseView() {
                 <IssueRow key={pod.metadata.uid} name={pod.metadata.name} namespace={pod.metadata.namespace} status={status.reason || status.phase} onClick={() => go(resourceDetailUrl(pod), pod.metadata.name)} />
               );
             })}
-            {failingPods.length > 5 && <button onClick={() => navigate('/r/v1~pods')} className="w-full text-center text-xs text-blue-400 hover:text-blue-300 pt-2">View all {failingPods.length} →</button>}
+            {failingPods.length > 5 && <button onClick={() => go('/r/v1~pods', 'Pods')} className="w-full text-center text-xs text-blue-400 hover:text-blue-300 pt-2">View all {failingPods.length} →</button>}
           </IssueSection>
         )}
 
@@ -254,21 +252,21 @@ export default function PulseView() {
             <h2 className="text-lg font-semibold text-slate-100 mb-1">Everything looks good</h2>
             <p className="text-sm text-slate-400 mb-4">No active issues detected across {nodes.length} nodes, {filteredPods.length} pods, and {filteredDeployments.length} deployments.</p>
             <div className="flex items-center justify-center gap-3">
-              <button onClick={() => navigate('/dashboard')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">View Dashboard</button>
-              <button onClick={() => navigate('/troubleshoot')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">Run Diagnostics</button>
+              <button onClick={() => go('/dashboard', 'Dashboard')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">View Dashboard</button>
+              <button onClick={() => go('/troubleshoot', 'Troubleshoot')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">Run Diagnostics</button>
             </div>
           </div>
         )}
 
         {/* Quick links */}
         <div className="flex items-center justify-center gap-4 text-xs text-slate-500 pt-2">
-          <button onClick={() => navigate('/troubleshoot')} className="hover:text-slate-300 transition-colors">Troubleshoot</button>
+          <button onClick={() => go('/troubleshoot', 'Troubleshoot')} className="hover:text-slate-300 transition-colors">Troubleshoot</button>
           <span>·</span>
-          <button onClick={() => navigate('/alerts')} className="hover:text-slate-300 transition-colors">Alerts</button>
+          <button onClick={() => go('/alerts', 'Alerts')} className="hover:text-slate-300 transition-colors">Alerts</button>
           <span>·</span>
-          <button onClick={() => navigate('/timeline')} className="hover:text-slate-300 transition-colors">Timeline</button>
+          <button onClick={() => go('/timeline', 'Timeline')} className="hover:text-slate-300 transition-colors">Timeline</button>
           <span>·</span>
-          <button onClick={() => navigate('/dashboard')} className="hover:text-slate-300 transition-colors">Dashboard</button>
+          <button onClick={() => go('/dashboard', 'Dashboard')} className="hover:text-slate-300 transition-colors">Dashboard</button>
         </div>
       </div>
     </div>
