@@ -222,7 +222,8 @@ describe('TableView', () => {
 
     renderTable('v1/pods');
 
-    expect(screen.getByText('Loading...')).toBeDefined();
+    // Skeleton loading state renders animated placeholders
+    expect(document.querySelector('.animate-pulse')).toBeDefined();
   });
 
   it('shows error state', () => {

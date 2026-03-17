@@ -15,7 +15,7 @@ export default function WelcomeView() {
       <div className="max-w-4xl mx-auto space-y-8 py-8">
         {/* Hero */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-slate-100 mb-3">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-100 mb-3">
             Welcome to <span className="text-blue-400">OpenShiftView</span>
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">

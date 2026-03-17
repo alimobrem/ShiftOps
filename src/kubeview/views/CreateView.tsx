@@ -496,7 +496,7 @@ function HelmTab() {
     refetchInterval: 30000,
   });
 
-  // Popular charts (static catalog — real Helm catalog would require a backend)
+  // Featured charts (curated selection — full catalog requires a Helm repository backend)
   const chartCatalog: HelmChart[] = useMemo(() => [
     { name: 'postgresql', version: '16.4.3', appVersion: '17.4', description: 'PostgreSQL with replication and high availability' },
     { name: 'redis', version: '20.8.0', appVersion: '7.4', description: 'Redis in-memory data store with sentinel support' },
@@ -623,6 +623,10 @@ function HelmTab() {
       )}
 
       {/* Chart catalog */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-xs font-medium text-slate-400">Featured Charts</span>
+        <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-500 rounded">Curated selection</span>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {filteredCharts.map((chart) => (
           <button key={chart.name} onClick={() => { setSelectedChart(chart); setReleaseName(`my-${chart.name}`); }}

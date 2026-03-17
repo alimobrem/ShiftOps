@@ -14,6 +14,7 @@ import { diagnoseResource, type Diagnosis } from '../engine/diagnosis';
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { resourceDetailUrl } from '../engine/gvr';
+import { useK8sListWatch } from '../hooks/useK8sListWatch';
 
 type Tab = 'issues' | 'health' | 'runbooks';
 
@@ -34,29 +35,10 @@ export default function TroubleshootView() {
 
   const nsFilter = selectedNamespace !== '*' ? selectedNamespace : undefined;
 
-  const { data: pods = [], isLoading: podsLoading } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/api/v1/pods', nsFilter],
-    queryFn: () => k8sList<K8sResource>('/api/v1/pods', nsFilter),
-    refetchInterval: 30000,
-  });
-
-  const { data: deployments = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/apis/apps/v1/deployments', nsFilter],
-    queryFn: () => k8sList<K8sResource>('/apis/apps/v1/deployments', nsFilter),
-    refetchInterval: 30000,
-  });
-
-  const { data: nodes = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/api/v1/nodes'],
-    queryFn: () => k8sList<K8sResource>('/api/v1/nodes'),
-    refetchInterval: 30000,
-  });
-
-  const { data: pvcs = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/api/v1/persistentvolumeclaims', nsFilter],
-    queryFn: () => k8sList<K8sResource>('/api/v1/persistentvolumeclaims', nsFilter),
-    refetchInterval: 30000,
-  });
+  const { data: pods = [], isLoading: podsLoading } = useK8sListWatch({ apiPath: '/api/v1/pods', namespace: nsFilter });
+  const { data: deployments = [] } = useK8sListWatch({ apiPath: '/apis/apps/v1/deployments', namespace: nsFilter });
+  const { data: nodes = [] } = useK8sListWatch({ apiPath: '/api/v1/nodes' });
+  const { data: pvcs = [] } = useK8sListWatch({ apiPath: '/api/v1/persistentvolumeclaims', namespace: nsFilter });
 
   const { data: events = [] } = useQuery<K8sResource[]>({
     queryKey: ['k8s', 'list', '/api/v1/events', nsFilter],

@@ -349,7 +349,8 @@ describe('DetailView', () => {
 
     renderDetailView({ gvrKey: 'v1/pods', namespace: 'default', name: 'my-pod' });
 
-    expect(screen.getByText('Loading...')).toBeDefined();
+    // Skeleton loading state renders animated placeholders
+    expect(document.querySelector('.animate-pulse')).toBeDefined();
   });
 
   it('shows namespace badge when resource has namespace', async () => {

@@ -20,17 +20,29 @@ export function CommandBar() {
   const addTab = useUIStore((s) => s.addTab);
   const addToast = useUIStore((s) => s.addToast);
 
-  // Fetch cluster name
+  // Fetch cluster name and user identity
   const { data: clusterInfo } = useQuery({
     queryKey: ['toolbar', 'cluster'],
     queryFn: async () => {
-      const res = await fetch('/api/kubernetes/apis/config.openshift.io/v1/infrastructures/cluster');
-      if (!res.ok) return { name: 'cluster', platform: '' };
-      const data = await res.json();
-      return {
-        name: data.status?.infrastructureName || 'cluster',
-        platform: data.status?.platform || data.status?.platformStatus?.type || '',
-      };
+      const [infraRes, userRes] = await Promise.allSettled([
+        fetch('/api/kubernetes/apis/config.openshift.io/v1/infrastructures/cluster'),
+        fetch('/api/kubernetes/apis/user.openshift.io/v1/users/~'),
+      ]);
+      let name = 'cluster', platform = '';
+      if (infraRes.status === 'fulfilled' && infraRes.value.ok) {
+        const data = await infraRes.value.json();
+        name = data.status?.infrastructureName || 'cluster';
+        platform = data.status?.platform || data.status?.platformStatus?.type || '';
+      }
+      let username = 'admin', role = 'Cluster Administrator';
+      if (userRes.status === 'fulfilled' && userRes.value.ok) {
+        const userData = await userRes.value.json();
+        username = userData.metadata?.name || 'admin';
+        const groups = userData.groups || [];
+        role = groups.includes('cluster-admins') || groups.includes('system:cluster-admins')
+          ? 'Cluster Administrator' : 'User';
+      }
+      return { name, platform, username, role };
     },
     staleTime: 300000,
   });
@@ -87,7 +99,7 @@ export function CommandBar() {
         {/* Search */}
         <button
           onClick={openCommandPalette}
-          className="flex h-7 w-72 items-center gap-2 rounded-md border border-slate-600/50 bg-slate-900/50 px-3 text-sm text-slate-500 transition-all hover:border-slate-500 hover:bg-slate-900 hover:text-slate-400"
+          className="flex h-7 w-48 md:w-72 items-center gap-2 rounded-md border border-slate-600/50 bg-slate-900/50 px-3 text-sm text-slate-500 transition-all hover:border-slate-500 hover:bg-slate-900 hover:text-slate-400"
         >
           <Search className="h-3.5 w-3.5" />
           <span className="flex-1 text-left text-xs">Search resources, pages...</span>
@@ -224,8 +236,8 @@ export function CommandBar() {
               <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
               <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-lg border border-slate-600 bg-slate-800 shadow-2xl py-1">
                 <div className="px-3 py-2 border-b border-slate-700">
-                  <div className="text-sm font-medium text-slate-200">admin</div>
-                  <div className="text-xs text-slate-500">Cluster Administrator</div>
+                  <div className="text-sm font-medium text-slate-200">{clusterInfo?.username || 'admin'}</div>
+                  <div className="text-xs text-slate-500">{clusterInfo?.role || 'Cluster Administrator'}</div>
                 </div>
                 <button
                   onClick={() => { setShowUserMenu(false); go('/welcome', 'Welcome'); }}

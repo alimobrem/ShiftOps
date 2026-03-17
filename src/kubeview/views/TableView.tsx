@@ -71,10 +71,22 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
     [resources, gvrKey]
   );
 
-  // Get columns for this resource type (pass resources for auto-detection)
+  // Stable key for column detection — only recalculate when resource structure changes, not on every data update
+  const columnStructureKey = React.useMemo(() => {
+    if (stampedResources.length === 0) return '';
+    const sample = stampedResources[0];
+    return [
+      sample.kind,
+      Object.keys(sample).sort().join(','),
+      Object.keys(sample.spec || {}).slice(0, 10).sort().join(','),
+      Object.keys((sample as any).status || {}).slice(0, 10).sort().join(','),
+    ].join('|');
+  }, [stampedResources]);
+
+  // Get columns for this resource type
   const columns = React.useMemo(
     () => getColumnsForResource(gvrKey, isNamespaced, stampedResources),
-    [gvrKey, isNamespaced, stampedResources]
+    [gvrKey, isNamespaced, columnStructureKey]
   );
 
   // Get enhancer for inline actions
@@ -424,18 +436,18 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
     // Show progress immediately
     setDeleteProgress(items.map(i => ({ name: i.name, ns: i.ns, kind: i.kind, status: 'deleting' })));
 
-    // Delete each resource
-    const results = [...items];
-    for (let idx = 0; idx < results.length; idx++) {
-      const item = results[idx];
-      try {
-        await k8sDelete(item.path);
+    // Delete all resources in parallel
+    const results = await Promise.allSettled(
+      items.map((item) => k8sDelete(item.path))
+    );
+    results.forEach((result, idx) => {
+      if (result.status === 'fulfilled') {
         setDeleteProgress(prev => prev.map((p, i) => i === idx ? { ...p, status: 'done' } : p));
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Unknown error';
+      } else {
+        const msg = result.reason instanceof Error ? result.reason.message : 'Unknown error';
         setDeleteProgress(prev => prev.map((p, i) => i === idx ? { ...p, status: 'error', error: msg } : p));
       }
-    }
+    });
 
     setSelectedRows(new Set());
     queryClient.setQueriesData({ queryKey: ['k8s', 'list'] }, (old: any) => {
@@ -482,7 +494,7 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
       <div className="border-b border-slate-800 px-6 py-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-xl font-bold text-slate-100">{resourceKind}</h1>
+            <h1 className="text-2xl font-bold text-slate-100">{resourceKind}</h1>
             <p className="text-xs text-slate-500 mt-0.5">
               {groupVersion} · {isNamespaced ? 'namespaced' : 'cluster-scoped'} ·{' '}
               {sortedResources.length} found
@@ -618,8 +630,16 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
       <div className="flex-1 flex overflow-hidden">
       <div className={cn('overflow-auto', previewResource ? 'flex-1' : 'w-full')}>
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-slate-500 text-sm">Loading...</div>
+          <div className="flex flex-col gap-2 p-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 animate-pulse">
+                <div className="w-4 h-4 bg-slate-800 rounded" />
+                <div className="h-4 bg-slate-800 rounded flex-1 max-w-[200px]" />
+                <div className="h-4 bg-slate-800 rounded flex-1 max-w-[120px]" />
+                <div className="h-4 bg-slate-800 rounded w-20" />
+                <div className="h-4 bg-slate-800 rounded w-16" />
+              </div>
+            ))}
           </div>
         ) : sortedResources.length === 0 ? (
           <div className="flex items-center justify-center h-64">
@@ -706,7 +726,7 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
                     key={uid}
                     onClick={(e) => { setFocusedRow(rowIndex); handleRowClick(resource, e); }}
                     className={cn(
-                      'hover:bg-slate-900/50 transition-colors cursor-pointer',
+                      'hover:bg-slate-800/70 transition-colors cursor-pointer',
                       isSelected && 'bg-slate-900/70',
                       isFocused && 'ring-1 ring-inset ring-blue-500/50 bg-blue-950/20'
                     )}

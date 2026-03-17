@@ -1,16 +1,15 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { X, Plus } from 'lucide-react';
-import * as Icons from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { cn } from '@/lib/utils';
 import { useEffect, useRef } from 'react';
+import { getResourceIcon } from '../engine/iconRegistry';
 
 // Helper to get icon component from string name
 function getIcon(iconName?: string) {
   if (!iconName) return null;
-  const IconComponent = (Icons as any)[iconName];
-  return IconComponent || null;
+  return getResourceIcon(iconName);
 }
 
 function getTabTitle(path: string): string {

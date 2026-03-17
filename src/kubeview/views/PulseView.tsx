@@ -209,7 +209,7 @@ export default function PulseView() {
                 {unhealthyDeploys.slice(0, 5).map((deploy) => {
                   const status = getDeploymentStatus(deploy);
                   return (
-                    <IssueRow key={deploy.metadata.uid} name={deploy.metadata.name} namespace={deploy.metadata.namespace} status={`${status.ready}/${status.desired} ready`} onClick={() => go(resourceDetailUrl(deploy), deploy.metadata.name)} />
+                    <IssueRow key={deploy.metadata.uid} name={deploy.metadata.name} namespace={deploy.metadata.namespace} status={`${status.ready}/${status.desired} ready`} severity="warning" onClick={() => go(resourceDetailUrl(deploy), deploy.metadata.name)} />
                   );
                 })}
               </IssueSection>
@@ -218,7 +218,7 @@ export default function PulseView() {
             {pendingPVCs.length > 0 && (
               <IssueSection title={`Pending PVCs (${pendingPVCs.length})`} icon={<HardDrive className="w-4 h-4 text-yellow-500" />} severity="warning">
                 {pendingPVCs.slice(0, 5).map((pvc) => (
-                  <IssueRow key={pvc.metadata.uid} name={pvc.metadata.name} namespace={pvc.metadata.namespace} status="Pending" detail="No volume bound" onClick={() => go(resourceDetailUrl(pvc), pvc.metadata.name)} />
+                  <IssueRow key={pvc.metadata.uid} name={pvc.metadata.name} namespace={pvc.metadata.namespace} status="Pending" detail="No volume bound" severity="warning" onClick={() => go(resourceDetailUrl(pvc), pvc.metadata.name)} />
                 ))}
               </IssueSection>
             )}
@@ -255,7 +255,7 @@ export default function PulseView() {
                   const s = getNodeStatus(node);
                   const pressures = [s.pressure.disk && 'Disk', s.pressure.memory && 'Memory', s.pressure.pid && 'PID'].filter(Boolean).join(', ');
                   return (
-                    <IssueRow key={node.metadata.uid} name={node.metadata.name} status={`${pressures} Pressure`} onClick={() => go(`/r/v1~nodes/_/${node.metadata.name}`, node.metadata.name)} />
+                    <IssueRow key={node.metadata.uid} name={node.metadata.name} status={`${pressures} Pressure`} severity="warning" onClick={() => go(`/r/v1~nodes/_/${node.metadata.name}`, node.metadata.name)} />
                   );
                 })}
               </IssueSection>
@@ -321,13 +321,13 @@ function IssueSection({ title, icon, severity, children }: {
   );
 }
 
-function IssueRow({ name, namespace, status, detail, onClick }: {
-  name: string; namespace?: string; status: string; detail?: string; onClick: () => void;
+function IssueRow({ name, namespace, status, detail, onClick, severity = 'critical' }: {
+  name: string; namespace?: string; status: string; detail?: string; onClick: () => void; severity?: 'critical' | 'warning';
 }) {
   return (
     <button onClick={onClick} className="flex items-center justify-between p-2 rounded hover:bg-slate-800/50 cursor-pointer transition-colors w-full text-left">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+        <div className={cn('w-2 h-2 rounded-full flex-shrink-0', severity === 'critical' ? 'bg-red-500' : 'bg-amber-500')} />
         <div className="min-w-0">
           <div className="text-sm text-slate-200 font-medium truncate">{name}</div>
           {namespace && <div className="text-xs text-slate-500">{namespace}</div>}
@@ -335,7 +335,7 @@ function IssueRow({ name, namespace, status, detail, onClick }: {
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs px-2 py-0.5 bg-red-900/50 text-red-300 rounded">{status}</span>
+        <span className={cn('text-xs px-2 py-0.5 rounded', severity === 'critical' ? 'bg-red-900/50 text-red-300' : 'bg-amber-900/50 text-amber-300')}>{status}</span>
         <ArrowRight className="w-3 h-3 text-slate-500" />
       </div>
     </button>

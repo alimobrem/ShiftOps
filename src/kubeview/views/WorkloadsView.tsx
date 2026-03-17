@@ -1,15 +1,14 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   Package, Box, Clock, RefreshCw, AlertCircle, CheckCircle, XCircle,
   FileText, ArrowRight, Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { k8sList } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
 import { getDeploymentStatus, getPodStatus } from '../engine/renderers/statusUtils';
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
+import { useK8sListWatch } from '../hooks/useK8sListWatch';
 
 
 export default function WorkloadsView() {
@@ -17,36 +16,12 @@ export default function WorkloadsView() {
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
   const nsFilter = selectedNamespace !== '*' ? selectedNamespace : undefined;
 
-  const { data: deployments = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/apis/apps/v1/deployments', nsFilter],
-    queryFn: () => k8sList('/apis/apps/v1/deployments', nsFilter),
-    refetchInterval: 30000,
-  });
-  const { data: statefulsets = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/apis/apps/v1/statefulsets', nsFilter],
-    queryFn: () => k8sList('/apis/apps/v1/statefulsets', nsFilter),
-    refetchInterval: 30000,
-  });
-  const { data: daemonsets = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/apis/apps/v1/daemonsets', nsFilter],
-    queryFn: () => k8sList('/apis/apps/v1/daemonsets', nsFilter),
-    refetchInterval: 30000,
-  });
-  const { data: pods = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/api/v1/pods', nsFilter],
-    queryFn: () => k8sList('/api/v1/pods', nsFilter),
-    refetchInterval: 30000,
-  });
-  const { data: jobs = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/apis/batch/v1/jobs', nsFilter],
-    queryFn: () => k8sList('/apis/batch/v1/jobs', nsFilter),
-    refetchInterval: 30000,
-  });
-  const { data: cronjobs = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/apis/batch/v1/cronjobs', nsFilter],
-    queryFn: () => k8sList('/apis/batch/v1/cronjobs', nsFilter),
-    refetchInterval: 30000,
-  });
+  const { data: deployments = [] } = useK8sListWatch({ apiPath: '/apis/apps/v1/deployments', namespace: nsFilter });
+  const { data: statefulsets = [] } = useK8sListWatch({ apiPath: '/apis/apps/v1/statefulsets', namespace: nsFilter });
+  const { data: daemonsets = [] } = useK8sListWatch({ apiPath: '/apis/apps/v1/daemonsets', namespace: nsFilter });
+  const { data: pods = [] } = useK8sListWatch({ apiPath: '/api/v1/pods', namespace: nsFilter });
+  const { data: jobs = [] } = useK8sListWatch({ apiPath: '/apis/batch/v1/jobs', namespace: nsFilter });
+  const { data: cronjobs = [] } = useK8sListWatch({ apiPath: '/apis/batch/v1/cronjobs', namespace: nsFilter });
 
   // Data is already namespace-scoped from API when nsFilter is set
   const fd = deployments as any[];

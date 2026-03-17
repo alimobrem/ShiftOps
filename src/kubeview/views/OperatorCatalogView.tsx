@@ -61,6 +61,7 @@ export default function OperatorCatalogView() {
   const [selectedChannel, setSelectedChannel] = useState('');
   const [installNs, setInstallNs] = useState('openshift-operators');
   const [installingOp, setInstallingOp] = useState<{ name: string; ns: string; displayName: string } | null>(null);
+  const [visibleCount, setVisibleCount] = useState(60);
 
   // Fetch all package manifests
   const { data: packages = [], isLoading } = useQuery<PackageManifest[]>({
@@ -689,7 +690,7 @@ export default function OperatorCatalogView() {
           <div className="text-center py-12"><Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto" /><p className="text-sm text-slate-500 mt-3">Loading operator catalog...</p></div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filtered.slice(0, 60).map((pkg) => {
+            {filtered.slice(0, visibleCount).map((pkg) => {
               const desc = pkg.status.channels?.find(c => c.name === pkg.status.defaultChannel)?.currentCSVDesc || pkg.status.channels?.[0]?.currentCSVDesc;
               const isInstalled = installedNames.has(pkg.metadata.name);
               const catalogBase = pkg.status.catalogSource.replace(/-4\.\d+$/, '');
@@ -723,8 +724,15 @@ export default function OperatorCatalogView() {
           </div>
         )}
 
-        {filtered.length > 60 && (
-          <div className="text-center text-xs text-slate-500 pt-2">Showing 60 of {filtered.length} — refine your search</div>
+        {filtered.length > visibleCount && (
+          <div className="text-center pt-3">
+            <button
+              onClick={() => setVisibleCount(c => c + 60)}
+              className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors"
+            >
+              Show more ({filtered.length - visibleCount} remaining)
+            </button>
+          </div>
         )}
       </div>
     </div>

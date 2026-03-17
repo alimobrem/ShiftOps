@@ -69,6 +69,8 @@ interface CoreAPIVersions {
 }
 
 let cachedRegistry: ResourceRegistry | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Generate a GVR (Group-Version-Resource) key
@@ -81,10 +83,18 @@ export function gvrKey(group: string, version: string, plural: string): string {
 }
 
 /**
+ * Invalidate the discovery cache (e.g., after operator install)
+ */
+export function invalidateDiscoveryCache(): void {
+  cachedRegistry = null;
+  cacheTimestamp = 0;
+}
+
+/**
  * Discover all available resource types from the API server
  */
 export async function discoverResources(): Promise<ResourceRegistry> {
-  if (cachedRegistry) {
+  if (cachedRegistry && (Date.now() - cacheTimestamp) < CACHE_TTL) {
     return cachedRegistry;
   }
 
@@ -98,6 +108,7 @@ export async function discoverResources(): Promise<ResourceRegistry> {
     await discoverAPIGroups(registry);
 
     cachedRegistry = registry;
+    cacheTimestamp = Date.now();
     return registry;
   } catch (error) {
     console.error('Failed to discover API resources:', error);

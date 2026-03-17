@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Command } from 'lucide-react';
-import * as Icons from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { getFavorites } from '../engine/favorites';
 import { useClusterStore } from '../store/clusterStore';
 import { cn } from '@/lib/utils';
+import { getResourceIcon } from '../engine/iconRegistry';
 
 interface CommandItem {
   type: 'resource' | 'action' | 'recent' | 'nav';
@@ -19,9 +19,7 @@ interface CommandItem {
 
 // Helper to get icon component
 function getIcon(iconName?: string) {
-  if (!iconName) return Search;
-  const IconComponent = (Icons as any)[iconName];
-  return IconComponent || Search;
+  return getResourceIcon(iconName, Search);
 }
 
 // Load recent resources from localStorage
@@ -244,7 +242,7 @@ function getCommandItems(
               id: dedup,
               title: plural || kind,
               subtitle: resource.group ? `${resource.group}/${resource.version}` : resource.version,
-              icon: getResourceIcon(resource.kind),
+              icon: getResourceIconName(resource.kind),
               path: resource.group
                 ? `/r/${resource.group}~${resource.version}~${plural}`
                 : `/r/${resource.version}~${plural}`,
@@ -381,7 +379,7 @@ function renderGroups(
   return elements;
 }
 
-function getResourceIcon(kind: string): string {
+function getResourceIconName(kind: string): string {
   const icons: Record<string, string> = {
     Pod: 'Box',
     Deployment: 'Package',

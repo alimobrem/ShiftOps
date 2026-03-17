@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, ChevronDown, Star } from 'lucide-react';
-import * as Icons from 'lucide-react';
+import { Search, ChevronRight, ChevronDown, Star, Activity, Package, Globe, Server, HardDrive, Clock, Shield, Bell, Settings, FilePlus } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { useClusterStore } from '../store/clusterStore';
 import { cn } from '@/lib/utils';
+import { getResourceIcon } from '../engine/iconRegistry';
 
 interface GroupedResources {
   [groupName: string]: Array<{
@@ -19,11 +19,10 @@ interface GroupedResources {
 
 // Helper to get icon component
 function getIcon(iconName: string) {
-  const IconComponent = (Icons as any)[iconName];
-  return IconComponent || Icons.File;
+  return getResourceIcon(iconName);
 }
 
-function getResourceIcon(kind: string): string {
+function getResourceIconName(kind: string): string {
   const icons: Record<string, string> = {
     Pod: 'Box',
     Deployment: 'Package',
@@ -114,7 +113,7 @@ export function ResourceBrowser() {
       : `/r/${resource.version}~${plural}`;
     addTab({
       title: plural,
-      icon: getResourceIcon(resource.kind),
+      icon: getResourceIconName(resource.kind),
       path,
       pinned: false,
       closable: true,
@@ -167,17 +166,17 @@ export function ResourceBrowser() {
             Pages
           </div>
           {[
-            { label: 'Cluster Pulse', icon: Icons.Activity, path: '/pulse', color: 'text-emerald-400' },
-            { label: 'Workloads', icon: Icons.Package, path: '/workloads', color: 'text-blue-400' },
-            { label: 'Networking', icon: Icons.Globe, path: '/networking', color: 'text-cyan-400' },
-            { label: 'Compute', icon: Icons.Server, path: '/compute', color: 'text-blue-400' },
-            { label: 'Storage', icon: Icons.HardDrive, path: '/storage', color: 'text-orange-400' },
-            { label: 'Timeline', icon: Icons.Clock, path: '/timeline', color: 'text-blue-400' },
-            { label: 'Access Control', icon: Icons.Shield, path: '/access-control', color: 'text-indigo-400' },
-            { label: 'Alerts', icon: Icons.Bell, path: '/alerts', color: 'text-red-400' },
-            { label: 'Administration', icon: Icons.Settings, path: '/admin', color: 'text-slate-400' },
-            { label: 'Troubleshoot', icon: Icons.Activity, path: '/troubleshoot', color: 'text-orange-400' },
-            { label: 'Create Resource', icon: Icons.FilePlus, path: '/create/v1~pods', color: 'text-amber-400' },
+            { label: 'Cluster Pulse', icon: Activity, path: '/pulse', color: 'text-emerald-400' },
+            { label: 'Workloads', icon: Package, path: '/workloads', color: 'text-blue-400' },
+            { label: 'Networking', icon: Globe, path: '/networking', color: 'text-cyan-400' },
+            { label: 'Compute', icon: Server, path: '/compute', color: 'text-blue-400' },
+            { label: 'Storage', icon: HardDrive, path: '/storage', color: 'text-orange-400' },
+            { label: 'Timeline', icon: Clock, path: '/timeline', color: 'text-blue-400' },
+            { label: 'Access Control', icon: Shield, path: '/access-control', color: 'text-indigo-400' },
+            { label: 'Alerts', icon: Bell, path: '/alerts', color: 'text-red-400' },
+            { label: 'Administration', icon: Settings, path: '/admin', color: 'text-slate-400' },
+            { label: 'Troubleshoot', icon: Activity, path: '/troubleshoot', color: 'text-orange-400' },
+            { label: 'Create Resource', icon: FilePlus, path: '/create/v1~pods', color: 'text-amber-400' },
           ].map((page) => (
             <button
               key={page.path}
@@ -231,7 +230,7 @@ export function ResourceBrowser() {
                 {isExpanded && (
                   <div className="ml-5 mt-1 space-y-0.5">
                     {filteredResources.map((resource) => {
-                      const Icon = getIcon(getResourceIcon(resource.kind));
+                      const Icon = getIcon(getResourceIconName(resource.kind));
                       return (
                         <button
                           key={`${resource.group}-${resource.version}-${resource.plural}`}
