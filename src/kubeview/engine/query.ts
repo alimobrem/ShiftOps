@@ -3,7 +3,7 @@
  * Provides hooks for fetching, creating, updating, and watching K8s resources.
  */
 
-import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import { useEffect, useState, useMemo } from 'react';
 import { watchManager, type WatchEvent } from './watch';
 
@@ -271,71 +271,9 @@ export function useK8sWatch<T extends { metadata: { uid: string; resourceVersion
   };
 }
 
-/**
- * Hook to create a resource
- */
-export function useK8sCreate<T>(apiPath: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation<T, Error, T>({
-    mutationFn: (body: T) => k8sCreate(apiPath, body),
-    onSuccess: () => {
-      // Invalidate list queries for this resource type
-      queryClient.invalidateQueries({ queryKey: ['k8s', 'list', apiPath] });
-    },
-  });
-}
-
-/**
- * Hook to update a resource
- */
-export function useK8sUpdate<T>(apiPath: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation<T, Error, T>({
-    mutationFn: (body: T) => k8sUpdate(apiPath, body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['k8s', 'get', apiPath] });
-      // Also invalidate list queries
-      const basePath = apiPath.split('/').slice(0, -1).join('/');
-      queryClient.invalidateQueries({ queryKey: ['k8s', 'list', basePath] });
-    },
-  });
-}
-
-/**
- * Hook to patch a resource
- */
-export function useK8sPatch(apiPath: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation<unknown, Error, { patch: unknown; patchType?: string }>({
-    mutationFn: ({ patch, patchType }) => k8sPatch(apiPath, patch, patchType),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['k8s', 'get', apiPath] });
-      // Also invalidate list queries
-      const basePath = apiPath.split('/').slice(0, -1).join('/');
-      queryClient.invalidateQueries({ queryKey: ['k8s', 'list', basePath] });
-    },
-  });
-}
-
-/**
- * Hook to delete a resource
- */
-export function useK8sDelete(apiPath: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation<void, Error, void>({
-    mutationFn: () => k8sDelete(apiPath),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['k8s', 'get', apiPath] });
-      // Also invalidate list queries
-      const basePath = apiPath.split('/').slice(0, -1).join('/');
-      queryClient.invalidateQueries({ queryKey: ['k8s', 'list', basePath] });
-    },
-  });
-}
+// Note: useK8sCreate, useK8sUpdate, useK8sPatch, useK8sDelete hooks were removed
+// as they were never adopted. Views use raw k8sCreate/k8sPatch/k8sDelete directly.
+// If hooks are needed in the future, wrap the raw functions with useMutation.
 
 /**
  * Execute a subresource action (e.g., /scale, /status, /eviction)

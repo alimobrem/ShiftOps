@@ -4,6 +4,7 @@ import { ArrowLeft, GitBranch, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildDependencyGraph, type DependencyGraph, type GraphNode } from '@/lib/dependencyGraph';
 import { useUIStore } from '../store/uiStore';
+import { resourceDetailUrl } from '../engine/gvr';
 
 interface DependencyViewProps {
   gvrKey: string;
@@ -34,26 +35,18 @@ function getColor(kind: string): string {
   return kindColors[kind] ?? '#64748b';
 }
 
+// Kind-to-GVR mapping for dependency graph node navigation
+const kindGvrMap: Record<string, string> = {
+  Pod: 'v1', Service: 'v1', ConfigMap: 'v1', Secret: 'v1',
+  Deployment: 'apps/v1', ReplicaSet: 'apps/v1', StatefulSet: 'apps/v1', DaemonSet: 'apps/v1',
+  Job: 'batch/v1', CronJob: 'batch/v1',
+  Ingress: 'networking.k8s.io/v1', NetworkPolicy: 'networking.k8s.io/v1',
+  HPA: 'autoscaling/v2', PDB: 'policy/v1', Route: 'route.openshift.io/v1',
+};
+
 function getGvrUrl(kind: string, namespace: string, name: string): string {
-  const kindToPlural: Record<string, string> = {
-    Pod: 'v1~pods',
-    Service: 'v1~services',
-    ConfigMap: 'v1~configmaps',
-    Secret: 'v1~secrets',
-    Deployment: 'apps~v1~deployments',
-    ReplicaSet: 'apps~v1~replicasets',
-    StatefulSet: 'apps~v1~statefulsets',
-    DaemonSet: 'apps~v1~daemonsets',
-    Job: 'batch~v1~jobs',
-    CronJob: 'batch~v1~cronjobs',
-    Ingress: 'networking.k8s.io~v1~ingresses',
-    NetworkPolicy: 'networking.k8s.io~v1~networkpolicies',
-    HPA: 'autoscaling~v2~horizontalpodautoscalers',
-    PDB: 'policy~v1~poddisruptionbudgets',
-    Route: 'route.openshift.io~v1~routes',
-  };
-  const gvr = kindToPlural[kind] || `v1~${kind.toLowerCase()}s`;
-  return `/r/${gvr}/${namespace}/${name}`;
+  const apiVersion = kindGvrMap[kind] || 'v1';
+  return resourceDetailUrl({ apiVersion, kind, metadata: { name, namespace } });
 }
 
 interface LayoutNode extends GraphNode {
