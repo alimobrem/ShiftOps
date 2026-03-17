@@ -24,17 +24,14 @@ const YamlEditorView = lazy(() => import('./views/YamlEditorView'));
 const LogsView = lazy(() => import('./views/LogsView'));
 const MetricsView = lazy(() => import('./views/MetricsView'));
 const CorrelationView = lazy(() => import('./views/CorrelationView'));
-const DashboardView = lazy(() => import('./views/DashboardView'));
 const CreateView = lazy(() => import('./views/CreateView'));
 const DependencyView = lazy(() => import('./views/DependencyView'));
 const NodeLogsView = lazy(() => import('./views/NodeLogsView'));
 const ConfigCompareView = lazy(() => import('./views/ConfigCompareView'));
 const TroubleshootView = lazy(() => import('./views/TroubleshootView'));
 const AccessControlView = lazy(() => import('./views/AccessControlView'));
-const NetworkingView = lazy(() => import('./views/NetworkingView'));
 const StorageView = lazy(() => import('./views/StorageView'));
 const OperatorsView = lazy(() => import('./views/OperatorsView'));
-const WorkloadsView = lazy(() => import('./views/WorkloadsView'));
 const AdminView = lazy(() => import('./views/AdminView'));
 const AlertsView = lazy(() => import('./views/AlertsView'));
 
@@ -178,9 +175,10 @@ export default function OpenShiftViewApp() {
             {/* Dependencies: /deps/apps~v1~deployments/:namespace/:name */}
             <Route path="deps/:gvr/:namespace/:name" element={<DependencyRoute />} />
 
-            {/* Domain views */}
-            <Route path="workloads" element={<Suspense fallback={<LoadingFallback />}><WorkloadsView /></Suspense>} />
-            <Route path="networking" element={<Suspense fallback={<LoadingFallback />}><NetworkingView /></Suspense>} />
+            {/* Domain views — workloads/networking/dashboard redirect to pulse */}
+            <Route path="workloads" element={<Navigate to="/pulse" replace />} />
+            <Route path="networking" element={<Navigate to="/pulse" replace />} />
+            <Route path="dashboard" element={<Navigate to="/pulse" replace />} />
             <Route path="storage" element={<Suspense fallback={<LoadingFallback />}><StorageView /></Suspense>} />
             <Route path="access-control" element={<Suspense fallback={<LoadingFallback />}><AccessControlView /></Suspense>} />
             <Route path="operators" element={<Suspense fallback={<LoadingFallback />}><OperatorsView /></Suspense>} />
@@ -205,13 +203,6 @@ export default function OpenShiftViewApp() {
 
             {/* Timeline */}
             <Route path="timeline" element={<TimelineView />} />
-
-            {/* Dashboard */}
-            <Route path="dashboard" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <DashboardView />
-              </Suspense>
-            } />
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/pulse" replace />} />

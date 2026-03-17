@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   HeartPulse, AlertCircle, XCircle, CheckCircle, Server, Box, Package,
   HardDrive, ShieldAlert, Heart, ArrowRight, Puzzle, Shield, Clock,
+  Activity, Cpu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sList, k8sGet } from '../engine/query';
@@ -12,6 +13,7 @@ import { kindToPlural } from '../engine/renderers/index';
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { resourceDetailUrl } from '../engine/gvr';
+import { queryInstant } from '../components/metrics/prometheus';
 
 function filterByNamespace<T extends { metadata: { namespace?: string } }>(items: T[], ns: string): T[] {
   if (ns === '*') return items;
@@ -60,6 +62,20 @@ export default function PulseView() {
     queryFn: () => k8sGet<any>('/apis/config.openshift.io/v1/clusterversions/version').catch(() => null),
     staleTime: 60000,
   });
+
+  // Cluster metrics (CPU/Memory)
+  const { data: cpuMetrics } = useQuery({
+    queryKey: ['pulse', 'cpu'],
+    queryFn: () => queryInstant('sum(rate(node_cpu_seconds_total{mode!="idle"}[5m])) / sum(machine_cpu_cores) * 100').catch(() => []),
+    refetchInterval: 30000,
+  });
+  const { data: memMetrics } = useQuery({
+    queryKey: ['pulse', 'memory'],
+    queryFn: () => queryInstant('(1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100').catch(() => []),
+    refetchInterval: 30000,
+  });
+  const cpuPercent = cpuMetrics?.[0]?.value ?? null;
+  const memPercent = memMetrics?.[0]?.value ?? null;
 
   // Namespace filter
   const filteredPods = React.useMemo(() => filterByNamespace(pods as any[], selectedNamespace), [pods, selectedNamespace]);
@@ -153,12 +169,13 @@ export default function PulseView() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCard label="Nodes" value={`${healthyNodes}/${nodes.length}`} icon={<Server className="w-4 h-4" />} issues={unreadyNodes.length + pressureNodes.length} onClick={() => go('/r/v1~nodes', 'Nodes')} />
           <StatCard label="Pods" value={`${healthyPods}/${filteredPods.length}`} icon={<Box className="w-4 h-4" />} issues={failingPods.length} onClick={() => go('/r/v1~pods', 'Pods')} />
           <StatCard label="Deployments" value={`${healthyDeploys}/${filteredDeployments.length}`} icon={<Package className="w-4 h-4" />} issues={unhealthyDeploys.length} onClick={() => go('/r/apps~v1~deployments', 'Deployments')} />
           <StatCard label="Operators" value={`${operators.length - degradedOperators.length}/${operators.length}`} icon={<Puzzle className="w-4 h-4" />} issues={degradedOperators.length} onClick={() => go('/operators', 'Operators')} />
-          <StatCard label="Alerts" value="" icon={<AlertCircle className="w-4 h-4" />} issues={0} onClick={() => go('/alerts', 'Alerts')} extra={<span className="text-xs text-blue-400">View →</span>} />
+          <StatCard label="CPU" value={cpuPercent !== null ? `${Math.round(cpuPercent)}%` : '—'} icon={<Cpu className="w-4 h-4" />} issues={cpuPercent !== null && cpuPercent > 80 ? 1 : 0} />
+          <StatCard label="Memory" value={memPercent !== null ? `${Math.round(memPercent)}%` : '—'} icon={<Activity className="w-4 h-4" />} issues={memPercent !== null && memPercent > 80 ? 1 : 0} />
         </div>
 
         {/* Cluster update available */}
@@ -252,8 +269,8 @@ export default function PulseView() {
             <h2 className="text-lg font-semibold text-slate-100 mb-1">Everything looks good</h2>
             <p className="text-sm text-slate-400 mb-4">No active issues detected across {nodes.length} nodes, {filteredPods.length} pods, and {filteredDeployments.length} deployments.</p>
             <div className="flex items-center justify-center gap-3">
-              <button onClick={() => go('/dashboard', 'Dashboard')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">View Dashboard</button>
               <button onClick={() => go('/troubleshoot', 'Troubleshoot')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">Run Diagnostics</button>
+              <button onClick={() => go('/timeline', 'Timeline')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">View Timeline</button>
             </div>
           </div>
         )}
@@ -266,7 +283,7 @@ export default function PulseView() {
           <span>·</span>
           <button onClick={() => go('/timeline', 'Timeline')} className="hover:text-slate-300 transition-colors">Timeline</button>
           <span>·</span>
-          <button onClick={() => go('/dashboard', 'Dashboard')} className="hover:text-slate-300 transition-colors">Dashboard</button>
+          <button onClick={() => go('/admin', 'Administration')} className="hover:text-slate-300 transition-colors">Admin</button>
         </div>
       </div>
     </div>

@@ -1,26 +1,18 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import {
   Settings, Server, Puzzle, FileCode, Shield, Database, ArrowRight,
-  CheckCircle, XCircle, RefreshCw, AlertCircle, ChevronDown, ChevronRight,
-  Tag, Ban,
+  CheckCircle, XCircle, RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sList, k8sGet } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
-import { getNodeStatus } from '../engine/renderers/statusUtils';
-import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 
-type Tab = 'overview' | 'nodes' | 'operators' | 'crds' | 'quotas' | 'settings';
+type Tab = 'overview' | 'quotas' | 'settings';
 
 export default function AdminView() {
-  const navigate = useNavigate();
-  const addTab = useUIStore((s) => s.addTab);
   const [activeTab, setActiveTab] = React.useState<Tab>('overview');
-  const [crdSearch, setCrdSearch] = React.useState('');
-  const [nodeSearch, setNodeSearch] = React.useState('');
 
   // Cluster version
   const { data: clusterVersion } = useQuery({
@@ -110,18 +102,6 @@ export default function AdminView() {
     return [...groups.entries()].sort((a, b) => b[1] - a[1]);
   }, [crds]);
 
-  const filteredCrds = React.useMemo(() => {
-    if (!crdSearch) return crds.slice(0, 50);
-    const q = crdSearch.toLowerCase();
-    return crds.filter((c) => c.metadata.name.toLowerCase().includes(q)).slice(0, 50);
-  }, [crds, crdSearch]);
-
-  const filteredNodes = React.useMemo(() => {
-    if (!nodeSearch) return nodes;
-    const q = nodeSearch.toLowerCase();
-    return nodes.filter((n) => n.metadata.name.toLowerCase().includes(q));
-  }, [nodes, nodeSearch]);
-
   const identityProviders = React.useMemo(() => {
     return (oauthConfig?.spec?.identityProviders || []) as Array<{ name: string; type: string }>;
   }, [oauthConfig]);
@@ -130,9 +110,6 @@ export default function AdminView() {
 
   const tabs: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
     { id: 'overview', label: 'Overview', icon: <Settings className="w-3.5 h-3.5" /> },
-    { id: 'nodes', label: `Nodes (${nodes.length})`, icon: <Server className="w-3.5 h-3.5" /> },
-    { id: 'operators', label: `Operators (${operators.length})`, icon: <Puzzle className="w-3.5 h-3.5" /> },
-    { id: 'crds', label: `CRDs (${crds.length})`, icon: <FileCode className="w-3.5 h-3.5" /> },
     { id: 'quotas', label: `Quotas (${quotas.length})`, icon: <Shield className="w-3.5 h-3.5" /> },
     { id: 'settings', label: 'Settings', icon: <Database className="w-3.5 h-3.5" /> },
   ];
@@ -194,8 +171,8 @@ export default function AdminView() {
                 )}
               </Panel>
 
-              <Panel title="Node Roles" icon={<Server className="w-4 h-4 text-blue-500" />}>
-                <div className="space-y-2">
+              <Panel title={`Nodes (${nodes.length})`} icon={<Server className="w-4 h-4 text-blue-500" />}>
+                <div className="space-y-2 mb-3">
                   {nodeRoles.map(([role, count]) => (
                     <div key={role} className="flex items-center justify-between">
                       <span className="text-sm text-slate-300">{role}</span>
@@ -203,6 +180,9 @@ export default function AdminView() {
                     </div>
                   ))}
                 </div>
+                <button onClick={() => go('/r/v1~nodes', 'Nodes')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                  View all nodes <ArrowRight className="w-3 h-3" />
+                </button>
               </Panel>
 
               <Panel title="Resource Quotas & Limits" icon={<Shield className="w-4 h-4 text-orange-500" />}>
@@ -215,107 +195,16 @@ export default function AdminView() {
                 </button>
               </Panel>
             </div>
-          </>
-        )}
 
-        {/* Nodes */}
-        {activeTab === 'nodes' && (
-          <>
-            <input type="text" value={nodeSearch} onChange={(e) => setNodeSearch(e.target.value)} placeholder="Search nodes..." className="w-full max-w-md px-3 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <div className="bg-slate-900 rounded-lg border border-slate-800 divide-y divide-slate-800">
-              {filteredNodes.map((node) => {
-                const status = getNodeStatus(node);
-                const labels = node.metadata.labels || {};
-                const roles = Object.keys(labels).filter((k) => k.startsWith('node-role.kubernetes.io/')).map((k) => k.replace('node-role.kubernetes.io/', ''));
-                const taints = ((node.spec as any)?.taints || []) as Array<{ key: string; effect: string }>;
-                const nodeInfo = (node.status as any)?.nodeInfo || {};
-                const unschedulable = (node.spec as any)?.unschedulable;
-
-                return (
-                  <div key={node.metadata.uid} className="px-4 py-3 hover:bg-slate-800/50 cursor-pointer transition-colors" onClick={() => go(`/r/v1~nodes/_/${node.metadata.name}`, node.metadata.name)}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        {status.ready ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />}
-                        <span className="text-sm font-medium text-slate-200">{node.metadata.name}</span>
-                        {unschedulable && <span className="text-[10px] px-1.5 py-0.5 bg-yellow-900 text-yellow-300 rounded">Cordoned</span>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {roles.map((r) => <span key={r} className="text-[10px] px-1.5 py-0.5 bg-blue-900 text-blue-300 rounded">{r}</span>)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
-                      <span>Kubelet: {nodeInfo.kubeletVersion}</span>
-                      <span>OS: {nodeInfo.operatingSystem}/{nodeInfo.architecture}</span>
-                      <span>Runtime: {nodeInfo.containerRuntimeVersion}</span>
-                      {taints.length > 0 && <span className="flex items-center gap-1"><Ban className="w-3 h-3" /> {taints.length} taint{taints.length !== 1 ? 's' : ''}</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {/* Operators */}
-        {activeTab === 'operators' && (
-          <div className="bg-slate-900 rounded-lg border border-slate-800 divide-y divide-slate-800">
-            {operators.map((op: any) => {
-              const conditions = op.status?.conditions || [];
-              const available = conditions.find((c: any) => c.type === 'Available')?.status === 'True';
-              const degraded = conditions.find((c: any) => c.type === 'Degraded')?.status === 'True';
-              const progressing = conditions.find((c: any) => c.type === 'Progressing')?.status === 'True';
-              const version = op.status?.versions?.find((v: any) => v.name === 'operator')?.version || '';
-              const msg = degraded ? conditions.find((c: any) => c.type === 'Degraded')?.message : progressing ? conditions.find((c: any) => c.type === 'Progressing')?.message : '';
-
-              return (
-                <div key={op.metadata.uid} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/50 cursor-pointer" onClick={() => go(`/r/config.openshift.io~v1~clusteroperators/_/${op.metadata.name}`, op.metadata.name)}>
-                  {degraded ? <XCircle className="w-4 h-4 text-red-500" /> : progressing ? <RefreshCw className="w-4 h-4 text-yellow-500 animate-spin" /> : available ? <CheckCircle className="w-4 h-4 text-green-500" /> : <AlertCircle className="w-4 h-4 text-slate-500" />}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2"><span className="text-sm font-medium text-slate-200">{op.metadata.name}</span>{version && <span className="text-xs text-slate-500 font-mono">{version}</span>}</div>
-                    {msg && <div className="text-xs text-slate-400 mt-0.5 line-clamp-1">{msg}</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* CRDs */}
-        {activeTab === 'crds' && (
-          <>
-            <div className="flex items-center gap-4">
-              <input type="text" value={crdSearch} onChange={(e) => setCrdSearch(e.target.value)} placeholder="Search CRDs..." className="w-full max-w-md px-3 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <span className="text-xs text-slate-500">{crds.length} total · {crdGroups.length} groups</span>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Panel title="CRDs by API Group" icon={<FileCode className="w-4 h-4 text-purple-500" />}>
-                <div className="space-y-1 max-h-64 overflow-auto">
-                  {crdGroups.slice(0, 20).map(([group, count]) => (
-                    <div key={group} className="flex items-center justify-between py-1 px-2">
-                      <span className="text-xs text-slate-300 font-mono truncate">{group}</span>
-                      <span className="text-xs text-slate-500 font-mono">{count}</span>
-                    </div>
-                  ))}
-                </div>
-              </Panel>
-              <div className="bg-slate-900 rounded-lg border border-slate-800">
-                <div className="px-4 py-3 border-b border-slate-800"><h2 className="text-sm font-semibold text-slate-100">Custom Resource Definitions</h2></div>
-                <div className="divide-y divide-slate-800 max-h-96 overflow-auto">
-                  {filteredCrds.map((crd) => {
-                    const group = (crd.spec as any)?.group || '';
-                    const scope = (crd.spec as any)?.scope || '';
-                    return (
-                      <div key={crd.metadata.uid} className="px-4 py-2 hover:bg-slate-800/50 cursor-pointer" onClick={() => go(`/r/apiextensions.k8s.io~v1~customresourcedefinitions/_/${crd.metadata.name}`, crd.metadata.name)}>
-                        <div className="text-sm text-slate-200 truncate">{crd.metadata.name}</div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                          <span>{group}</span>
-                          <span className="px-1 py-0.5 bg-slate-800 rounded text-[10px]">{scope}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+            {/* Quick links to dedicated views */}
+            <div className="flex items-center gap-3 pt-2">
+              <button onClick={() => go('/r/apiextensions.k8s.io~v1~customresourcedefinitions', 'CRDs')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                <FileCode className="w-3 h-3" /> Browse {crds.length} CRDs <ArrowRight className="w-3 h-3" />
+              </button>
+              <span className="text-slate-700">·</span>
+              <button onClick={() => go('/access-control', 'Access Control')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                <Shield className="w-3 h-3" /> Access Control <ArrowRight className="w-3 h-3" />
+              </button>
             </div>
           </>
         )}

@@ -134,7 +134,7 @@ describe('OpenShiftView CommandPalette', () => {
     renderPalette();
     expect(screen.getByText('Cluster Pulse')).toBeDefined();
     expect(screen.getByText('Timeline')).toBeDefined();
-    expect(screen.getByText('Dashboard')).toBeDefined();
+    expect(screen.getByText('Troubleshoot')).toBeDefined();
   });
 
   it('shows resource types from registry', () => {
