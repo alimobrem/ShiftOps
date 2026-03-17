@@ -2,23 +2,14 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity,
-  AlertCircle,
-  XCircle,
-  CheckCircle,
-  Clock,
-  ArrowRight,
-  Server,
-  Box,
-  ShieldAlert,
-  HeartPulse,
+  HeartPulse, AlertCircle, XCircle, CheckCircle, Server, Box, Package,
+  HardDrive, ShieldAlert, Heart, ArrowRight, Puzzle, Shield, Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { k8sList } from '../engine/query';
+import { k8sList, k8sGet } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
 import { getPodStatus, getNodeStatus, getDeploymentStatus } from '../engine/renderers/statusUtils';
 import { kindToPlural } from '../engine/renderers/index';
-import { findNeedsAttention, diagnoseResource, type NeedsAttentionItem } from '../engine/diagnosis';
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { resourceDetailUrl } from '../engine/gvr';
@@ -30,9 +21,10 @@ function filterByNamespace<T extends { metadata: { namespace?: string } }>(items
 
 export default function PulseView() {
   const navigate = useNavigate();
-  const addTab = useUIStore((s) => s.addTab);
+  const go = useNavigateTab();
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
 
+  // Core resource queries
   const { data: nodes = [] } = useQuery<K8sResource[]>({
     queryKey: ['k8s', 'list', '/api/v1/nodes'],
     queryFn: () => k8sList<K8sResource>('/api/v1/nodes'),
@@ -51,51 +43,43 @@ export default function PulseView() {
     refetchInterval: 30000,
   });
 
-  const { data: events = [] } = useQuery<K8sResource[]>({
-    queryKey: ['k8s', 'list', '/api/v1/events'],
-    queryFn: () => k8sList<K8sResource>('/api/v1/events?limit=100'),
-    refetchInterval: 30000,
-  });
-
   const { data: pvcs = [] } = useQuery<K8sResource[]>({
     queryKey: ['k8s', 'list', '/api/v1/persistentvolumeclaims'],
     queryFn: () => k8sList<K8sResource>('/api/v1/persistentvolumeclaims'),
     refetchInterval: 30000,
   });
 
-  // Apply namespace filter
+  // Operators
+  const { data: operators = [] } = useQuery<K8sResource[]>({
+    queryKey: ['k8s', 'list', '/apis/config.openshift.io/v1/clusteroperators'],
+    queryFn: () => k8sList<K8sResource>('/apis/config.openshift.io/v1/clusteroperators').catch(() => []),
+    refetchInterval: 30000,
+  });
+
+  // Cluster version
+  const { data: clusterVersion } = useQuery({
+    queryKey: ['pulse', 'clusterversion'],
+    queryFn: () => k8sGet<any>('/apis/config.openshift.io/v1/clusterversions/version').catch(() => null),
+    staleTime: 60000,
+  });
+
+  // Namespace filter
   const filteredPods = React.useMemo(() => filterByNamespace(pods as any[], selectedNamespace), [pods, selectedNamespace]);
   const filteredDeployments = React.useMemo(() => filterByNamespace(deployments as any[], selectedNamespace), [deployments, selectedNamespace]);
 
-  // Needs attention items from diagnosis engine
-  const attentionItems = React.useMemo(() => {
-    const all = [...filteredPods, ...nodes, ...pvcs];
-    return findNeedsAttention(all);
-  }, [filteredPods, nodes, pvcs]);
+  // === ISSUES ===
 
-  // Failing pods — exclude completed jobs and installer pods
+  // Failing pods (exclude installer/job pods)
   const failingPods = React.useMemo(() => {
     return filteredPods.filter((pod) => {
       const status = getPodStatus(pod);
       const name = pod.metadata.name;
       const owners = pod.metadata.ownerReferences || [];
-
-      // Skip pods owned by Jobs (run-to-completion workloads)
       const ownedByJob = owners.some((o) => o.kind === 'Job');
-
-      // Skip installer/revision pods (OpenShift internal)
       const isInstaller = name.startsWith('installer-') || name.startsWith('revision-pruner-');
 
-      // Only flag actively broken pods, not historical failures
-      if (status.reason === 'CrashLoopBackOff' || status.reason === 'ImagePullBackOff' ||
-          status.reason === 'ErrImagePull') {
-        return true; // These are always problems
-      }
-
-      if (status.phase === 'Failed' && !ownedByJob && !isInstaller) {
-        return true; // Failed but not a job or installer
-      }
-
+      if (status.reason === 'CrashLoopBackOff' || status.reason === 'ImagePullBackOff' || status.reason === 'ErrImagePull') return true;
+      if (status.phase === 'Failed' && !ownedByJob && !isInstaller) return true;
       return false;
     });
   }, [filteredPods]);
@@ -106,57 +90,44 @@ export default function PulseView() {
   }, [filteredDeployments]);
 
   // Unready nodes
-  const unreadyNodes = React.useMemo(() => {
-    return nodes.filter((n) => !getNodeStatus(n).ready);
+  const unreadyNodes = React.useMemo(() => nodes.filter((n) => !getNodeStatus(n).ready), [nodes]);
+
+  // Nodes with pressure (but still Ready)
+  const pressureNodes = React.useMemo(() => {
+    return nodes.filter((n) => {
+      const s = getNodeStatus(n);
+      return s.ready && (s.pressure.disk || s.pressure.memory || s.pressure.pid);
+    });
   }, [nodes]);
 
   // Pending PVCs
-  const pendingPVCs = React.useMemo(() => {
-    return pvcs.filter((pvc) => (pvc.status as any)?.phase === 'Pending');
-  }, [pvcs]);
+  const pendingPVCs = React.useMemo(() => pvcs.filter((pvc) => (pvc.status as any)?.phase === 'Pending'), [pvcs]);
 
-  // Recent warning events — only from the last hour
-  const recentWarnings = React.useMemo(() => {
-    const oneHourAgo = Date.now() - 3600000;
-    return events
-      .filter((e) => {
-        if ((e as any).type !== 'Warning') return false;
-        const ts = (e as any).lastTimestamp || (e as any).firstTimestamp || '';
-        return ts ? new Date(ts).getTime() > oneHourAgo : false;
-      })
-      .sort((a, b) => {
-        const at = (a as any).lastTimestamp || (a as any).firstTimestamp || '';
-        const bt = (b as any).lastTimestamp || (b as any).firstTimestamp || '';
-        return new Date(bt).getTime() - new Date(at).getTime();
-      })
-      .slice(0, 10);
-  }, [events]);
+  // Degraded operators
+  const degradedOperators = React.useMemo(() => {
+    return operators.filter((op: any) => {
+      const conditions = op.status?.conditions || [];
+      return conditions.some((c: any) => c.type === 'Degraded' && c.status === 'True');
+    });
+  }, [operators]);
 
-  // Recent changes — group events by action type
-  const recentChanges = React.useMemo(() => {
-    const changeReasons = new Set(['Created', 'Started', 'Killing', 'Deleted', 'Pulled', 'Scheduled',
-      'ScalingReplicaSet', 'SuccessfulCreate', 'SuccessfulDelete', 'ScaledUp', 'ScaledDown',
-      'Scaled', 'DeploymentRollback', 'DeploymentUpdated']);
+  // Cluster update available
+  const updateAvailable = React.useMemo(() => {
+    if (!clusterVersion) return null;
+    const conditions = clusterVersion.status?.conditions || [];
+    const progressing = conditions.find((c: any) => c.type === 'Progressing');
+    const available = clusterVersion.status?.availableUpdates;
+    if (available && available.length > 0) return available[0].version;
+    if (progressing?.status === 'True') return progressing.message;
+    return null;
+  }, [clusterVersion]);
 
-    const changes = events
-      .filter((e) => {
-        const reason = (e as any).reason || '';
-        return changeReasons.has(reason) || reason.includes('Scaled') || reason.includes('Create') || reason.includes('Delete');
-      })
-      .sort((a, b) => {
-        const at = (a as any).lastTimestamp || (a as any).firstTimestamp || '';
-        const bt = (b as any).lastTimestamp || (b as any).firstTimestamp || '';
-        return new Date(bt).getTime() - new Date(at).getTime();
-      })
-      .slice(0, 8);
-
-    return changes;
-  }, [events]);
-
-  const totalIssues = failingPods.length + unhealthyDeploys.length + unreadyNodes.length + pendingPVCs.length;
-  const isHealthy = totalIssues === 0;
-
-  const go = useNavigateTab();
+  // Summary
+  const healthyPods = filteredPods.filter((p) => { const s = getPodStatus(p); return s.phase === 'Running' && s.ready; }).length;
+  const healthyDeploys = filteredDeployments.filter((d) => getDeploymentStatus(d).available).length;
+  const healthyNodes = nodes.filter((n) => getNodeStatus(n).ready).length;
+  const totalIssues = failingPods.length + unhealthyDeploys.length + unreadyNodes.length + pendingPVCs.length + degradedOperators.length + pressureNodes.length;
+  const isLoading = podsLoading;
 
   return (
     <div className="h-full overflow-auto bg-slate-950 p-6">
@@ -168,99 +139,78 @@ export default function PulseView() {
               <HeartPulse className="w-6 h-6 text-blue-500" />
               Cluster Pulse
             </h1>
-            <p className="text-sm text-slate-400 mt-1">What needs your attention right now</p>
+            <p className="text-sm text-slate-400 mt-1">Active issues that need your attention</p>
           </div>
-          {isHealthy ? (
+          {totalIssues === 0 && !isLoading ? (
             <div className="flex items-center gap-2 px-4 py-2 bg-green-900/30 border border-green-800 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-400" />
+              <Heart className="w-5 h-5 text-green-400" />
               <span className="text-sm font-medium text-green-300">All systems healthy</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 px-4 py-2 bg-red-900/30 border border-red-800 rounded-lg">
               <ShieldAlert className="w-5 h-5 text-red-400" />
-              <span className="text-sm font-medium text-red-300">{totalIssues} issue{totalIssues !== 1 ? 's' : ''} need attention</span>
+              <span className="text-sm font-medium text-red-300">{totalIssues} issue{totalIssues !== 1 ? 's' : ''}</span>
             </div>
           )}
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard
-            label="Nodes"
-            value={`${nodes.filter(n => getNodeStatus(n).ready).length}/${nodes.length}`}
-            icon={<Server className="w-4 h-4" />}
-            issues={unreadyNodes.length}
-            onClick={() => navigate('/r/v1~nodes')}
-          />
-          <StatCard
-            label="Pods"
-            value={`${filteredPods.filter(p => { const s = getPodStatus(p); return s.phase === 'Running' && s.ready; }).length}/${filteredPods.length}`}
-            icon={<Box className="w-4 h-4" />}
-            issues={failingPods.length}
-            onClick={() => navigate('/r/v1~pods')}
-          />
-          <StatCard
-            label="Deployments"
-            value={`${filteredDeployments.filter(d => getDeploymentStatus(d).available).length}/${filteredDeployments.length}`}
-            icon={<Activity className="w-4 h-4" />}
-            issues={unhealthyDeploys.length}
-            onClick={() => navigate('/r/apps~v1~deployments')}
-          />
-          <StatCard
-            label="Warnings"
-            value={String(recentWarnings.length)}
-            icon={<AlertCircle className="w-4 h-4" />}
-            issues={recentWarnings.length}
-            onClick={() => navigate('/timeline')}
-          />
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <StatCard label="Nodes" value={`${healthyNodes}/${nodes.length}`} icon={<Server className="w-4 h-4" />} issues={unreadyNodes.length + pressureNodes.length} onClick={() => navigate('/r/v1~nodes')} />
+          <StatCard label="Pods" value={`${healthyPods}/${filteredPods.length}`} icon={<Box className="w-4 h-4" />} issues={failingPods.length} onClick={() => navigate('/r/v1~pods')} />
+          <StatCard label="Deployments" value={`${healthyDeploys}/${filteredDeployments.length}`} icon={<Package className="w-4 h-4" />} issues={unhealthyDeploys.length} onClick={() => navigate('/r/apps~v1~deployments')} />
+          <StatCard label="Operators" value={`${operators.length - degradedOperators.length}/${operators.length}`} icon={<Puzzle className="w-4 h-4" />} issues={degradedOperators.length} onClick={() => navigate('/operators')} />
+          <StatCard label="Alerts" value="" icon={<AlertCircle className="w-4 h-4" />} issues={0} onClick={() => navigate('/alerts')} extra={<span className="text-xs text-blue-400">View →</span>} />
         </div>
+
+        {/* Cluster update available */}
+        {updateAvailable && (
+          <div className="bg-blue-950/30 border border-blue-800 rounded-lg px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-blue-400" />
+              <div>
+                <span className="text-sm font-medium text-blue-300">Cluster update available</span>
+                <span className="text-xs text-blue-400 ml-2">{updateAvailable}</span>
+              </div>
+            </div>
+            <button onClick={() => navigate('/admin')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              Administration <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+
+        {/* Degraded Operators */}
+        {degradedOperators.length > 0 && (
+          <IssueSection title={`Degraded Operators (${degradedOperators.length})`} icon={<Puzzle className="w-4 h-4 text-red-500" />} severity="critical">
+            {degradedOperators.map((op: any) => {
+              const msg = (op.status?.conditions || []).find((c: any) => c.type === 'Degraded')?.message || '';
+              return (
+                <IssueRow key={op.metadata.uid} name={op.metadata.name} status="Degraded" detail={msg} onClick={() => go(`/r/config.openshift.io~v1~clusteroperators/_/${op.metadata.name}`, op.metadata.name)} />
+              );
+            })}
+          </IssueSection>
+        )}
 
         {/* Failing Pods */}
         {failingPods.length > 0 && (
-          <IssueSection
-            title={`Failing Pods (${failingPods.length})`}
-            icon={<XCircle className="w-4 h-4 text-red-500" />}
-            severity="critical"
-          >
+          <IssueSection title={`Failing Pods (${failingPods.length})`} icon={<XCircle className="w-4 h-4 text-red-500" />} severity="critical">
             {failingPods.slice(0, 5).map((pod) => {
               const status = getPodStatus(pod);
-              const diagnoses = diagnoseResource(pod);
               return (
-                <IssueRow
-                  key={pod.metadata.uid}
-                  name={pod.metadata.name}
-                  namespace={pod.metadata.namespace}
-                  status={status.reason || status.phase}
-                  detail={diagnoses[0]?.suggestion}
-                  onClick={() => go(resourceDetailUrl(pod), pod.metadata.name)}
-                />
+                <IssueRow key={pod.metadata.uid} name={pod.metadata.name} namespace={pod.metadata.namespace} status={status.reason || status.phase} onClick={() => go(resourceDetailUrl(pod), pod.metadata.name)} />
               );
             })}
-            {failingPods.length > 5 && (
-              <button onClick={() => navigate('/r/v1~pods')} className="w-full text-center text-xs text-blue-400 hover:text-blue-300 pt-2">
-                View all {failingPods.length} failing pods →
-              </button>
-            )}
+            {failingPods.length > 5 && <button onClick={() => navigate('/r/v1~pods')} className="w-full text-center text-xs text-blue-400 hover:text-blue-300 pt-2">View all {failingPods.length} →</button>}
           </IssueSection>
         )}
 
         {/* Unhealthy Deployments */}
         {unhealthyDeploys.length > 0 && (
-          <IssueSection
-            title={`Unhealthy Deployments (${unhealthyDeploys.length})`}
-            icon={<AlertCircle className="w-4 h-4 text-yellow-500" />}
-            severity="warning"
-          >
+          <IssueSection title={`Unhealthy Deployments (${unhealthyDeploys.length})`} icon={<AlertCircle className="w-4 h-4 text-yellow-500" />} severity="warning">
             {unhealthyDeploys.slice(0, 5).map((deploy) => {
               const status = getDeploymentStatus(deploy);
               return (
-                <IssueRow
-                  key={deploy.metadata.uid}
-                  name={deploy.metadata.name}
-                  namespace={deploy.metadata.namespace}
-                  status={`${status.ready}/${status.desired} ready`}
-                  onClick={() => go(resourceDetailUrl(deploy), deploy.metadata.name)}
-                />
+                <IssueRow key={deploy.metadata.uid} name={deploy.metadata.name} namespace={deploy.metadata.namespace} status={`${status.ready}/${status.desired} ready`} onClick={() => go(resourceDetailUrl(deploy), deploy.metadata.name)} />
               );
             })}
           </IssueSection>
@@ -268,169 +218,76 @@ export default function PulseView() {
 
         {/* Unready Nodes */}
         {unreadyNodes.length > 0 && (
-          <IssueSection
-            title={`Unready Nodes (${unreadyNodes.length})`}
-            icon={<XCircle className="w-4 h-4 text-red-500" />}
-            severity="critical"
-          >
+          <IssueSection title={`Unready Nodes (${unreadyNodes.length})`} icon={<XCircle className="w-4 h-4 text-red-500" />} severity="critical">
             {unreadyNodes.map((node) => (
-              <IssueRow
-                key={node.metadata.uid}
-                name={node.metadata.name}
-                status="NotReady"
-                onClick={() => go(`/r/v1~nodes/_/${node.metadata.name}`, node.metadata.name)}
-              />
+              <IssueRow key={node.metadata.uid} name={node.metadata.name} status="NotReady" onClick={() => go(`/r/v1~nodes/_/${node.metadata.name}`, node.metadata.name)} />
             ))}
+          </IssueSection>
+        )}
+
+        {/* Nodes with Pressure */}
+        {pressureNodes.length > 0 && (
+          <IssueSection title={`Nodes Under Pressure (${pressureNodes.length})`} icon={<AlertCircle className="w-4 h-4 text-yellow-500" />} severity="warning">
+            {pressureNodes.map((node) => {
+              const s = getNodeStatus(node);
+              const pressures = [s.pressure.disk && 'Disk', s.pressure.memory && 'Memory', s.pressure.pid && 'PID'].filter(Boolean).join(', ');
+              return (
+                <IssueRow key={node.metadata.uid} name={node.metadata.name} status={`${pressures} Pressure`} onClick={() => go(`/r/v1~nodes/_/${node.metadata.name}`, node.metadata.name)} />
+              );
+            })}
           </IssueSection>
         )}
 
         {/* Pending PVCs */}
         {pendingPVCs.length > 0 && (
-          <IssueSection
-            title={`Pending PVCs (${pendingPVCs.length})`}
-            icon={<AlertCircle className="w-4 h-4 text-yellow-500" />}
-            severity="warning"
-          >
+          <IssueSection title={`Pending PVCs (${pendingPVCs.length})`} icon={<HardDrive className="w-4 h-4 text-yellow-500" />} severity="warning">
             {pendingPVCs.slice(0, 5).map((pvc) => (
-              <IssueRow
-                key={pvc.metadata.uid}
-                name={pvc.metadata.name}
-                namespace={pvc.metadata.namespace}
-                status="Pending"
-                detail="No volume bound"
-                onClick={() => go(resourceDetailUrl(pvc), pvc.metadata.name)}
-              />
+              <IssueRow key={pvc.metadata.uid} name={pvc.metadata.name} namespace={pvc.metadata.namespace} status="Pending" detail="No volume bound" onClick={() => go(resourceDetailUrl(pvc), pvc.metadata.name)} />
             ))}
           </IssueSection>
         )}
 
-        {/* Recent Changes */}
-        {recentChanges.length > 0 && (
-          <div className="bg-slate-900 rounded-lg border border-slate-800">
-            <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-blue-400" />
-                Recent Changes
-              </h2>
-              <button
-                onClick={() => navigate('/timeline')}
-                className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-              >
-                View all <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="divide-y divide-slate-800">
-              {recentChanges.map((event, idx) => {
-                const e = event as any;
-                const reason = e.reason || '';
-                const time = e.lastTimestamp || e.firstTimestamp;
-                const obj = e.involvedObject || {};
-
-                let icon = <Activity className="w-3.5 h-3.5 text-blue-400" />;
-                let color = 'text-blue-400';
-                if (reason.includes('Create') || reason === 'Created' || reason === 'Started' || reason === 'Scheduled') {
-                  icon = <CheckCircle className="w-3.5 h-3.5 text-green-400" />;
-                  color = 'text-green-400';
-                } else if (reason.includes('Delete') || reason === 'Killing') {
-                  icon = <XCircle className="w-3.5 h-3.5 text-red-400" />;
-                  color = 'text-red-400';
-                } else if (reason.includes('Scal')) {
-                  icon = <Activity className="w-3.5 h-3.5 text-purple-400" />;
-                  color = 'text-purple-400';
-                }
-
-                return (
-                  <div key={idx} className="px-4 py-2.5 hover:bg-slate-800/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      {icon}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium ${color}`}>{reason}</span>
-                          <span className="text-xs text-slate-500">{obj.kind} {obj.name}</span>
-                        </div>
-                      </div>
-                      <span className="text-xs text-slate-500 flex-shrink-0">
-                        {time ? new Date(time).toLocaleTimeString() : ''}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+        {/* All healthy */}
+        {totalIssues === 0 && !isLoading && (
+          <div className="bg-slate-900 rounded-lg border border-slate-800 p-8 text-center">
+            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+            <h2 className="text-lg font-semibold text-slate-100 mb-1">Everything looks good</h2>
+            <p className="text-sm text-slate-400 mb-4">No active issues detected across {nodes.length} nodes, {filteredPods.length} pods, and {filteredDeployments.length} deployments.</p>
+            <div className="flex items-center justify-center gap-3">
+              <button onClick={() => navigate('/dashboard')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">View Dashboard</button>
+              <button onClick={() => navigate('/troubleshoot')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">Run Diagnostics</button>
             </div>
           </div>
         )}
 
-        {/* Recent Warnings */}
-        <div className="bg-slate-900 rounded-lg border border-slate-800">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-400" />
-              Recent Warning Events
-            </h2>
-            <button
-              onClick={() => navigate('/timeline')}
-              className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-            >
-              View all <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="divide-y divide-slate-800 max-h-80 overflow-auto">
-            {recentWarnings.length === 0 ? (
-              <div className="px-4 py-8 text-center text-slate-500 text-sm">
-                <CheckCircle className="w-6 h-6 mx-auto mb-2 text-green-500" />
-                No warning events
-              </div>
-            ) : (
-              recentWarnings.map((event, idx) => {
-                const e = event as any;
-                const time = e.lastTimestamp || e.firstTimestamp;
-                return (
-                  <div key={idx} className="px-4 py-3 hover:bg-slate-800/50 transition-colors">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs text-slate-500">
-                            {time ? new Date(time).toLocaleTimeString() : ''}
-                          </span>
-                          <span className="text-xs text-slate-600">·</span>
-                          <span className="text-xs text-slate-400">{e.involvedObject?.kind} {e.involvedObject?.name}</span>
-                        </div>
-                        <div className="text-sm font-medium text-slate-200">{e.reason}</div>
-                        <div className="text-xs text-slate-400 mt-0.5 line-clamp-2">{e.message}</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+        {/* Quick links */}
+        <div className="flex items-center justify-center gap-4 text-xs text-slate-500 pt-2">
+          <button onClick={() => navigate('/troubleshoot')} className="hover:text-slate-300 transition-colors">Troubleshoot</button>
+          <span>·</span>
+          <button onClick={() => navigate('/alerts')} className="hover:text-slate-300 transition-colors">Alerts</button>
+          <span>·</span>
+          <button onClick={() => navigate('/timeline')} className="hover:text-slate-300 transition-colors">Timeline</button>
+          <span>·</span>
+          <button onClick={() => navigate('/dashboard')} className="hover:text-slate-300 transition-colors">Dashboard</button>
         </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, icon, issues, onClick }: {
-  label: string; value: string; icon: React.ReactNode; issues: number; onClick: () => void;
+// --- Components ---
+
+function StatCard({ label, value, icon, issues, onClick, extra }: {
+  label: string; value: string; icon: React.ReactNode; issues: number; onClick: () => void; extra?: React.ReactNode;
 }) {
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        'bg-slate-900 rounded-lg border p-3 cursor-pointer transition-colors hover:border-slate-600',
-        issues > 0 ? 'border-yellow-800' : 'border-slate-800'
-      )}
-    >
+    <div onClick={onClick} className={cn('bg-slate-900 rounded-lg border p-3 cursor-pointer hover:border-slate-600 transition-colors', issues > 0 ? 'border-yellow-800' : 'border-slate-800')}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2 text-slate-400">{icon}<span className="text-xs">{label}</span></div>
-        {issues > 0 ? (
-          <span className="text-xs px-1.5 py-0.5 bg-red-900 text-red-300 rounded">{issues}</span>
-        ) : (
-          <div className="w-2 h-2 rounded-full bg-green-500" />
-        )}
+        {issues > 0 ? <span className="text-xs px-1.5 py-0.5 bg-red-900 text-red-300 rounded">{issues}</span> : <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
       </div>
-      <div className="text-xl font-bold text-slate-100">{value}</div>
+      {value && <div className="text-xl font-bold text-slate-100">{value}</div>}
+      {extra}
     </div>
   );
 }
@@ -439,10 +296,7 @@ function IssueSection({ title, icon, severity, children }: {
   title: string; icon: React.ReactNode; severity: 'critical' | 'warning'; children: React.ReactNode;
 }) {
   return (
-    <div className={cn(
-      'rounded-lg border',
-      severity === 'critical' ? 'bg-red-950/30 border-red-900' : 'bg-yellow-950/30 border-yellow-900'
-    )}>
+    <div className={cn('rounded-lg border', severity === 'critical' ? 'bg-red-950/30 border-red-900' : 'bg-yellow-950/30 border-yellow-900')}>
       <div className="px-4 py-3 border-b border-slate-800/50">
         <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">{icon}{title}</h2>
       </div>
@@ -455,10 +309,7 @@ function IssueRow({ name, namespace, status, detail, onClick }: {
   name: string; namespace?: string; status: string; detail?: string; onClick: () => void;
 }) {
   return (
-    <div
-      onClick={onClick}
-      className="flex items-center justify-between p-2 rounded hover:bg-slate-800/50 cursor-pointer transition-colors"
-    >
+    <div onClick={onClick} className="flex items-center justify-between p-2 rounded hover:bg-slate-800/50 cursor-pointer transition-colors">
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
         <div className="min-w-0">
