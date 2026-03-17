@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronUp, ChevronDown, Trash2, Tag, Plus, Filter, Columns3, X, Download } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, Trash2, Tag, Plus, Filter, Columns3, X, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sPatch, k8sDelete } from '../engine/query';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
@@ -330,6 +330,13 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
       } else if (action === 'drain') {
         await k8sPatch(resourcePath, { spec: { unschedulable: true } });
         addToast({ type: 'warning', title: `Drain started for "${resourceName}"`, detail: 'Node cordoned. Pod eviction requires manual intervention.' });
+      } else if (action === 'delete-single') {
+        if (!confirm(`Delete ${kind} "${resourceName}"${resourceNs ? ` from ${resourceNs}` : ''}? This cannot be undone.`)) {
+          setInlineActionLoading(null);
+          return;
+        }
+        await k8sDelete(resourcePath);
+        addToast({ type: 'success', title: `${kind} "${resourceName}" deleted` });
       }
       queryClient.invalidateQueries({ queryKey: ['k8s', 'list'] });
     } catch (err) {
@@ -646,11 +653,9 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
                     </div>
                   </th>
                 ))}
-                {enhancer?.inlineActions && enhancer.inlineActions.length > 0 && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                    Actions
-                  </th>
-                )}
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                  Actions
+                </th>
               </tr>
               {/* Column filter row */}
               {showFilters && (
@@ -667,7 +672,7 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
                       />
                     </th>
                   ))}
-                  {enhancer?.inlineActions && enhancer.inlineActions.length > 0 && <th className="px-4 py-1" />}
+                  <th className="px-4 py-1" />
                 </tr>
               )}
             </thead>
@@ -703,17 +708,25 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
                         </td>
                       );
                     })}
-                    {enhancer?.inlineActions && enhancer.inlineActions.length > 0 && (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          {enhancer.inlineActions.map((action) => (
-                            <div key={action.id}>
-                              {action.render(resource, handleAction)}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                    )}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        {enhancer?.inlineActions?.map((action) => (
+                          <div key={action.id}>
+                            {action.render(resource, handleAction)}
+                          </div>
+                        ))}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleAction('delete-single', { resource }); }}
+                          disabled={inlineActionLoading === `${resource.metadata.uid}-delete-single`}
+                          className="inline-flex items-center px-1.5 py-1 text-xs text-slate-500 rounded hover:bg-red-900/50 hover:text-red-400 transition-colors ml-1 disabled:opacity-50"
+                          title="Delete"
+                        >
+                          {inlineActionLoading === `${resource.metadata.uid}-delete-single`
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
