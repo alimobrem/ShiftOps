@@ -7,6 +7,7 @@ import { k8sPatch, k8sDelete } from '../engine/query';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
 import { jsonToYaml } from '../engine/yamlUtils';
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
+import DeployProgress from '../components/DeployProgress';
 import { useClusterStore } from '../store/clusterStore';
 import { useUIStore } from '../store/uiStore';
 import type { K8sResource, ColumnDef } from '../engine/renderers';
@@ -341,6 +342,10 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
           if (!old || !Array.isArray(old)) return old;
           return old.filter((r: any) => r.metadata?.uid !== resource.metadata?.uid);
         });
+        // Show teardown progress for resources with dependents
+        if (['Deployment', 'StatefulSet', 'DaemonSet', 'ReplicaSet', 'Job'].includes(kind)) {
+          setDeleteProgress({ name: resourceName, ns: resourceNs || 'default', kind });
+        }
         addToast({ type: 'success', title: `${kind} "${resourceName}" deleted` });
       }
       queryClient.invalidateQueries({ queryKey: ['k8s', 'list'] });
@@ -394,6 +399,7 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
   }, [sortedResources, visibleColumns, resourceKind, addToast]);
 
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = React.useState(false);
+  const [deleteProgress, setDeleteProgress] = React.useState<{ name: string; ns: string; kind: string } | null>(null);
   const [showExport, setShowExport] = React.useState(false);
 
   // Bulk delete
@@ -802,6 +808,21 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
         </div>
       )}
       </div>
+
+      {/* Delete Progress */}
+      {deleteProgress && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
+          <div className="w-full max-w-2xl">
+            <DeployProgress
+              type={deleteProgress.kind === 'Job' ? 'job' : 'deployment'}
+              name={deleteProgress.name}
+              namespace={deleteProgress.ns}
+              mode="delete"
+              onClose={() => setDeleteProgress(null)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Bulk Delete Confirmation */}
       {showBulkDeleteConfirm && (
