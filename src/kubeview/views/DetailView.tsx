@@ -149,6 +149,11 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
     setDeleting(true);
     try {
       await k8sDelete(apiPath);
+      // Optimistically remove from all list caches before navigating
+      queryClient.setQueriesData({ queryKey: ['k8s', 'list'] }, (old: any) => {
+        if (!old || !Array.isArray(old)) return old;
+        return old.filter((r: any) => r.metadata?.uid !== resource.metadata.uid);
+      });
       addToast({ type: 'success', title: `${resource.kind} "${resource.metadata.name}" deleted` });
       setShowDeleteConfirm(false);
       go(`/r/${gvrUrl}`, resourcePlural);
