@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import './kubeview/styles/index.css';
 import OpenShiftViewApp from './kubeview/App';
 
 const container = document.getElementById('root');
