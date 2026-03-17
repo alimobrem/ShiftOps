@@ -383,9 +383,9 @@ function QuickDeployTab() {
         <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Quick Examples</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[
-            { name: 'nginx', image: 'nginx:latest', port: '80', desc: 'Nginx web server' },
-            { name: 'httpd', image: 'httpd:latest', port: '80', desc: 'Apache HTTP server' },
-            { name: 'redis', image: 'redis:latest', port: '6379', desc: 'Redis in-memory store' },
+            { name: 'nginx', image: 'nginxinc/nginx-unprivileged:latest', port: '8080', desc: 'Nginx web server (non-root)' },
+            { name: 'httpd', image: 'registry.access.redhat.com/ubi9/httpd-24:latest', port: '8080', desc: 'Apache HTTP server (UBI)' },
+            { name: 'redis', image: 'registry.access.redhat.com/rhel9/redis-7:latest', port: '6379', desc: 'Redis in-memory store (UBI)' },
           ].map((ex) => (
             <button key={ex.name} onClick={() => { setName(ex.name); setImage(ex.image); setPort(ex.port); }}
               className="flex items-start gap-3 p-3 bg-slate-900 rounded-lg border border-slate-800 hover:border-slate-600 transition-colors text-left">

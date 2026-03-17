@@ -81,13 +81,38 @@ export default function LogStream({
       setError(null);
 
       try {
-        const url = buildLogUrl(isFollowing);
-        const response = await fetch(url, {
+        let url = buildLogUrl(isFollowing);
+        let response = await fetch(url, {
           signal: abortControllerRef.current.signal,
         });
 
         if (!response.ok) {
           throw new Error(`Failed to fetch logs: ${response.status} ${response.statusText}`);
+        }
+
+        // If current container has no logs (crashed/terminated), try previous container
+        if (!isFollowing && !url.includes('previous=true')) {
+          const currentText = await response.text();
+          if (!currentText.trim()) {
+            const prevUrl = url + (url.includes('?') ? '&' : '?') + 'previous=true';
+            try {
+              const prevResponse = await fetch(prevUrl, { signal: abortControllerRef.current.signal });
+              if (prevResponse.ok) {
+                response = prevResponse;
+              }
+            } catch {}
+          } else {
+            // Current has content — parse it directly and skip re-reading
+            if (mounted) {
+              const rawLines = currentText.split('\n').filter((l) => l.trim());
+              const detected = detectLogFormat(rawLines);
+              setLogFormat(detected);
+              const parsedLines = rawLines.map((line) => parseLogLine(line, detected));
+              setLines(parsedLines.length > MAX_LINES ? parsedLines.slice(-MAX_LINES) : parsedLines);
+              setLoading(false);
+            }
+            return;
+          }
         }
 
         if (isFollowing && response.body) {

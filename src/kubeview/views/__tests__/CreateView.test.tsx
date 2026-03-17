@@ -238,14 +238,14 @@ describe('CreateView', () => {
     renderCreateView();
 
     // Click nginx example
-    fireEvent.click(screen.getByText('Nginx web server'));
+    fireEvent.click(screen.getByText(/Nginx web server/));
 
     // Check that the input fields are populated
     const nameInput = screen.getByPlaceholderText('my-app') as HTMLInputElement;
-    const imageInput = screen.getByPlaceholderText(/nginx:latest|quay.io/) as HTMLInputElement;
+    const imageInput = screen.getByPlaceholderText(/nginx|quay.io/) as HTMLInputElement;
 
     expect(nameInput.value).toBe('nginx');
-    expect(imageInput.value).toBe('nginx:latest');
+    expect(imageInput.value).toBe('nginxinc/nginx-unprivileged:latest');
   });
 
   it('shows Helm chart catalog with chart names', () => {
