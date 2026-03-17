@@ -235,18 +235,18 @@ export function CommandBar() {
                 <button
                   onClick={async () => {
                     setShowUserMenu(false);
+                    const server = window.location.origin.replace('localhost:9000', 'api.rhamilto.devcluster.openshift.com:6443');
+                    const loginCmd = `oc login --server=${clusterInfo?.name ? `https://api.${clusterInfo.name.split('-')[0]}.devcluster.openshift.com:6443` : server}`;
                     try {
-                      const res = await fetch('/api/kubernetes/apis/oauth.openshift.io/v1/oauthaccesstokens?limit=1');
-                      if (res.ok) {
-                        const text = 'Use "oc whoami -t" to get your API token';
-                        navigator.clipboard.writeText(text);
-                      }
-                    } catch {}
-                    addToast({ type: 'success', title: 'Run "oc whoami -t" to get your API token' });
+                      await navigator.clipboard.writeText(loginCmd);
+                      addToast({ type: 'success', title: 'Login command copied', detail: loginCmd });
+                    } catch {
+                      addToast({ type: 'success', title: 'Copy this command:', detail: loginCmd });
+                    }
                   }}
                   className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 transition-colors"
                 >
-                  Copy API Token
+                  Copy Login Command
                 </button>
                 <div className="border-t border-slate-700 mt-1 pt-1">
                   <button className="w-full px-3 py-2 text-left text-sm text-slate-400 hover:bg-slate-700 transition-colors flex items-center gap-2">

@@ -97,11 +97,20 @@ export default function TroubleshootView() {
     const map = new Map<string, { total: number; healthy: number; critical: number; warning: number }>();
     for (const pod of pods) {
       const ns = pod.metadata.namespace || 'default';
+      const name = pod.metadata.name;
+      const owners = pod.metadata.ownerReferences || [];
+
+      // Skip completed installer/job pods
+      const isInstaller = name.startsWith('installer-') || name.startsWith('revision-pruner-');
+      const ownedByJob = owners.some((o) => o.kind === 'Job');
+      const status = getPodStatus(pod);
+      if ((isInstaller || ownedByJob) && (status.phase === 'Failed' || status.phase === 'Succeeded')) continue;
+
       const entry = map.get(ns) || { total: 0, healthy: 0, critical: 0, warning: 0 };
       entry.total++;
-      const status = getPodStatus(pod);
       if (status.phase === 'Running' && status.ready) entry.healthy++;
-      else if (status.reason === 'CrashLoopBackOff' || status.phase === 'Failed') entry.critical++;
+      else if (status.phase === 'Succeeded') entry.healthy++;
+      else if (status.reason === 'CrashLoopBackOff' || status.reason === 'ImagePullBackOff' || status.phase === 'Failed') entry.critical++;
       else if (status.phase === 'Pending') entry.warning++;
       else entry.healthy++;
       map.set(ns, entry);
@@ -377,9 +386,13 @@ export default function TroubleshootView() {
             </div>
             <div className="divide-y divide-slate-800 max-h-[500px] overflow-auto">
               {namespaceHealth.map(({ ns, total, healthy, critical, warning, score }) => (
-                <div key={ns} className="flex items-center gap-4 px-4 py-2.5 hover:bg-slate-800/50 transition-colors">
+                <div
+                  key={ns}
+                  onClick={() => { useUIStore.getState().setSelectedNamespace(ns); navigate('/r/v1~pods'); }}
+                  className="flex items-center gap-4 px-4 py-2.5 hover:bg-slate-800/50 transition-colors cursor-pointer"
+                >
                   <div className="w-48 min-w-0">
-                    <span className="text-sm text-slate-200 truncate block">{ns}</span>
+                    <span className="text-sm text-blue-400 hover:text-blue-300 truncate block">{ns}</span>
                   </div>
                   <div className="flex-1">
                     <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
