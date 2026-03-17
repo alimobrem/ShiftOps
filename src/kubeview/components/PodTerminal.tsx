@@ -15,7 +15,7 @@ interface TerminalLine {
   text: string;
 }
 
-const BASE = '/api/kubernetes';
+import { K8S_BASE as BASE } from '../engine/gvr';
 
 export default function PodTerminal({ namespace, podName, containerName, onClose, isNode }: PodTerminalProps) {
   const [command, setCommand] = useState('');

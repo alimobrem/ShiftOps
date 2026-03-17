@@ -3,7 +3,7 @@
  * Fetches and caches OpenAPI schemas for Kubernetes resources.
  */
 
-const BASE = '/api/kubernetes';
+import { K8S_BASE as BASE } from './gvr';
 
 export interface FieldSchema {
   name: string;

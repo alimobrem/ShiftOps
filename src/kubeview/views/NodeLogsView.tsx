@@ -4,7 +4,7 @@ import { ArrowLeft, Search, Download, RefreshCw, FileText, Shield, Server, Box }
 import { cn } from '@/lib/utils';
 import { useUIStore } from '../store/uiStore';
 
-const BASE = '/api/kubernetes';
+import { K8S_BASE as BASE } from '../engine/gvr';
 
 type LogSource = 'audit' | 'journal' | 'crio' | 'containers' | 'ovn';
 

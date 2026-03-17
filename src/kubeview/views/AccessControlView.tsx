@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { k8sList } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
 import { useUIStore } from '../store/uiStore';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 
 export default function AccessControlView() {
   const navigate = useNavigate();
@@ -71,10 +72,7 @@ export default function AccessControlView() {
     return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
   }, [serviceAccounts]);
 
-  function go(path: string, title: string) {
-    addTab({ title, path, pinned: false, closable: true });
-    navigate(path);
-  }
+  const go = useNavigateTab();
 
   return (
     <div className="h-full overflow-auto bg-slate-950 p-6">

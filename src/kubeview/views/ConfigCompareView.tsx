@@ -3,7 +3,7 @@ import { Download, Upload, GitCompare, Loader2, CheckCircle, XCircle, Minus } fr
 import { cn } from '@/lib/utils';
 import { useUIStore } from '../store/uiStore';
 
-const BASE = '/api/kubernetes';
+import { K8S_BASE as BASE } from '../engine/gvr';
 
 interface ClusterSnapshot {
   timestamp: string;

@@ -11,6 +11,7 @@ import { k8sList, k8sGet } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
 import { getNodeStatus } from '../engine/renderers/statusUtils';
 import { useUIStore } from '../store/uiStore';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 
 type Tab = 'overview' | 'nodes' | 'operators' | 'crds' | 'quotas' | 'settings';
 
@@ -125,7 +126,7 @@ export default function AdminView() {
     return (oauthConfig?.spec?.identityProviders || []) as Array<{ name: string; type: string }>;
   }, [oauthConfig]);
 
-  function go(path: string, title: string) { addTab({ title, path, pinned: false, closable: true }); navigate(path); }
+  const go = useNavigateTab(); // replaces local go()
 
   const tabs: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
     { id: 'overview', label: 'Overview', icon: <Settings className="w-3.5 h-3.5" /> },

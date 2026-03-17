@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { k8sList } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
 import { useUIStore } from '../store/uiStore';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 
 export default function OperatorsView() {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ export default function OperatorsView() {
     return operatorStatus;
   }, [operatorStatus, filter]);
 
-  function go(path: string, title: string) { addTab({ title, path, pinned: false, closable: true }); navigate(path); }
+  const go = useNavigateTab(); // replaces local go()
 
   return (
     <div className="h-full overflow-auto bg-slate-950 p-6">

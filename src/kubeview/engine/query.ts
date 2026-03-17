@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from '@ta
 import { useEffect, useState, useMemo } from 'react';
 import { watchManager, type WatchEvent } from './watch';
 
-const BASE = '/api/kubernetes';
+import { K8S_BASE as BASE } from './gvr';
 
 interface K8sListResponse<T> {
   apiVersion: string;

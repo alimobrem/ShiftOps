@@ -3,7 +3,7 @@
  * Discovers and caches all available Kubernetes resource types from the API server.
  */
 
-const BASE = '/api/kubernetes';
+import { K8S_BASE as BASE } from './gvr';
 
 export interface ResourceType {
   group: string;      // "" for core, "apps" etc

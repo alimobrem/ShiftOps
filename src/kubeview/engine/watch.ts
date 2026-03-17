@@ -3,7 +3,7 @@
  * Manages WebSocket connections to watch Kubernetes resources in real-time.
  */
 
-const BASE = '/api/kubernetes';
+import { K8S_BASE as BASE } from './gvr';
 const HEARTBEAT_INTERVAL = 45000; // 45 seconds
 const MAX_BACKOFF = 30000; // 30 seconds
 

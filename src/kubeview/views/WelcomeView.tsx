@@ -15,16 +15,14 @@ import {
   Shield,
 } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 
 export default function WelcomeView() {
   const navigate = useNavigate();
   const addTab = useUIStore((s) => s.addTab);
   const openCommandPalette = useUIStore((s) => s.openCommandPalette);
 
-  function go(path: string, title: string) {
-    addTab({ title, path, pinned: false, closable: true });
-    navigate(path);
-  }
+  const go = useNavigateTab();
 
   return (
     <div className="h-full overflow-auto bg-slate-950 p-6">

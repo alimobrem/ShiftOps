@@ -13,6 +13,8 @@ import { getPodStatus, getNodeStatus, getDeploymentStatus } from '../engine/rend
 import { kindToPlural } from '../engine/renderers/index';
 import { diagnoseResource, type Diagnosis } from '../engine/diagnosis';
 import { useUIStore } from '../store/uiStore';
+import { useNavigateTab } from '../hooks/useNavigateTab';
+import { resourceDetailUrl } from '../engine/gvr';
 
 type Tab = 'issues' | 'health' | 'runbooks';
 
@@ -128,17 +130,9 @@ export default function TroubleshootView() {
   const healthyNodes = nodes.filter((n) => getNodeStatus(n).ready).length;
   const isLoading = podsLoading;
 
-  function go(path: string, title: string) { addTab({ title, path, pinned: false, closable: true }); navigate(path); }
+  const go = useNavigateTab(); // replaces local go()
 
-  function getGvrUrl(resource: K8sResource) {
-    const apiVersion = resource.apiVersion || 'v1';
-    const kind = resource.kind || '';
-    const [group, version] = apiVersion.includes('/') ? apiVersion.split('/') : ['', apiVersion];
-    const plural = kindToPlural(kind);
-    const gvr = group ? `${group}~${version}~${plural}` : `${version}~${plural}`;
-    const ns = resource.metadata.namespace;
-    return ns ? `/r/${gvr}/${ns}/${resource.metadata.name}` : `/r/${gvr}/_/${resource.metadata.name}`;
-  }
+  // Use shared resourceDetailUrl from engine/gvr
 
   const kindIcon: Record<string, React.ReactNode> = {
     Pod: <Box className="w-4 h-4" />, Deployment: <Package className="w-4 h-4" />,
@@ -277,11 +271,11 @@ export default function TroubleshootView() {
                           </div>
                         ))}
                         <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
-                          <button onClick={() => go(getGvrUrl(item.resource), item.resource.metadata.name)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700">
+                          <button onClick={() => go(resourceDetailUrl(item.resource), item.resource.metadata.name)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700">
                             <FileText className="w-3 h-3" /> Details
                           </button>
                           {item.resource.metadata.namespace && (
-                            <button onClick={() => { const gvrUrl = getGvrUrl(item.resource).replace(/^\/r\//, '').split('/')[0]; go(`/deps/${gvrUrl}/${item.resource.metadata.namespace}/${item.resource.metadata.name}`, `${item.resource.metadata.name} (Deps)`); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700">
+                            <button onClick={() => { const gvrUrl = resourceDetailUrl(item.resource).replace(/^\/r\//, '').split('/')[0]; go(`/deps/${gvrUrl}/${item.resource.metadata.namespace}/${item.resource.metadata.name}`, `${item.resource.metadata.name} (Deps)`); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 text-slate-200 rounded hover:bg-slate-700">
                               <GitBranch className="w-3 h-3" /> Dependencies
                             </button>
                           )}

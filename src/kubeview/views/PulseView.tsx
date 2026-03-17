@@ -20,6 +20,8 @@ import { getPodStatus, getNodeStatus, getDeploymentStatus } from '../engine/rend
 import { kindToPlural } from '../engine/renderers/index';
 import { findNeedsAttention, diagnoseResource, type NeedsAttentionItem } from '../engine/diagnosis';
 import { useUIStore } from '../store/uiStore';
+import { useNavigateTab } from '../hooks/useNavigateTab';
+import { resourceDetailUrl } from '../engine/gvr';
 
 function filterByNamespace<T extends { metadata: { namespace?: string } }>(items: T[], ns: string): T[] {
   if (ns === '*') return items;
@@ -131,20 +133,7 @@ export default function PulseView() {
   const totalIssues = failingPods.length + unhealthyDeploys.length + unreadyNodes.length + pendingPVCs.length;
   const isHealthy = totalIssues === 0;
 
-  function navigateTo(path: string, title: string) {
-    addTab({ title, path, pinned: false, closable: true });
-    navigate(path);
-  }
-
-  function getGvrUrl(resource: K8sResource) {
-    const apiVersion = resource.apiVersion || 'v1';
-    const kind = resource.kind || '';
-    const [group, version] = apiVersion.includes('/') ? apiVersion.split('/') : ['', apiVersion];
-    const plural = kindToPlural(kind);
-    const gvr = group ? `${group}~${version}~${plural}` : `${version}~${plural}`;
-    const ns = resource.metadata.namespace;
-    return ns ? `/r/${gvr}/${ns}/${resource.metadata.name}` : `/r/${gvr}/_/${resource.metadata.name}`;
-  }
+  const go = useNavigateTab();
 
   return (
     <div className="h-full overflow-auto bg-slate-950 p-6">
@@ -220,7 +209,7 @@ export default function PulseView() {
                   namespace={pod.metadata.namespace}
                   status={status.reason || status.phase}
                   detail={diagnoses[0]?.suggestion}
-                  onClick={() => navigateTo(getGvrUrl(pod), pod.metadata.name)}
+                  onClick={() => go(resourceDetailUrl(pod), pod.metadata.name)}
                 />
               );
             })}
@@ -247,7 +236,7 @@ export default function PulseView() {
                   name={deploy.metadata.name}
                   namespace={deploy.metadata.namespace}
                   status={`${status.ready}/${status.desired} ready`}
-                  onClick={() => navigateTo(getGvrUrl(deploy), deploy.metadata.name)}
+                  onClick={() => go(resourceDetailUrl(deploy), deploy.metadata.name)}
                 />
               );
             })}
@@ -266,7 +255,7 @@ export default function PulseView() {
                 key={node.metadata.uid}
                 name={node.metadata.name}
                 status="NotReady"
-                onClick={() => navigateTo(`/r/v1~nodes/_/${node.metadata.name}`, node.metadata.name)}
+                onClick={() => go(`/r/v1~nodes/_/${node.metadata.name}`, node.metadata.name)}
               />
             ))}
           </IssueSection>
@@ -286,7 +275,7 @@ export default function PulseView() {
                 namespace={pvc.metadata.namespace}
                 status="Pending"
                 detail="No volume bound"
-                onClick={() => navigateTo(getGvrUrl(pvc), pvc.metadata.name)}
+                onClick={() => go(resourceDetailUrl(pvc), pvc.metadata.name)}
               />
             ))}
           </IssueSection>

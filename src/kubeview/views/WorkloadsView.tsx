@@ -7,6 +7,7 @@ import { k8sList } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
 import { getDeploymentStatus } from '../engine/renderers/statusUtils';
 import { useUIStore } from '../store/uiStore';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 
 export default function WorkloadsView() {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ export default function WorkloadsView() {
   const unhealthyCount = allWorkloads.filter((w) => !w.healthy).length;
   const filtered = activeTab === 'unhealthy' ? allWorkloads.filter((w) => !w.healthy) : allWorkloads;
 
-  function go(path: string, title: string) { addTab({ title, path, pinned: false, closable: true }); navigate(path); }
+  const go = useNavigateTab(); // replaces local go()
   function gvrForKind(kind: string) {
     const map: Record<string, string> = { Deployment: 'apps~v1~deployments', StatefulSet: 'apps~v1~statefulsets', DaemonSet: 'apps~v1~daemonsets' };
     return map[kind] || 'apps~v1~deployments';
