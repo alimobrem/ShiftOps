@@ -406,12 +406,9 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
       const kind = pendingDelete.resource.kind || '';
       const name = pendingDelete.resource.metadata?.name || '';
       const ns = pendingDelete.resource.metadata?.namespace || 'default';
-      addToast({ type: 'success', title: `${kind} "${name}" deleted` });
-      // Show teardown progress for resources with dependents
-      if (['Deployment', 'StatefulSet', 'DaemonSet', 'ReplicaSet', 'Job'].includes(kind)) {
-        setDeleteProgress({ name, ns, kind });
-      }
       setPendingDelete(null);
+      // Show teardown progress
+      setDeleteProgress({ name, ns, kind });
       queryClient.invalidateQueries({ queryKey: ['k8s', 'list'] });
     } catch (err) {
       addToast({ type: 'error', title: 'Delete failed', detail: err instanceof Error ? err.message : 'Unknown error' });
