@@ -18,6 +18,7 @@ export function CommandBar() {
   const setSelectedNamespace = useUIStore((s) => s.setSelectedNamespace);
   const openCommandPalette = useUIStore((s) => s.openCommandPalette);
   const addTab = useUIStore((s) => s.addTab);
+  const addToast = useUIStore((s) => s.addToast);
 
   // Fetch cluster name
   const { data: clusterInfo } = useQuery({
