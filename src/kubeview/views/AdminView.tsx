@@ -12,8 +12,9 @@ import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useUIStore } from '../store/uiStore';
 import { K8S_BASE as BASE } from '../engine/gvr';
 import ClusterConfig from '../components/ClusterConfig';
+import ProductionReadiness from '../components/ProductionReadiness';
 
-type Tab = 'overview' | 'operators' | 'config' | 'updates' | 'snapshots' | 'quotas';
+type Tab = 'overview' | 'readiness' | 'operators' | 'config' | 'updates' | 'snapshots' | 'quotas';
 
 // --- Snapshot types & logic (merged from ConfigCompareView) ---
 
@@ -364,6 +365,7 @@ export default function AdminView() {
 
   const tabs: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
     { id: 'overview', label: 'Overview', icon: <Settings className="w-3.5 h-3.5" /> },
+    { id: 'readiness', label: 'Readiness', icon: <Shield className="w-3.5 h-3.5" /> },
     { id: 'operators', label: `Operators (${operators.length})${opDegradedCount > 0 ? ` · ${opDegradedCount} degraded` : ''}`, icon: <Puzzle className="w-3.5 h-3.5" /> },
     { id: 'config', label: 'Cluster Config', icon: <Database className="w-3.5 h-3.5" /> },
     { id: 'updates', label: `Updates${availableUpdates.length > 0 ? ` (${availableUpdates.length})` : ''}`, icon: <ArrowUpCircle className="w-3.5 h-3.5" /> },
@@ -473,6 +475,9 @@ export default function AdminView() {
             </div>
           </>
         )}
+
+        {/* ===== READINESS ===== */}
+        {activeTab === 'readiness' && <ProductionReadiness />}
 
         {/* ===== OPERATORS ===== */}
         {activeTab === 'operators' && (() => {
