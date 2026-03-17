@@ -401,9 +401,15 @@ export default function ComputeView() {
                 <div className="text-center py-4">
                   <div className="text-sm text-slate-500 mb-2">Autoscaling is not configured</div>
                   <div className="text-xs text-slate-600">Create a ClusterAutoscaler and MachineAutoscaler resources to enable automatic node scaling based on workload demand.</div>
-                  <button onClick={() => go('/create/autoscaling.openshift.io~v1~clusterautoscalers', 'Create ClusterAutoscaler')} className="text-xs text-blue-400 hover:text-blue-300 mt-3 flex items-center gap-1 mx-auto">
-                    Configure autoscaling <ArrowRight className="w-3 h-3" />
-                  </button>
+                  <div className="flex items-center justify-center gap-3 mt-3">
+                    <button onClick={() => go('/create/autoscaling.openshift.io~v1~clusterautoscalers', 'Create ClusterAutoscaler')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                      Create ClusterAutoscaler <ArrowRight className="w-3 h-3" />
+                    </button>
+                    <span className="text-slate-700">·</span>
+                    <button onClick={() => go('/create/autoscaling.openshift.io~v1beta1~machineautoscalers', 'Create MachineAutoscaler')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                      Create MachineAutoscaler <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>
