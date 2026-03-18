@@ -320,9 +320,11 @@ export const useUIStore = create<UIState>()(
           // Deduplicate by path
           if (seen.has(tab.path)) return null;
           seen.add(tab.path);
+          // Fix empty/untitled titles from older persisted state
+          const title = tab.title?.trim() || tab.path.split('/').filter(Boolean).pop() || 'Untitled';
           // Keep pulse tab ID stable, re-assign others
-          if (tab.id === 'pulse') return tab;
-          return { ...tab, id: `tab-${++tabIdCounter}` };
+          if (tab.id === 'pulse') return { ...tab, title };
+          return { ...tab, title, id: `tab-${++tabIdCounter}` };
         }).filter(Boolean) as Tab[];
 
         // Find active tab in the cleaned list

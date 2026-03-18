@@ -107,11 +107,6 @@ export default function WorkloadsView() {
               {nsFilter && <span className="text-blue-400 ml-1">in {nsFilter}</span>}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => go('/create/apps~v1~deployments', 'Create Deployment')} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors">
-              <Plus className="w-3 h-3" /> Create Deployment
-            </button>
-          </div>
         </div>
 
         {/* Issues */}
