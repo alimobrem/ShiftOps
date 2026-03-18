@@ -20,9 +20,9 @@ export default function WelcomeView() {
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             A next-generation console for managing your OpenShift cluster with
-            55 automated health checks and an 84/100 SysAdmin review score.
-            Every view is auto-generated from the API — browse any resource type,
-            see what needs attention, and take action in seconds.
+            67 automated health checks and a 93/100 SysAdmin review score.
+            Browse any resource, diagnose issues, manage software, and audit
+            security — all from one place.
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default function WelcomeView() {
             <QuickAction
               icon={<Shield className="w-6 h-6 text-orange-400" />}
               title="Production Readiness"
-              description="31 automated checks — HA, security, monitoring, storage, and reliability"
+              description="67 automated checks — cluster readiness, workloads, storage, networking, compute, RBAC"
               onClick={() => go('/admin?tab=readiness', 'Admin')}
             />
           </div>
@@ -63,7 +63,7 @@ export default function WelcomeView() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Shortcut keys="⌘ K" label="Command Palette" description="Search resources, pages, actions" />
             <Shortcut keys="⌘ B" label="Resource Browser" description="Browse all API groups" />
-            <Shortcut keys="⌘ ." label="Resource Browser" description="Browse all API groups" />
+            <Shortcut keys="⌘ ." label="Resource Browser" description="Alternative shortcut" />
             <Shortcut keys="j / k" label="Navigate Table" description="Move up/down in resource lists" />
           </div>
         </div>
@@ -75,17 +75,17 @@ export default function WelcomeView() {
             Built-in Views
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <PageLink icon={<HeartPulse className="w-5 h-5 text-blue-400" />} title="Cluster Pulse" description="Active issues, CPU/memory, operator health" onClick={() => go('/pulse', 'Pulse')} />
-            <PageLink icon={<Bell className="w-5 h-5 text-red-400" />} title="Alerts" description="Alerts with severity filters, silence management, grouping" onClick={() => go('/alerts', 'Alerts')} />
+            <PageLink icon={<HeartPulse className="w-5 h-5 text-blue-400" />} title="Cluster Pulse" description="Health overview, issues, runbooks, namespace health" onClick={() => go('/pulse', 'Pulse')} />
+            <PageLink icon={<Package className="w-5 h-5 text-blue-400" />} title="Software" description="Installed inventory, operators, deploy, Helm, templates" onClick={() => go('/create/v1~pods', 'Software')} />
+            <PageLink icon={<Package className="w-5 h-5 text-blue-400" />} title="Workloads" description="Deployments, pods, health audit with 6 checks" onClick={() => go('/workloads', 'Workloads')} />
+            <PageLink icon={<Globe className="w-5 h-5 text-cyan-400" />} title="Networking" description="Routes, services, ingress, network policies, 6 checks" onClick={() => go('/networking', 'Networking')} />
+            <PageLink icon={<Server className="w-5 h-5 text-blue-400" />} title="Compute" description="Nodes, machines, MachineConfig, autoscaling, 6 checks" onClick={() => go('/compute', 'Compute')} />
+            <PageLink icon={<HardDrive className="w-5 h-5 text-orange-400" />} title="Storage" description="PVCs, StorageClasses, CSI drivers, snapshots, 6 checks" onClick={() => go('/storage', 'Storage')} />
+            <PageLink icon={<Bell className="w-5 h-5 text-red-400" />} title="Alerts" description="Severity filters, silence lifecycle, grouping, runbook links" onClick={() => go('/alerts', 'Alerts')} />
+            <PageLink icon={<Shield className="w-5 h-5 text-indigo-400" />} title="Access Control" description="RBAC audit, recent changes, cluster-admin tracking" onClick={() => go('/access-control', 'Access Control')} />
+            <PageLink icon={<Users className="w-5 h-5 text-teal-400" />} title="User Management" description="Users, groups, impersonation, identity audit, sessions" onClick={() => go('/users', 'Users')} />
+            <PageLink icon={<Settings className="w-5 h-5 text-slate-400" />} title="Administration" description="Readiness (67 checks), config (10 sections), updates, snapshots" onClick={() => go('/admin', 'Administration')} />
             <PageLink icon={<Clock className="w-5 h-5 text-blue-400" />} title="Timeline" description="Chronological cluster event feed" onClick={() => go('/timeline', 'Timeline')} />
-            <PageLink icon={<Package className="w-5 h-5 text-blue-400" />} title="Workloads" description="Deployments, StatefulSets, DaemonSets, Jobs, Pods" onClick={() => go('/workloads', 'Workloads')} />
-            <PageLink icon={<Globe className="w-5 h-5 text-cyan-400" />} title="Networking" description="Services, Routes, Ingresses, Network Policies" onClick={() => go('/networking', 'Networking')} />
-            <PageLink icon={<Server className="w-5 h-5 text-blue-400" />} title="Compute" description="Nodes, machines, capacity, autoscaling" onClick={() => go('/compute', 'Compute')} />
-            <PageLink icon={<HardDrive className="w-5 h-5 text-orange-400" />} title="Storage" description="PVCs, PVs, StorageClasses, capacity" onClick={() => go('/storage', 'Storage')} />
-            <PageLink icon={<Shield className="w-5 h-5 text-indigo-400" />} title="Access Control" description="RBAC roles, cluster-admin audit" onClick={() => go('/access-control', 'Access Control')} />
-            <PageLink icon={<Users className="w-5 h-5 text-teal-400" />} title="User Management" description="Users, groups, service accounts, impersonation" onClick={() => go('/users', 'Users')} />
-            <PageLink icon={<Package className="w-5 h-5 text-blue-400" />} title="Software" description="Installed software, operators, deploy, Helm, templates" onClick={() => go('/create/v1~pods', 'Software')} />
-            <PageLink icon={<Settings className="w-5 h-5 text-slate-400" />} title="Administration" description="Readiness, operators, config, updates, snapshots" onClick={() => go('/admin', 'Administration')} />
           </div>
         </div>
 
@@ -96,19 +96,16 @@ export default function WelcomeView() {
             Key Capabilities
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <Feature title="Operator Catalog" description="Browse 500+ operators, one-click install with progress tracking, and post-install configuration guidance." />
-            <Feature title="Production Readiness" description="32 automated checks across 6 categories — infrastructure, storage, security, networking, observability, reliability." />
-            <Feature title="Workload Health Audit" description="24 automated checks across Workloads, Storage, Networking, Compute with per-resource pass/fail and YAML fix examples." />
-            <Feature title="Smart Diagnosis" description="Fetches pod logs, detects 10 error patterns (Permission denied, OOM, DNS), shows actual error with specific fix." />
-            <Feature title="Alert Management" description="Severity filters, group by namespace, silence creation from alerts, runbook links, firing duration." />
-            <Feature title="RBAC-Aware UI" description="Actions hidden/disabled based on user permissions via SelfSubjectAccessReview." />
-            <Feature title="User Impersonation" description="Test permissions by impersonating any user or service account." />
-            <Feature title="Metrics Charts" description="SVG sparkline charts on all overview pages with threshold-based colors." />
-            <Feature title="Cluster Config Editor" description="Configure OAuth, proxy, image registries, scheduler, TLS, initiate upgrades, manage snapshots." />
-            <Feature title="Auto-Generated Tables" description="Every resource type gets sortable columns, search, filters, per-row delete, and auto-generated YAML from CRD schemas." />
-            <Feature title="Compute Overview" description="Per-node metrics with utilization bars, Machine Management, autoscaling guidance, health checks." />
-            <Feature title="Deployment Logs" description="View logs from all pods in a deployment with pod selector tabs and merged view." />
-            <Feature title="Dependency Graph" description="Visualize relationships between deployments, services, pods, and config maps with blast radius analysis." />
+            <Feature title="67 Health Checks" description="31 cluster-level readiness checks + 36 domain-specific audits across workloads, storage, networking, compute, RBAC, and identity." />
+            <Feature title="Software Hub" description="Installed inventory, 500+ operators, Quick Deploy, Helm charts, 30 YAML templates — all in one page." />
+            <Feature title="Smart Diagnosis" description="Fetches pod logs and PVC events, detects 10 error patterns, shows actual errors with specific fix steps." />
+            <Feature title="Alert Management" description="Severity filters, group by namespace, silence creation, runbook links, firing duration, silenced indicators." />
+            <Feature title="User Management" description="Users, groups, service accounts with one-click impersonation. Identity & Access Audit with 6 checks." />
+            <Feature title="RBAC Security" description="6 RBAC audit checks, recent changes panel, cluster-admin tracking, privilege escalation alerts." />
+            <Feature title="Metrics Charts" description="SVG sparkline charts on all overview pages with threshold-based color changes." />
+            <Feature title="YAML Editor" description="CodeMirror with 71 context-aware snippets (insert at cursor), schema panel, linting, diff view." />
+            <Feature title="Cluster Config" description="10 config sections — OAuth, Proxy, Image, Ingress, Scheduler, API Server, DNS, Network, FeatureGate, Console." />
+            <Feature title="Snapshots" description="Capture cluster state including RBAC and config. Compare side-by-side to detect drift and privilege changes." />
           </div>
         </div>
 
