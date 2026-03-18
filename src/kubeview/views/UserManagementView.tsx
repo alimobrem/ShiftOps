@@ -494,7 +494,7 @@ spec:
     htpasswd:
       fileData:
         name: htpass-secret`,
-      action: idps.length === 0 ? { label: 'Configure OAuth', id: 'configure-oauth', path: '/admin' } : undefined,
+      action: idps.length === 0 ? { label: 'Configure OAuth', id: 'configure-oauth', path: '/admin?tab=config' } : undefined,
     });
 
     // 2. kubeadmin removed (check the secret, not the user object)
