@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Users, Key, Lock, AlertTriangle, CheckCircle, ArrowRight, Activity, Info } from 'lucide-react';
+import { Shield, Users, Key, Lock, AlertTriangle, CheckCircle, ArrowRight, Activity, Info, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { K8sResource } from '../engine/renderers';
 import { useUIStore } from '../store/uiStore';
@@ -121,6 +121,13 @@ export default function AccessControlView() {
             go={go}
           />
 
+        {/* Recent RBAC Changes */}
+        <RecentRBACChanges
+          clusterRoleBindings={clusterRoleBindings as any[]}
+          roleBindings={roleBindings as any[]}
+          go={go}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Cluster Admin subjects */}
           <Panel title={`Cluster Admin Subjects (${broadPermissions.length})`} icon={<AlertTriangle className="w-4 h-4 text-yellow-500" />}>
@@ -182,6 +189,126 @@ export default function AccessControlView() {
       </div>
     </div>
   );
+}
+
+function RecentRBACChanges({ clusterRoleBindings, roleBindings, go }: {
+  clusterRoleBindings: any[]; roleBindings: any[]; go: (path: string, title: string) => void;
+}) {
+  const recentChanges = React.useMemo(() => {
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const changes: Array<{
+      type: 'privilege-grant' | 'new-binding' | 'modified';
+      name: string; namespace?: string; role: string;
+      subjects: string[]; when: Date; severity: 'high' | 'medium' | 'low';
+      clusterScoped: boolean;
+    }> = [];
+
+    const allBindings = [
+      ...clusterRoleBindings.map((b: any) => ({ ...b, _clusterScoped: true })),
+      ...roleBindings.map((b: any) => ({ ...b, _clusterScoped: false })),
+    ];
+
+    for (const b of allBindings) {
+      const created = b.metadata?.creationTimestamp ? new Date(b.metadata.creationTimestamp) : null;
+      if (!created || created.getTime() < sevenDaysAgo) continue;
+
+      // Skip system-provided bindings
+      const name = b.metadata?.name || '';
+      if (name.startsWith('system:') || name.startsWith('openshift-')) continue;
+      if (name.includes('installer') || name.includes('pruner')) continue;
+
+      const role = b.roleRef?.name || '';
+      const subjects = (b.subjects || [])
+        .filter((s: any) => !s.name?.startsWith('system:'))
+        .map((s: any) => `${s.kind}/${s.name}`);
+      if (subjects.length === 0) continue;
+
+      const isAdmin = role === 'cluster-admin' || role === 'admin';
+      const severity = role === 'cluster-admin' ? 'high' : isAdmin ? 'medium' : 'low';
+
+      changes.push({
+        type: isAdmin ? 'privilege-grant' : 'new-binding',
+        name,
+        namespace: b.metadata?.namespace,
+        role,
+        subjects,
+        when: created,
+        severity,
+        clusterScoped: b._clusterScoped,
+      });
+    }
+
+    return changes.sort((a, b) => b.when.getTime() - a.when.getTime()).slice(0, 15);
+  }, [clusterRoleBindings, roleBindings]);
+
+  if (recentChanges.length === 0) return null;
+
+  const highSeverity = recentChanges.filter(c => c.severity === 'high');
+
+  return (
+    <div className="bg-slate-900 rounded-lg border border-slate-800">
+      <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-blue-400" />
+          Recent RBAC Changes (last 7 days)
+        </h2>
+        {highSeverity.length > 0 && (
+          <span className="text-xs px-2 py-0.5 bg-red-900/50 text-red-300 rounded">{highSeverity.length} privilege escalation{highSeverity.length !== 1 ? 's' : ''}</span>
+        )}
+      </div>
+      <div className="divide-y divide-slate-800 max-h-80 overflow-auto">
+        {recentChanges.map((change, i) => {
+          const age = formatChangeAge(change.when);
+          const gvr = change.clusterScoped ? 'rbac.authorization.k8s.io~v1~clusterrolebindings' : 'rbac.authorization.k8s.io~v1~rolebindings';
+          const path = change.namespace
+            ? `/r/${gvr}/${change.namespace}/${change.name}`
+            : `/r/${gvr}/_/${change.name}`;
+
+          return (
+            <button key={i} onClick={() => go(path, change.name)}
+              className="w-full px-4 py-3 text-left hover:bg-slate-800/30 transition-colors">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  {change.severity === 'high' ? (
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                  ) : change.severity === 'medium' ? (
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  ) : (
+                    <Shield className="w-3.5 h-3.5 text-slate-500" />
+                  )}
+                  <span className="text-sm text-slate-200">{change.name}</span>
+                  {change.namespace && <span className="text-xs px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">{change.namespace}</span>}
+                </div>
+                <span className="text-xs text-slate-500">{age}</span>
+              </div>
+              <div className="flex items-center gap-2 ml-5.5 text-xs">
+                <span className={cn('px-1.5 py-0.5 rounded',
+                  change.severity === 'high' ? 'bg-red-900/50 text-red-300' :
+                  change.severity === 'medium' ? 'bg-amber-900/50 text-amber-300' :
+                  'bg-slate-800 text-slate-400'
+                )}>
+                  → {change.role}
+                </span>
+                <span className="text-slate-500 truncate">
+                  {change.subjects.slice(0, 2).join(', ')}{change.subjects.length > 2 ? ` +${change.subjects.length - 2}` : ''}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function formatChangeAge(date: Date): string {
+  const ms = Date.now() - date.getTime();
+  const hours = Math.floor(ms / 3600000);
+  if (hours < 1) return `${Math.floor(ms / 60000)}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 function Panel({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
