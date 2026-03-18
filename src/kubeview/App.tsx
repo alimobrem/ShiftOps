@@ -131,7 +131,7 @@ function CorrelationRoute() {
   );
 }
 
-export default function OpenShiftViewApp() {
+export default function ShiftOpsApp() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

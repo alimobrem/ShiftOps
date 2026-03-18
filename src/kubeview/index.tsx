@@ -1,1 +1,1 @@
-export { default as OpenShiftViewApp } from './App';
+export { default as ShiftOpsApp } from './App';

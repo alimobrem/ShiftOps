@@ -16,7 +16,7 @@ export default function WelcomeView() {
         {/* Hero */}
         <div className="text-center">
           <h1 className="text-2xl md:text-3xl font-bold text-slate-100 mb-3">
-            Welcome to <span className="text-blue-400">OpenShiftView</span>
+            Welcome to <span className="text-blue-400">ShiftOps</span>
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             A next-generation console for managing your OpenShift cluster with

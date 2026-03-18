@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './kubeview/styles/index.css';
-import OpenShiftViewApp from './kubeview/App';
+import ShiftOpsApp from './kubeview/App';
 
 const container = document.getElementById('root');
 if (!container) {
@@ -12,6 +12,6 @@ const root = createRoot(container);
 
 root.render(
   <React.StrictMode>
-    <OpenShiftViewApp />
+    <ShiftOpsApp />
   </React.StrictMode>
 );

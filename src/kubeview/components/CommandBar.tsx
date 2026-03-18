@@ -92,7 +92,7 @@ export function CommandBar() {
             <Layers className="w-3.5 h-3.5 text-white" />
           </div>
           <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors hidden md:inline">
-            OpenShift<span className="text-blue-400">View</span>
+            Shift<span className="text-blue-400">Ops</span>
           </span>
         </button>
 

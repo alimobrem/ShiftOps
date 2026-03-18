@@ -93,7 +93,7 @@ function renderPalette() {
   );
 }
 
-describe('OpenShiftView CommandPalette', () => {
+describe('ShiftOps CommandPalette', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRegistry = buildRegistry();
@@ -265,7 +265,7 @@ describe('OpenShiftView CommandPalette', () => {
     fireEvent.keyDown(window, { key: 'Enter' });
 
     // Either navigated to a page or saved to recents
-    expect(navigateMock.mock.calls.length + (localStorage.getItem('openshiftview-recents') ? 1 : 0)).toBeGreaterThanOrEqual(1);
+    expect(navigateMock.mock.calls.length + (localStorage.getItem('shiftops-recents') ? 1 : 0)).toBeGreaterThanOrEqual(1);
   });
 
   it('deduplicates resources by group+kind', () => {

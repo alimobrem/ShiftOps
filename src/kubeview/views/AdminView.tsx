@@ -40,7 +40,7 @@ interface DiffRow {
   changed: boolean;
 }
 
-const SNAPSHOTS_KEY = 'openshiftview-snapshots';
+const SNAPSHOTS_KEY = 'shiftops-snapshots';
 
 function loadSnapshots(): ClusterSnapshot[] {
   try {

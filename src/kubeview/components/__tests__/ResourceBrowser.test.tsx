@@ -93,7 +93,7 @@ function renderBrowser() {
   );
 }
 
-describe('OpenShiftView ResourceBrowser', () => {
+describe('ShiftOps ResourceBrowser', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRegistry = buildRegistry();

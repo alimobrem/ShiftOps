@@ -1,4 +1,4 @@
-# OpenShiftView
+# ShiftOps
 
 A next-generation OpenShift Console — scored **84/100** by a Senior SysAdmin reviewer and recommended as **"primary tool for single-cluster day-2 operations."** Built with React, TypeScript, and real-time Kubernetes APIs. Every view is auto-generated from the API — browse any resource type, see what needs attention, and take action in seconds.
 
@@ -109,7 +109,7 @@ oc proxy --port=8001 &
 npm run dev
 ```
 
-Open http://localhost:9000. Clear `openshiftview-ui-storage` from localStorage on first run to get default pinned tabs.
+Open http://localhost:9000. Clear `shiftops-ui-storage` from localStorage on first run to get default pinned tabs.
 
 ## Testing
 
@@ -156,7 +156,7 @@ src/kubeview/
 | Completeness vs OCP Console | 7/10 |
 | Would Recommend | 9/10 |
 
-> "Primary tool for single-cluster day-2 operations. OpenShiftView would be my default tab."
+> "Primary tool for single-cluster day-2 operations. ShiftOps would be my default tab."
 
 ## License
 

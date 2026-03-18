@@ -1,4 +1,4 @@
-// Main exports for OpenShiftView engine
+// Main exports for ShiftOps engine
 
 // Renderers
 export * from './renderers/index';

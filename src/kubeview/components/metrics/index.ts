@@ -1,7 +1,7 @@
 /**
  * Metrics and Monitoring Components
  *
- * Export all metrics-related components for OpenShiftView
+ * Export all metrics-related components for ShiftOps
  */
 
 export { MetricsChart } from './MetricsChart';
