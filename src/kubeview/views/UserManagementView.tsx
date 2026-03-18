@@ -128,10 +128,10 @@ export default function UserManagementView() {
             <div className="text-xs text-slate-400 mb-1">Service Accounts</div>
             <div className="text-xl font-bold text-slate-100">{serviceAccounts.length}</div>
           </button>
-          <div className="bg-slate-900 rounded-lg border border-slate-800 p-3">
+          <button onClick={() => go('/r/rbac.authorization.k8s.io~v1~clusterrolebindings', 'ClusterRoleBindings')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 text-left hover:border-slate-600 transition-colors">
             <div className="text-xs text-slate-400 mb-1">Cluster Role Bindings</div>
             <div className="text-xl font-bold text-slate-100">{clusterRoleBindings.length}</div>
-          </div>
+          </button>
         </div>
 
         {/* Tabs + Search */}
