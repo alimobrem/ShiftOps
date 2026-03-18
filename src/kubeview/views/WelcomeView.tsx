@@ -49,7 +49,7 @@ export default function WelcomeView() {
               icon={<Shield className="w-6 h-6 text-orange-400" />}
               title="Production Readiness"
               description="31 automated checks — HA, security, monitoring, storage, and reliability"
-              onClick={() => go('/admin', 'Admin')}
+              onClick={() => go('/admin?tab=readiness', 'Admin')}
             />
           </div>
         </div>

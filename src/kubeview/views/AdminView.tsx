@@ -140,7 +140,9 @@ function compareSnapshots(left: ClusterSnapshot, right: ClusterSnapshot): DiffRo
 // --- Main component ---
 
 export default function AdminView() {
-  const [activeTab, setActiveTab] = React.useState<Tab>('overview');
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialTab = (searchParams.get('tab') as Tab) || 'overview';
+  const [activeTab, setActiveTab] = React.useState<Tab>(initialTab);
   const addToast = useUIStore((s) => s.addToast);
   const queryClient = useQueryClient();
 
