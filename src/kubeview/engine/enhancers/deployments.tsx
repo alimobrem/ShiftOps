@@ -1,116 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Minus, Plus, RotateCw, ChevronsUpDown } from 'lucide-react';
+import React from 'react';
+import { Minus, Plus, RotateCw } from 'lucide-react';
 import type { ResourceEnhancer } from './index';
 import type { K8sResource } from '../renderers/index';
 import { getDeploymentStatus } from '../renderers/statusUtils';
-
-function ScaleControl({ resource, onAction }: { resource: K8sResource; onAction: (action: string, params?: any) => void }) {
-  const [open, setOpen] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const panelRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const status = getDeploymentStatus(resource);
-  const current = status.desired;
-
-  useEffect(() => {
-    if (open && inputRef.current) {
-      setInputValue(String(current));
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  const scaleTo = (n: number) => {
-    const target = Math.max(0, n);
-    if (target !== current) {
-      onAction('scale-to', { resource, replicas: target });
-    }
-    setOpen(false);
-  };
-
-  return (
-    <div className="relative" ref={panelRef}>
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-mono rounded transition-colors text-slate-400 hover:bg-slate-700 hover:text-slate-200"
-        title={`Scale (current: ${current})`}
-      >
-        <ChevronsUpDown className="w-3 h-3" />
-        <span>{current}</span>
-      </button>
-      {open && (
-        <div
-          className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-slate-600 bg-slate-800 shadow-2xl p-3 space-y-2"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="text-xs text-slate-400 font-medium">Scale Replicas</div>
-
-          {/* Direct input with +/- */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => { const n = Math.max(0, (parseInt(inputValue) || current) - 1); setInputValue(String(n)); }}
-              className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              <Minus className="w-3.5 h-3.5" />
-            </button>
-            <input
-              ref={inputRef}
-              type="number"
-              min="0"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') scaleTo(parseInt(inputValue) || 0); if (e.key === 'Escape') setOpen(false); }}
-              className="flex-1 px-2 py-1 text-sm text-center bg-slate-900 border border-slate-600 rounded text-slate-200 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            <button
-              onClick={() => { const n = (parseInt(inputValue) || current) + 1; setInputValue(String(n)); }}
-              className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Presets */}
-          <div className="flex flex-wrap gap-1">
-            {[0, 1, 2, 3, 5, 10].map((n) => (
-              <button
-                key={n}
-                onClick={() => scaleTo(n)}
-                className={`px-2 py-0.5 text-xs rounded transition-colors ${
-                  n === current
-                    ? 'bg-blue-600 text-white'
-                    : n === 0
-                      ? 'bg-slate-700 text-red-400 hover:bg-red-900/50'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
-                {n === 0 ? 'Scale to 0' : n}
-              </button>
-            ))}
-          </div>
-
-          {/* Apply button */}
-          <button
-            onClick={() => scaleTo(parseInt(inputValue) || 0)}
-            disabled={parseInt(inputValue) === current}
-            className="w-full py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {parseInt(inputValue) === current ? `Already at ${current}` : `Scale to ${inputValue || 0}`}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export const deploymentEnhancer: ResourceEnhancer = {
   matches: ['apps/v1/deployments', 'apps/v1/statefulsets', 'apps/v1/daemonsets'],
@@ -234,9 +126,29 @@ export const deploymentEnhancer: ResourceEnhancer = {
     {
       id: 'scale',
       label: 'Scale',
-      icon: 'chevrons-up-down',
+      icon: 'minus-plus',
       render: (resource, onAction) => {
-        return <ScaleControl resource={resource} onAction={onAction} />;
+        const status = getDeploymentStatus(resource);
+        return (
+          <span className="inline-flex items-center gap-0.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); onAction('scale', { resource, delta: -1 }); }}
+              disabled={status.desired === 0}
+              className="inline-flex items-center px-1 py-0.5 text-slate-500 rounded hover:bg-slate-700 hover:text-slate-300 transition-colors disabled:opacity-30"
+              title="Scale down"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+            <span className="w-5 text-center text-xs font-mono text-slate-300">{status.desired}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onAction('scale', { resource, delta: 1 }); }}
+              className="inline-flex items-center px-1 py-0.5 text-slate-500 rounded hover:bg-slate-700 hover:text-slate-300 transition-colors"
+              title="Scale up"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+          </span>
+        );
       },
     },
     {

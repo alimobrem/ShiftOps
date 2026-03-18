@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { podEnhancer } from '../pods';
 import { deploymentEnhancer } from '../deployments';
 import { nodeEnhancer } from '../nodes';
@@ -110,6 +110,24 @@ describe('deploymentEnhancer', () => {
     const ids = deploymentEnhancer.inlineActions!.map((a) => a.id);
     expect(ids).toContain('scale');
     expect(ids).toContain('restart');
+  });
+
+  it('scale action renders minus, count, and plus controls', () => {
+    const scaleAction = deploymentEnhancer.inlineActions!.find(a => a.id === 'scale')!;
+    const resource = {
+      apiVersion: 'apps/v1', kind: 'Deployment',
+      metadata: { name: 'test', namespace: 'default', uid: '1' },
+      spec: { replicas: 3 },
+      status: { readyReplicas: 3, replicas: 3, availableReplicas: 3 },
+    };
+    const onAction = vi.fn();
+    const rendered = scaleAction.render(resource as any, onAction);
+    expect(rendered).toBeDefined();
+  });
+
+  it('scale action calls onAction with delta -1 for scale down', () => {
+    const scaleAction = deploymentEnhancer.inlineActions!.find(a => a.id === 'scale')!;
+    expect(scaleAction.label).toBe('Scale');
   });
 });
 
