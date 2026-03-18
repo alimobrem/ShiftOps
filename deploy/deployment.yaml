@@ -8,8 +8,6 @@ kind: ServiceAccount
 metadata:
   name: shiftops
   namespace: shiftops
-  annotations:
-    serviceaccounts.openshift.io/oauth-redirectreference.shiftops: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"shiftops"}}'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -23,6 +21,18 @@ subjects:
 - kind: ServiceAccount
   name: shiftops
   namespace: shiftops
+---
+apiVersion: oauth.openshift.io/v1
+kind: OAuthClient
+metadata:
+  name: shiftops
+grantMethod: auto
+secret: shiftops-oauth-secret-v1
+redirectURIs:
+- https://shiftops-shiftops.apps.rhamilto.devcluster.openshift.com/oauth/callback
+scopeRestrictions:
+- literals:
+  - user:full
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -57,8 +67,7 @@ data:
         location /api/kubernetes/ {
           proxy_pass https://kubernetes.default.svc/;
           proxy_ssl_verify off;
-          proxy_set_header Authorization $http_authorization;
-          proxy_pass_header Authorization;
+          proxy_set_header Authorization "Bearer $http_x_forwarded_access_token";
           proxy_read_timeout 120s;
         }
 
@@ -66,8 +75,7 @@ data:
         location /api/prometheus/ {
           proxy_pass https://thanos-querier.openshift-monitoring.svc:9091/;
           proxy_ssl_verify off;
-          proxy_set_header Authorization $http_authorization;
-          proxy_pass_header Authorization;
+          proxy_set_header Authorization "Bearer $http_x_forwarded_access_token";
           proxy_read_timeout 60s;
         }
 
@@ -75,8 +83,7 @@ data:
         location /api/alertmanager/ {
           proxy_pass https://alertmanager-main.openshift-monitoring.svc:9094/;
           proxy_ssl_verify off;
-          proxy_set_header Authorization $http_authorization;
-          proxy_pass_header Authorization;
+          proxy_set_header Authorization "Bearer $http_x_forwarded_access_token";
           proxy_read_timeout 60s;
         }
 
@@ -113,14 +120,15 @@ spec:
         args:
         - --https-address=:8443
         - --provider=openshift
-        - --openshift-service-account=shiftops
+        - --client-id=shiftops
+        - --client-secret=shiftops-oauth-secret-v1
         - --upstream=http://localhost:8080
         - --tls-cert=/etc/tls/private/tls.crt
         - --tls-key=/etc/tls/private/tls.key
         - --cookie-secret=shiftops-secret-cookie
         - --pass-access-token=true
-        - --pass-user-bearer-token=true
         - --pass-basic-auth=false
+        - --scope=user:full
         - --openshift-delegate-urls={"/api/kubernetes/":{"resource":"namespaces","verb":"list"}}
         ports:
         - containerPort: 8443
