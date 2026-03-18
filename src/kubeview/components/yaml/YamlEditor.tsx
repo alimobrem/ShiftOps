@@ -311,8 +311,8 @@ export default function YamlEditor({
   return (
     <div className="flex" style={{ height }}>
       {/* Main editor area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 relative">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex-1 overflow-auto">
           <CodeMirror
             ref={editorRef}
             value={internalValue}
@@ -321,7 +321,8 @@ export default function YamlEditor({
             theme={oneDark}
             editable={!readOnly}
             basicSetup={false}
-            className="h-full font-mono text-[13px] bg-slate-950 overflow-hidden"
+            className="font-mono text-[13px] bg-slate-950"
+            style={{ minHeight: '100%' }}
           />
         </div>
 
