@@ -32,6 +32,20 @@ vi.mock('../../store/uiStore', () => ({
   ),
 }));
 
+vi.mock('../../hooks/useNavigateTab', () => ({
+  useNavigateTab: () => vi.fn(),
+}));
+
+vi.mock('../../components/metrics/Sparkline', () => ({
+  MetricCard: ({ title }: { title: string }) => <div data-testid="metric-card">{title}</div>,
+  Sparkline: () => <div data-testid="sparkline" />,
+}));
+
+vi.mock('../../components/metrics/prometheus', () => ({
+  queryRange: vi.fn().mockResolvedValue([]),
+  getTimeRange: vi.fn().mockReturnValue([0, 1]),
+}));
+
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
@@ -108,9 +122,10 @@ describe('AlertsView', () => {
     expect(screen.getByPlaceholderText('Search alerts...')).toBeDefined();
   });
 
-  it('shows stat cards for Firing Alerts, Alert Rules, Active Silences', () => {
+  it('shows stat cards for Firing, Pending, Silenced, Alert Rules, Active Silences', () => {
     renderAlerts();
-    expect(screen.getByText('Firing Alerts')).toBeDefined();
+    expect(screen.getByText('Firing')).toBeDefined();
+    expect(screen.getByText('Pending')).toBeDefined();
     expect(screen.getByText('Alert Rules')).toBeDefined();
     expect(screen.getByText('Active Silences')).toBeDefined();
   });

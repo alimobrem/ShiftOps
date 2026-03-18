@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, AlertTriangle, XCircle, CheckCircle, Clock, Search, VolumeX, ArrowRight, Plus, Trash2, X } from 'lucide-react';
+import { Bell, AlertTriangle, XCircle, CheckCircle, Clock, Search, VolumeX, ArrowRight, Plus, Trash2, X, ExternalLink, Filter, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
@@ -8,6 +8,7 @@ import { resourceDetailUrl } from '../engine/gvr';
 import { kindToPlural } from '../engine/renderers/index';
 import { Card, CardHeader, CardBody } from '../components/primitives/Card';
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
+import { MetricCard } from '../components/metrics/Sparkline';
 
 interface PrometheusAlert {
   labels: Record<string, string>;
@@ -65,6 +66,8 @@ export default function AlertsView() {
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
   const [activeTab, setActiveTab] = useState<Tab>('firing');
   const [searchQuery, setSearchQuery] = useState('');
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'warning' | 'info'>('all');
+  const [groupBy, setGroupBy] = useState<'none' | 'namespace' | 'alertname'>('none');
   const [showSilenceForm, setShowSilenceForm] = useState(false);
   const [silenceForm, setSilenceForm] = useState<SilenceFormData>({
     matchers: [{ name: 'alertname', value: '', isRegex: false }],
@@ -99,20 +102,50 @@ export default function AlertsView() {
     refetchInterval: 60000,
   });
 
+  // Active silences (needed before allAlerts for silenced check)
+  const activeSilences = useMemo(() => {
+    return silences.filter((s) => s.status.state === 'active');
+  }, [silences]);
+
   // Extract all firing/pending alerts
   const allAlerts = useMemo(() => {
-    const alerts: Array<{ rule: string; group: string; alert: PrometheusAlert; severity: string; description: string }> = [];
+    const alerts: Array<{
+      rule: string; group: string; alert: PrometheusAlert; severity: string;
+      description: string; runbookUrl: string; firingDuration: string;
+      isSilenced: boolean; namespace: string;
+    }> = [];
     for (const group of alertGroups) {
       for (const rule of group.rules) {
         if (rule.type !== 'alerting') continue;
         for (const alert of rule.alerts || []) {
           if (alert.state === 'firing' || alert.state === 'pending') {
+            // Compute firing duration
+            let firingDuration = '';
+            if (alert.activeAt) {
+              const ms = Date.now() - new Date(alert.activeAt).getTime();
+              if (ms > 86400000) firingDuration = `${Math.floor(ms / 86400000)}d ${Math.floor((ms % 86400000) / 3600000)}h`;
+              else if (ms > 3600000) firingDuration = `${Math.floor(ms / 3600000)}h ${Math.floor((ms % 3600000) / 60000)}m`;
+              else firingDuration = `${Math.floor(ms / 60000)}m`;
+            }
+
+            // Check if silenced
+            const isSilenced = activeSilences.some(silence =>
+              silence.matchers.every(m => {
+                const labelVal = alert.labels[m.name] || '';
+                return m.isRegex ? new RegExp(m.value).test(labelVal) : labelVal === m.value;
+              })
+            );
+
             alerts.push({
               rule: rule.name,
               group: group.name,
               alert,
               severity: alert.labels.severity || rule.labels?.severity || 'warning',
               description: alert.annotations?.description || alert.annotations?.message || rule.annotations?.description || '',
+              runbookUrl: alert.annotations?.runbook_url || rule.annotations?.runbook_url || '',
+              firingDuration,
+              isSilenced,
+              namespace: alert.labels.namespace || '',
             });
           }
         }
@@ -120,13 +153,13 @@ export default function AlertsView() {
     }
     // Filter by namespace if selected
     const filtered = selectedNamespace === '*' ? alerts
-      : alerts.filter((a) => !a.alert.labels.namespace || a.alert.labels.namespace === selectedNamespace);
+      : alerts.filter((a) => !a.namespace || a.namespace === selectedNamespace);
 
     return filtered.sort((a, b) => {
       const sevOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 };
       return (sevOrder[a.severity] ?? 3) - (sevOrder[b.severity] ?? 3);
     });
-  }, [alertGroups, selectedNamespace]);
+  }, [alertGroups, selectedNamespace, activeSilences]);
 
   // All alerting rules
   const allRules = useMemo(() => {
@@ -147,17 +180,39 @@ export default function AlertsView() {
     return rules;
   }, [alertGroups]);
 
-  // Active silences
-  const activeSilences = useMemo(() => {
-    return silences.filter((s) => s.status.state === 'active');
-  }, [silences]);
+  // Separate pending from firing
+  const firingAlerts = useMemo(() => allAlerts.filter(a => a.alert.state === 'firing'), [allAlerts]);
+  const pendingAlerts = useMemo(() => allAlerts.filter(a => a.alert.state === 'pending'), [allAlerts]);
 
   // Filter
   const filteredAlerts = useMemo(() => {
-    if (!searchQuery) return allAlerts;
-    const q = searchQuery.toLowerCase();
-    return allAlerts.filter((a) => a.rule.toLowerCase().includes(q) || a.description.toLowerCase().includes(q) || a.alert.labels.namespace?.toLowerCase().includes(q));
-  }, [allAlerts, searchQuery]);
+    let result = allAlerts;
+    if (severityFilter !== 'all') result = result.filter(a => a.severity === severityFilter);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((a) => a.rule.toLowerCase().includes(q) || a.description.toLowerCase().includes(q) || a.namespace.toLowerCase().includes(q));
+    }
+    return result;
+  }, [allAlerts, searchQuery, severityFilter]);
+
+  // Group alerts
+  const groupedAlerts = useMemo(() => {
+    if (groupBy === 'none') return null;
+    const groups = new Map<string, typeof filteredAlerts>();
+    for (const alert of filteredAlerts) {
+      const key = groupBy === 'namespace' ? (alert.namespace || '(cluster-scoped)') : alert.rule;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(alert);
+    }
+    return [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
+  }, [filteredAlerts, groupBy]);
+
+  // Top alertnames by frequency
+  const topAlertNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of allAlerts) counts.set(a.rule, (counts.get(a.rule) || 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [allAlerts]);
 
   const filteredRules = useMemo(() => {
     if (!searchQuery) return allRules;
@@ -319,29 +374,57 @@ export default function AlertsView() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <Card onClick={() => setActiveTab('firing')}>
-            <CardBody>
-              <div className="text-xs text-slate-400 mb-1">Firing Alerts</div>
-              <div className="text-xl font-bold text-slate-100">{allAlerts.filter(a => a.alert.state === 'firing').length}</div>
-            </CardBody>
-          </Card>
-          <Card onClick={() => setActiveTab('rules')}>
-            <CardBody>
-              <div className="text-xs text-slate-400 mb-1">Alert Rules</div>
-              <div className="text-xl font-bold text-slate-100">{allRules.length}</div>
-            </CardBody>
-          </Card>
-          <Card onClick={() => setActiveTab('silences')}>
-            <CardBody>
-              <div className="text-xs text-slate-400 mb-1">Active Silences</div>
-              <div className="text-xl font-bold text-slate-100">{activeSilences.length}</div>
-            </CardBody>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <button onClick={() => { setActiveTab('firing'); setSeverityFilter('all'); }} className={cn('bg-slate-900 rounded-lg border p-3 text-left hover:border-slate-600 transition-colors', firingAlerts.length > 0 ? 'border-red-800' : 'border-slate-800')}>
+            <div className="text-xs text-slate-400 mb-1">Firing</div>
+            <div className="text-xl font-bold text-slate-100">{firingAlerts.length}</div>
+          </button>
+          <button onClick={() => { setActiveTab('firing'); setSeverityFilter('all'); }} className={cn('bg-slate-900 rounded-lg border p-3 text-left hover:border-slate-600 transition-colors', pendingAlerts.length > 0 ? 'border-yellow-800' : 'border-slate-800')}>
+            <div className="text-xs text-slate-400 mb-1">Pending</div>
+            <div className="text-xl font-bold text-slate-100">{pendingAlerts.length}</div>
+            <div className="text-xs text-slate-600 mt-0.5">About to fire</div>
+          </button>
+          <button onClick={() => setActiveTab('silences')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 text-left hover:border-slate-600 transition-colors">
+            <div className="text-xs text-slate-400 mb-1">Silenced</div>
+            <div className="text-xl font-bold text-slate-100">{allAlerts.filter(a => a.isSilenced).length}</div>
+          </button>
+          <button onClick={() => setActiveTab('rules')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 text-left hover:border-slate-600 transition-colors">
+            <div className="text-xs text-slate-400 mb-1">Alert Rules</div>
+            <div className="text-xl font-bold text-slate-100">{allRules.length}</div>
+          </button>
+          <button onClick={() => setActiveTab('silences')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 text-left hover:border-slate-600 transition-colors">
+            <div className="text-xs text-slate-400 mb-1">Active Silences</div>
+            <div className="text-xl font-bold text-slate-100">{activeSilences.length}</div>
+          </button>
         </div>
 
-        {/* Tabs + Search */}
-        <div className="flex items-center gap-3">
+        {/* Alert metrics */}
+        {allAlerts.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <MetricCard title="Alert Rate" query="sum(ALERTS)" unit="" color="#ef4444" />
+            <MetricCard title="Critical Alerts" query="sum(ALERTS{severity='critical'})" unit="" color="#dc2626" />
+            <MetricCard title="Warning Alerts" query="sum(ALERTS{severity='warning'})" unit="" color="#f59e0b" />
+            <MetricCard title="Alertmanager Notifications" query="sum(rate(alertmanager_notifications_total[5m])) * 300" unit="/5m" color="#8b5cf6" />
+          </div>
+        )}
+
+        {/* Top firing alerts */}
+        {topAlertNames.length > 0 && allAlerts.length > 3 && (
+          <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
+            <div className="text-xs text-slate-500 font-medium mb-2">Most frequent alerts</div>
+            <div className="flex flex-wrap gap-2">
+              {topAlertNames.map(([name, count]) => (
+                <button key={name} onClick={() => setSearchQuery(name)} className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded transition-colors">
+                  <span className="font-medium">{name}</span>
+                  <span className="text-slate-500">×{count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tabs + Search + Filters */}
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex gap-1 bg-slate-900 rounded-lg p-1">
             {([
               { id: 'firing' as Tab, label: `Firing (${allAlerts.length})` },
@@ -357,68 +440,54 @@ export default function AlertsView() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search alerts..." className="w-full pl-9 pr-3 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
+          {activeTab === 'firing' && (
+            <>
+              {/* Severity filter */}
+              <div className="flex bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                {(['all', 'critical', 'warning', 'info'] as const).map((sev) => (
+                  <button key={sev} onClick={() => setSeverityFilter(sev)} className={cn('px-2.5 py-1.5 capitalize transition-colors',
+                    severityFilter === sev ? (sev === 'critical' ? 'bg-red-600 text-white rounded-lg' : sev === 'warning' ? 'bg-yellow-600 text-white rounded-lg' : 'bg-blue-600 text-white rounded-lg') : 'text-slate-400 hover:text-slate-200')}>
+                    {sev}
+                  </button>
+                ))}
+              </div>
+              {/* Group by */}
+              <div className="flex bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                {([{ id: 'none', label: 'Flat' }, { id: 'namespace', label: 'By Namespace' }, { id: 'alertname', label: 'By Alert' }] as const).map((g) => (
+                  <button key={g.id} onClick={() => setGroupBy(g.id)} className={cn('px-2.5 py-1.5 transition-colors', groupBy === g.id ? 'bg-blue-600 text-white rounded-lg' : 'text-slate-400 hover:text-slate-200')}>
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Firing alerts */}
         {activeTab === 'firing' && (
           <div className="space-y-2">
             {filteredAlerts.length === 0 ? (
-              <div className="text-center py-12"><CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3" /><p className="text-slate-300">No alerts firing</p></div>
-            ) : (
-              filteredAlerts.map((item, idx) => {
-                // Build link to affected resource
-                const labels = item.alert.labels;
-                const resourceName = labels.pod || labels.deployment || labels.node || labels.statefulset || labels.daemonset || labels.job || '';
-                const resourceKind = labels.pod ? 'Pod' : labels.deployment ? 'Deployment' : labels.node ? 'Node' : labels.statefulset ? 'StatefulSet' : labels.daemonset ? 'DaemonSet' : labels.job ? 'Job' : '';
-                const resourceNs = labels.namespace;
-                const hasResource = resourceName && resourceKind;
-
-                return (
-                <Card key={idx}>
-                  <div className="px-4 py-3 flex items-start gap-3">
-                    {item.severity === 'critical' ? <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />}
-                    <div className="flex-1 min-w-0" onClick={hasResource ? () => {
-                      const apiVersion = resourceKind === 'Deployment' || resourceKind === 'StatefulSet' || resourceKind === 'DaemonSet' ? 'apps/v1' : resourceKind === 'Job' ? 'batch/v1' : 'v1';
-                      go(resourceDetailUrl({ apiVersion, kind: resourceKind, metadata: { name: resourceName, namespace: resourceNs } }), resourceName);
-                    } : undefined} className={hasResource ? 'cursor-pointer' : ''}>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-sm font-medium text-slate-200">{item.rule}</span>
-                        <span className={cn('text-[10px] px-1.5 py-0.5 rounded', item.severity === 'critical' ? 'bg-red-900/50 text-red-300' : 'bg-yellow-900/50 text-yellow-300')}>{item.severity}</span>
-                        <span className={cn('text-[10px] px-1.5 py-0.5 rounded', item.alert.state === 'firing' ? 'bg-red-900/50 text-red-300' : 'bg-blue-900/50 text-blue-300')}>{item.alert.state}</span>
-                      </div>
-                      {/* Affected resource link */}
-                      {hasResource && (
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs text-blue-400">{resourceKind}/{resourceName}</span>
-                          {resourceNs && <span className="text-xs px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">{resourceNs}</span>}
-                        </div>
-                      )}
-                      {!hasResource && labels.namespace && (
-                        <button onClick={(e) => { e.stopPropagation(); useUIStore.getState().setSelectedNamespace(labels.namespace); go('/r/v1~pods', 'Pods'); }} className="text-xs text-blue-400 hover:text-blue-300 mb-1 block">
-                          {labels.namespace} →
-                        </button>
-                      )}
-                      {item.description && <p className="text-xs text-slate-400 line-clamp-2">{item.description}</p>}
-                      <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
-                        {item.alert.activeAt && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Since {new Date(item.alert.activeAt).toLocaleString()}</span>}
-                        <span>{item.group}</span>
-                        {hasResource && <span className="text-blue-400">Click to investigate →</span>}
-                      </div>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openSilenceFormForAlert(item.alert.labels);
-                      }}
-                      className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded flex items-center gap-1.5 flex-shrink-0"
-                    >
-                      <VolumeX className="w-3.5 h-3.5" />
-                      Silence
-                    </button>
+              <div className="text-center py-12"><CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3" /><p className="text-slate-300">{severityFilter !== 'all' ? `No ${severityFilter} alerts` : 'No alerts firing'}</p></div>
+            ) : groupedAlerts ? (
+              // Grouped view
+              groupedAlerts.map(([groupName, alerts]) => (
+                <div key={groupName} className="bg-slate-900 rounded-lg border border-slate-800">
+                  <div className="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-200">{groupName}</span>
+                    <span className="text-xs px-2 py-0.5 bg-red-900/50 text-red-300 rounded">{alerts.length}</span>
                   </div>
+                  <div className="divide-y divide-slate-800">
+                    {alerts.map((item, idx) => <AlertRow key={idx} item={item} go={go} onSilence={openSilenceFormForAlert} />)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              // Flat view
+              filteredAlerts.map((item, idx) => (
+                <Card key={idx}>
+                  <AlertRow item={item} go={go} onSilence={openSilenceFormForAlert} />
                 </Card>
-                );
-              })
+              ))
             )}
           </div>
         )}
@@ -654,6 +723,72 @@ export default function AlertsView() {
           onConfirm={() => confirmExpire && expireSilence(confirmExpire)}
         />
       </div>
+    </div>
+  );
+}
+
+// ===== Alert Row Component =====
+
+function AlertRow({ item, go, onSilence }: {
+  item: { rule: string; group: string; alert: PrometheusAlert; severity: string; description: string; runbookUrl: string; firingDuration: string; isSilenced: boolean; namespace: string };
+  go: (path: string, title: string) => void;
+  onSilence: (labels: Record<string, string>) => void;
+}) {
+  const labels = item.alert.labels;
+  const resourceName = labels.pod || labels.deployment || labels.node || labels.statefulset || labels.daemonset || labels.job || '';
+  const resourceKind = labels.pod ? 'Pod' : labels.deployment ? 'Deployment' : labels.node ? 'Node' : labels.statefulset ? 'StatefulSet' : labels.daemonset ? 'DaemonSet' : labels.job ? 'Job' : '';
+  const resourceNs = labels.namespace;
+  const hasResource = resourceName && resourceKind;
+
+  return (
+    <div className="px-4 py-3 flex items-start gap-3">
+      {item.severity === 'critical' ? <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <span className="text-sm font-medium text-slate-200">{item.rule}</span>
+          <span className={cn('text-[10px] px-1.5 py-0.5 rounded', item.severity === 'critical' ? 'bg-red-900/50 text-red-300' : item.severity === 'warning' ? 'bg-yellow-900/50 text-yellow-300' : 'bg-blue-900/50 text-blue-300')}>{item.severity}</span>
+          <span className={cn('text-[10px] px-1.5 py-0.5 rounded', item.alert.state === 'firing' ? 'bg-red-900/50 text-red-300' : 'bg-blue-900/50 text-blue-300')}>{item.alert.state}</span>
+          {item.isSilenced && <span className="text-[10px] px-1.5 py-0.5 bg-slate-700 text-slate-400 rounded flex items-center gap-1"><VolumeX className="w-2.5 h-2.5" /> silenced</span>}
+          {item.firingDuration && <span className="text-[10px] text-slate-500 flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {item.firingDuration}</span>}
+        </div>
+
+        {hasResource && (
+          <button onClick={() => {
+            const apiVersion = resourceKind === 'Deployment' || resourceKind === 'StatefulSet' || resourceKind === 'DaemonSet' ? 'apps/v1' : resourceKind === 'Job' ? 'batch/v1' : 'v1';
+            go(resourceDetailUrl({ apiVersion, kind: resourceKind, metadata: { name: resourceName, namespace: resourceNs } }), resourceName);
+          }} className="flex items-center gap-2 mb-1 text-xs text-blue-400 hover:text-blue-300">
+            {resourceKind}/{resourceName}
+            {resourceNs && <span className="px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">{resourceNs}</span>}
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        )}
+        {!hasResource && item.namespace && (
+          <button onClick={() => { useUIStore.getState().setSelectedNamespace(item.namespace); go('/r/v1~pods', 'Pods'); }} className="text-xs text-blue-400 hover:text-blue-300 mb-1 block">
+            {item.namespace} →
+          </button>
+        )}
+
+        {item.description && <p className="text-xs text-slate-400 line-clamp-2">{item.description}</p>}
+
+        <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
+          <span>{item.group}</span>
+          {item.runbookUrl && (
+            <a href={item.runbookUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-blue-400 hover:text-blue-300">
+              <ExternalLink className="w-3 h-3" /> Runbook
+            </a>
+          )}
+        </div>
+      </div>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); onSilence(item.alert.labels); }}
+        className={cn('px-2.5 py-1.5 text-xs rounded flex items-center gap-1.5 flex-shrink-0 transition-colors',
+          item.isSilenced ? 'bg-slate-700 text-slate-400' : 'bg-blue-600 hover:bg-blue-700 text-white')}
+        title={item.isSilenced ? 'Already silenced' : 'Silence this alert'}
+      >
+        <VolumeX className="w-3.5 h-3.5" />
+        {item.isSilenced ? 'Silenced' : 'Silence'}
+      </button>
     </div>
   );
 }
