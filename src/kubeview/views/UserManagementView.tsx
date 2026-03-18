@@ -445,7 +445,7 @@ function IdentityAudit({ users, groups, clusterRoleBindings, oauthConfig, access
     const allChecks: Array<{
       id: string; title: string; description: string; why: string;
       passing: any[]; failing: any[]; yamlExample: string;
-      action?: { label: string; danger?: boolean; id: string };
+      action?: { label: string; danger?: boolean; id: string; path?: string };
     }> = [];
 
     // 1. Identity Providers configured
@@ -471,6 +471,7 @@ spec:
     htpasswd:
       fileData:
         name: htpass-secret`,
+      action: idps.length === 0 ? { label: 'Configure OAuth', id: 'configure-oauth', path: '/admin' } : undefined,
     });
 
     // 2. kubeadmin removed (check the secret, not the user object)
@@ -520,6 +521,7 @@ oc delete clusterrolebinding <binding-name>
 
 # Use scoped roles instead:
 oc adm policy add-cluster-role-to-user edit <user>`,
+      action: clusterAdminUsers.length > 2 ? { label: 'View ClusterRoleBindings', id: 'view-crb', path: '/r/rbac.authorization.k8s.io~v1~clusterrolebindings' } : undefined,
     });
 
     // 4. Service accounts with cluster-admin
@@ -554,6 +556,7 @@ roleRef:
   kind: ClusterRole
   name: edit
   apiGroup: rbac.authorization.k8s.io`,
+      action: saClusterAdmins.length > 0 ? { label: 'View ClusterRoleBindings', id: 'view-sa-crb', path: '/r/rbac.authorization.k8s.io~v1~clusterrolebindings' } : undefined,
     });
 
     // 5. Inactive users (users with no recent tokens)
@@ -572,6 +575,7 @@ oc delete identity <identity-name>
 
 # Review user's role bindings first:
 oc get rolebindings,clusterrolebindings --all-namespaces -o json | jq '.items[] | select(.subjects[]?.name=="<username>")'`,
+      action: inactiveUsers.length > 0 ? { label: 'View Users', id: 'view-users', path: '/r/user.openshift.io~v1~users' } : undefined,
     });
 
     // 6. Groups configured
@@ -596,6 +600,7 @@ metadata:
 users:
 - user1
 - user2`,
+      action: groups.length === 0 ? { label: 'Create Group', id: 'create-group', path: '/create/user.openshift.io~v1~groups' } : undefined,
     });
 
     return allChecks;
@@ -674,11 +679,17 @@ users:
                     <pre className="text-[11px] text-emerald-400 font-mono bg-slate-950 p-3 rounded overflow-x-auto whitespace-pre-wrap">{check.yamlExample}</pre>
                     {check.action && (
                       <button
-                        onClick={() => setConfirmAction(check.action!.id)}
+                        onClick={() => {
+                          if (check.action!.danger) {
+                            setConfirmAction(check.action!.id);
+                          } else if (check.action!.path) {
+                            go(check.action!.path, check.action!.label);
+                          }
+                        }}
                         className={cn('mt-2 px-3 py-1.5 text-xs rounded flex items-center gap-1.5 transition-colors',
                           check.action.danger ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white')}
                       >
-                        {check.action.label}
+                        {check.action.label} {!check.action.danger && <ArrowRight className="w-3 h-3" />}
                       </button>
                     )}
                   </div>
