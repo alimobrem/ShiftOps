@@ -63,7 +63,7 @@ export default function WelcomeView() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Shortcut keys="⌘ K" label="Command Palette" description="Search resources, pages, actions" />
             <Shortcut keys="⌘ B" label="Resource Browser" description="Browse all API groups" />
-            <Shortcut keys="⌘ ." label="Resource Browser" description="Alternative shortcut" />
+            <Shortcut keys="⌘ ." label="Quick Actions" description="Open command palette" />
             <Shortcut keys="j / k" label="Navigate Table" description="Move up/down in resource lists" />
           </div>
         </div>

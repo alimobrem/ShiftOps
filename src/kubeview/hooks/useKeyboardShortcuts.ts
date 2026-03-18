@@ -32,10 +32,10 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      // Cmd+. - Resource browser (same as Cmd+B)
+      // Cmd+. - Open command palette (quick actions)
       if (meta && e.key === '.') {
         e.preventDefault();
-        state.toggleBrowser();
+        state.openCommandPalette();
         return;
       }
 

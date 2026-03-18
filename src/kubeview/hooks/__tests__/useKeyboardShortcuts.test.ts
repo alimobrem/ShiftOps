@@ -53,14 +53,11 @@ describe('useKeyboardShortcuts', () => {
     expect(useUIStore.getState().browserOpen).toBe(false);
   });
 
-  it('Cmd+. toggles resource browser', () => {
+  it('Cmd+. opens command palette', () => {
     renderHook(() => useKeyboardShortcuts());
 
     fireKey('.', { metaKey: true });
-    expect(useUIStore.getState().browserOpen).toBe(true);
-
-    fireKey('.', { metaKey: true });
-    expect(useUIStore.getState().browserOpen).toBe(false);
+    expect(useUIStore.getState().commandPaletteOpen).toBe(true);
   });
 
   it('Cmd+J closes dock when open', () => {
