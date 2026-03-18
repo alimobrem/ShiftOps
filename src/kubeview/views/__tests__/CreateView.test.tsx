@@ -273,4 +273,158 @@ describe('CreateView', () => {
 
     expect(screen.getByText('default')).toBeDefined();
   });
+
+  // ===== Quick Deploy: Env Vars =====
+
+  it('shows Add Variable button in Quick Deploy', () => {
+    renderCreateView();
+    expect(screen.getByText('Environment Variables')).toBeDefined();
+    expect(screen.getByText('Add Variable')).toBeDefined();
+  });
+
+  it('adds env var row when Add Variable is clicked', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Add Variable'));
+    expect(screen.getByPlaceholderText('NAME')).toBeDefined();
+    expect(screen.getByPlaceholderText('value')).toBeDefined();
+  });
+
+  it('can add multiple env vars', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Add Variable'));
+    fireEvent.click(screen.getByText('Add Variable'));
+    const nameInputs = screen.getAllByPlaceholderText('NAME');
+    expect(nameInputs.length).toBe(2);
+  });
+
+  // ===== Quick Deploy: Resource Limits =====
+
+  it('has collapsible Resource Limits section', () => {
+    renderCreateView();
+    expect(screen.getByText(/Resource Limits/)).toBeDefined();
+    // Initially collapsed — no CPU/Memory fields visible
+    expect(screen.queryByPlaceholderText('100m')).toBeNull();
+  });
+
+  it('shows resource limit fields when expanded', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText(/Resource Limits/));
+    expect(screen.getByText('CPU Request')).toBeDefined();
+    expect(screen.getByText('CPU Limit')).toBeDefined();
+    expect(screen.getByText('Memory Request')).toBeDefined();
+    expect(screen.getByText('Memory Limit')).toBeDefined();
+  });
+
+  // ===== Templates: Search + All 23 =====
+
+  it('shows search input in Templates tab', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Templates'));
+    expect(screen.getByPlaceholderText(/Search templates/)).toBeDefined();
+  });
+
+  it('shows operator templates (not just basic resources)', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Templates'));
+    expect(screen.getByText('Operators')).toBeDefined();
+    expect(screen.getByText('Cluster Logging Operator')).toBeDefined();
+  });
+
+  it('shows logging templates', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Templates'));
+    expect(screen.getByText('Logging')).toBeDefined();
+    expect(screen.getByText('LokiStack')).toBeDefined();
+    expect(screen.getByText('ClusterLogForwarder')).toBeDefined();
+  });
+
+  it('shows autoscaling templates', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Templates'));
+    expect(screen.getByText('Autoscaling')).toBeDefined();
+    expect(screen.getByText('ClusterAutoscaler')).toBeDefined();
+  });
+
+  it('filters templates by search query', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Templates'));
+    const searchInput = screen.getByPlaceholderText(/Search templates/);
+    fireEvent.change(searchInput, { target: { value: 'loki' } });
+    expect(screen.getByText('LokiStack')).toBeDefined();
+    expect(screen.getByText('Loki Operator')).toBeDefined();
+    expect(screen.queryByText('Deployment')).toBeNull();
+  });
+
+  it('shows template count', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Templates'));
+    expect(screen.getByText(/\d+ of \d+ templates/)).toBeDefined();
+  });
+
+  it('shows no results message for unmatched template search', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Templates'));
+    const searchInput = screen.getByPlaceholderText(/Search templates/);
+    fireEvent.change(searchInput, { target: { value: 'xyznonexistent' } });
+    expect(screen.getByText(/No templates match/)).toBeDefined();
+  });
+
+  // ===== Import YAML: Validation =====
+
+  it('shows validation feedback for valid YAML', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Import YAML'));
+    const textarea = screen.getByPlaceholderText(/apiVersion: v1/);
+    fireEvent.change(textarea, { target: { value: 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: test' } });
+    expect(screen.getByText(/Valid/)).toBeDefined();
+    expect(screen.getByText('Pod')).toBeDefined();
+  });
+
+  it('shows validation errors for YAML missing apiVersion', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Import YAML'));
+    const textarea = screen.getByPlaceholderText(/apiVersion: v1/);
+    fireEvent.change(textarea, { target: { value: 'kind: Pod\nmetadata:\n  name: test' } });
+    expect(screen.getByText(/Missing apiVersion/)).toBeDefined();
+  });
+
+  it('shows validation errors for YAML missing kind', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Import YAML'));
+    const textarea = screen.getByPlaceholderText(/apiVersion: v1/);
+    fireEvent.change(textarea, { target: { value: 'apiVersion: v1\nmetadata:\n  name: test' } });
+    expect(screen.getByText(/Missing kind/)).toBeDefined();
+  });
+
+  it('shows validation error for non-YAML text', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Import YAML'));
+    const textarea = screen.getByPlaceholderText(/apiVersion: v1/);
+    fireEvent.change(textarea, { target: { value: 'this is just plain text' } });
+    expect(screen.getByText(/Does not look like YAML/)).toBeDefined();
+  });
+
+  it('shows tab indentation warning', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Import YAML'));
+    const textarea = screen.getByPlaceholderText(/apiVersion: v1/);
+    fireEvent.change(textarea, { target: { value: 'apiVersion: v1\nkind: Pod\n\tname: test' } });
+    expect(screen.getByText(/tabs for indentation/)).toBeDefined();
+  });
+
+  it('shows "Open Anyway" for invalid YAML', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Import YAML'));
+    const textarea = screen.getByPlaceholderText(/apiVersion: v1/);
+    fireEvent.change(textarea, { target: { value: 'kind: Pod\nmetadata:\n  name: test' } });
+    expect(screen.queryByText('Open Anyway')).toBeDefined();
+  });
+
+  it('detects multi-document YAML', () => {
+    renderCreateView();
+    fireEvent.click(screen.getByText('Import YAML'));
+    const textarea = screen.getByPlaceholderText(/apiVersion: v1/);
+    fireEvent.change(textarea, { target: { value: 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: a\n---\napiVersion: v1\nkind: Secret\nmetadata:\n  name: b' } });
+    expect(screen.getByText(/2 documents/)).toBeDefined();
+  });
 });

@@ -62,41 +62,6 @@ interface CreateViewProps {
 
 type CreateTab = 'deploy' | 'helm' | 'templates' | 'yaml';
 
-// ===== Template categories (existing) =====
-const templateCategories = [
-  {
-    title: 'Workloads',
-    items: [
-      { prefix: 'deploy', icon: Package, color: 'text-blue-400', gvr: 'apps/v1/deployments' },
-      { prefix: 'cj', icon: Clock, color: 'text-cyan-400', gvr: 'batch/v1/cronjobs' },
-    ],
-  },
-  {
-    title: 'Networking',
-    items: [
-      { prefix: 'svc', icon: Network, color: 'text-green-400', gvr: 'v1/services' },
-      { prefix: 'ing', icon: Globe, color: 'text-purple-400', gvr: 'networking.k8s.io/v1/ingresses' },
-      { prefix: 'np', icon: ShieldCheck, color: 'text-red-400', gvr: 'networking.k8s.io/v1/networkpolicies' },
-    ],
-  },
-  {
-    title: 'Config & Storage',
-    items: [
-      { prefix: 'cm', icon: FileText, color: 'text-yellow-400', gvr: 'v1/configmaps' },
-      { prefix: 'secret', icon: Lock, color: 'text-red-400', gvr: 'v1/secrets' },
-      { prefix: 'pvc', icon: HardDrive, color: 'text-orange-400', gvr: 'v1/persistentvolumeclaims' },
-    ],
-  },
-  {
-    title: 'Access Control',
-    items: [
-      { prefix: 'ns', icon: Folder, color: 'text-amber-400', gvr: 'v1/namespaces' },
-      { prefix: 'sa', icon: User, color: 'text-teal-400', gvr: 'v1/serviceaccounts' },
-      { prefix: 'rb', icon: Shield, color: 'text-indigo-400', gvr: 'rbac.authorization.k8s.io/v1/rolebindings' },
-      { prefix: 'hpa', icon: TrendingUp, color: 'text-pink-400', gvr: 'autoscaling/v2/horizontalpodautoscalers' },
-    ],
-  },
-];
 
 export default function CreateView({ gvrKey }: CreateViewProps) {
   const go = useNavigateTab();
@@ -295,6 +260,8 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
 }
 
 // ===== Quick Deploy =====
+interface EnvVar { name: string; value: string }
+
 function QuickDeployTab() {
   const addToast = useUIStore((s) => s.addToast);
   const go = useNavigateTab();
@@ -307,6 +274,20 @@ function QuickDeployTab() {
   const [deploying, setDeploying] = useState(false);
   const [deployedApp, setDeployedApp] = useState<{ name: string; ns: string } | null>(null);
 
+  // Environment variables
+  const [envVars, setEnvVars] = useState<EnvVar[]>([]);
+  const addEnvVar = () => setEnvVars(prev => [...prev, { name: '', value: '' }]);
+  const removeEnvVar = (idx: number) => setEnvVars(prev => prev.filter((_, i) => i !== idx));
+  const updateEnvVar = (idx: number, field: 'name' | 'value', val: string) =>
+    setEnvVars(prev => prev.map((e, i) => i === idx ? { ...e, [field]: val } : e));
+
+  // Resource limits
+  const [cpuRequest, setCpuRequest] = useState('');
+  const [cpuLimit, setCpuLimit] = useState('');
+  const [memRequest, setMemRequest] = useState('');
+  const [memLimit, setMemLimit] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   const ns = selectedNamespace !== '*' ? selectedNamespace : 'default';
 
   const handleDeploy = async () => {
@@ -316,6 +297,33 @@ function QuickDeployTab() {
     }
     setDeploying(true);
     try {
+      // Build container spec
+      const container: any = {
+        name: name.trim(),
+        image: image.trim(),
+      };
+      if (port) container.ports = [{ containerPort: parseInt(port) }];
+
+      // Add env vars
+      const validEnvVars = envVars.filter(e => e.name.trim());
+      if (validEnvVars.length > 0) {
+        container.env = validEnvVars.map(e => ({ name: e.name.trim(), value: e.value }));
+      }
+
+      // Add resource limits
+      const resources: any = {};
+      if (cpuRequest || memRequest) {
+        resources.requests = {};
+        if (cpuRequest) resources.requests.cpu = cpuRequest;
+        if (memRequest) resources.requests.memory = memRequest;
+      }
+      if (cpuLimit || memLimit) {
+        resources.limits = {};
+        if (cpuLimit) resources.limits.cpu = cpuLimit;
+        if (memLimit) resources.limits.memory = memLimit;
+      }
+      if (Object.keys(resources).length > 0) container.resources = resources;
+
       // Create Deployment
       const deployment = {
         apiVersion: 'apps/v1',
@@ -327,11 +335,7 @@ function QuickDeployTab() {
           template: {
             metadata: { labels: { app: name.trim() } },
             spec: {
-              containers: [{
-                name: name.trim(),
-                image: image.trim(),
-                ...(port ? { ports: [{ containerPort: parseInt(port) }] } : {}),
-              }],
+              containers: [container],
             },
           },
         },
@@ -424,6 +428,47 @@ function QuickDeployTab() {
             Create Route (expose externally via HTTPS)
           </label>
         )}
+
+        {/* Environment Variables */}
+        <div className="border-t border-slate-800 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-slate-400">Environment Variables</label>
+            <button onClick={addEnvVar} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              <Plus className="w-3 h-3" /> Add Variable
+            </button>
+          </div>
+          {envVars.length === 0 && (
+            <p className="text-xs text-slate-600">No environment variables configured</p>
+          )}
+          {envVars.map((env, idx) => (
+            <div key={idx} className="flex items-center gap-2 mb-2">
+              <input type="text" value={env.name} onChange={(e) => updateEnvVar(idx, 'name', e.target.value)} placeholder="NAME"
+                className="flex-1 px-2 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              <span className="text-slate-600">=</span>
+              <input type="text" value={env.value} onChange={(e) => updateEnvVar(idx, 'value', e.target.value)} placeholder="value"
+                className="flex-1 px-2 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              <button onClick={() => removeEnvVar(idx)} className="p-1 text-slate-500 hover:text-red-400" title="Remove">
+                <AlertCircle className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Advanced: Resource Limits */}
+        <div className="border-t border-slate-800 pt-4">
+          <button onClick={() => setShowAdvanced(!showAdvanced)} className="text-xs font-medium text-slate-400 hover:text-slate-300 flex items-center gap-1">
+            {showAdvanced ? '▾' : '▸'} Resource Limits
+            {(cpuRequest || cpuLimit || memRequest || memLimit) && <span className="text-blue-400 ml-1">(configured)</span>}
+          </button>
+          {showAdvanced && (
+            <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <FormField label="CPU Request" value={cpuRequest} onChange={setCpuRequest} placeholder="100m" />
+              <FormField label="CPU Limit" value={cpuLimit} onChange={setCpuLimit} placeholder="500m" />
+              <FormField label="Memory Request" value={memRequest} onChange={setMemRequest} placeholder="128Mi" />
+              <FormField label="Memory Limit" value={memLimit} onChange={setMemLimit} placeholder="512Mi" />
+            </div>
+          )}
+        </div>
 
         <div className="flex items-center gap-3 pt-2">
           <button onClick={handleDeploy} disabled={deploying || !name.trim() || !image.trim()} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded disabled:opacity-50">
@@ -648,24 +693,96 @@ function HelmTab() {
 }
 
 // ===== Templates =====
+
+// Map snippet prefixes to categories for grouping
+const SNIPPET_CATEGORIES: Record<string, { category: string; icon: any; color: string; gvr: string }> = {
+  deploy: { category: 'Workloads', icon: Package, color: 'text-blue-400', gvr: 'apps/v1/deployments' },
+  cj: { category: 'Workloads', icon: Clock, color: 'text-cyan-400', gvr: 'batch/v1/cronjobs' },
+  hpa: { category: 'Workloads', icon: TrendingUp, color: 'text-pink-400', gvr: 'autoscaling/v2/horizontalpodautoscalers' },
+  svc: { category: 'Networking', icon: Network, color: 'text-green-400', gvr: 'v1/services' },
+  ing: { category: 'Networking', icon: Globe, color: 'text-purple-400', gvr: 'networking.k8s.io/v1/ingresses' },
+  np: { category: 'Networking', icon: ShieldCheck, color: 'text-red-400', gvr: 'networking.k8s.io/v1/networkpolicies' },
+  cm: { category: 'Config & Storage', icon: FileText, color: 'text-yellow-400', gvr: 'v1/configmaps' },
+  secret: { category: 'Config & Storage', icon: Lock, color: 'text-red-400', gvr: 'v1/secrets' },
+  pvc: { category: 'Config & Storage', icon: HardDrive, color: 'text-orange-400', gvr: 'v1/persistentvolumeclaims' },
+  ns: { category: 'Access Control', icon: Folder, color: 'text-amber-400', gvr: 'v1/namespaces' },
+  sa: { category: 'Access Control', icon: User, color: 'text-teal-400', gvr: 'v1/serviceaccounts' },
+  rb: { category: 'Access Control', icon: Shield, color: 'text-indigo-400', gvr: 'rbac.authorization.k8s.io/v1/rolebindings' },
+  clusterautoscaler: { category: 'Autoscaling', icon: TrendingUp, color: 'text-green-400', gvr: 'autoscaling.openshift.io/v1/clusterautoscalers' },
+  machineautoscaler: { category: 'Autoscaling', icon: TrendingUp, color: 'text-emerald-400', gvr: 'autoscaling.openshift.io/v1beta1/machineautoscalers' },
+  'sub-logging': { category: 'Operators', icon: Package, color: 'text-orange-400', gvr: 'operators.coreos.com/v1alpha1/subscriptions' },
+  'sub-loki': { category: 'Operators', icon: Package, color: 'text-purple-400', gvr: 'operators.coreos.com/v1alpha1/subscriptions' },
+  'sub-coo': { category: 'Operators', icon: Package, color: 'text-blue-400', gvr: 'operators.coreos.com/v1alpha1/subscriptions' },
+  'sub-externalsecrets': { category: 'Operators', icon: Lock, color: 'text-red-400', gvr: 'operators.coreos.com/v1alpha1/subscriptions' },
+  'sub-oadp': { category: 'Operators', icon: Package, color: 'text-teal-400', gvr: 'operators.coreos.com/v1alpha1/subscriptions' },
+  'sub-quay': { category: 'Operators', icon: Package, color: 'text-red-400', gvr: 'operators.coreos.com/v1alpha1/subscriptions' },
+  'sub-gitops': { category: 'Operators', icon: GitBranch, color: 'text-orange-400', gvr: 'operators.coreos.com/v1alpha1/subscriptions' },
+  lokistack: { category: 'Logging', icon: HardDrive, color: 'text-purple-400', gvr: 'loki.grafana.com/v1/lokistacks' },
+  clusterlogforwarder: { category: 'Logging', icon: FileText, color: 'text-orange-400', gvr: 'observability.openshift.io/v1/clusterlogforwarders' },
+};
+
+const CATEGORY_ORDER = ['Workloads', 'Networking', 'Config & Storage', 'Access Control', 'Autoscaling', 'Operators', 'Logging'];
+
 function TemplatesTab({ onSelectTemplate, onSelectBlank }: {
   onSelectTemplate: (snippet: Snippet, gvr: string) => void;
   onSelectBlank: (gvr: string) => void;
 }) {
+  const [search, setSearch] = useState('');
+
+  const filteredSnippets = useMemo(() => {
+    if (!search.trim()) return snippets;
+    const q = search.toLowerCase();
+    return snippets.filter(s =>
+      s.label.toLowerCase().includes(q) ||
+      s.description.toLowerCase().includes(q) ||
+      s.prefix.toLowerCase().includes(q) ||
+      (SNIPPET_CATEGORIES[s.prefix]?.category || '').toLowerCase().includes(q)
+    );
+  }, [search]);
+
+  // Group by category
+  const grouped = useMemo(() => {
+    const groups: Record<string, Snippet[]> = {};
+    for (const snippet of filteredSnippets) {
+      const cat = SNIPPET_CATEGORIES[snippet.prefix]?.category || 'Other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(snippet);
+    }
+    return CATEGORY_ORDER
+      .filter(cat => groups[cat]?.length)
+      .map(cat => ({ category: cat, snippets: groups[cat] }))
+      .concat(
+        Object.keys(groups)
+          .filter(cat => !CATEGORY_ORDER.includes(cat))
+          .map(cat => ({ category: cat, snippets: groups[cat] }))
+      );
+  }, [filteredSnippets]);
+
   return (
     <div className="space-y-6">
-      {templateCategories.map((cat) => (
-        <div key={cat.title}>
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{cat.title}</h2>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search templates... (e.g., deployment, loki, network policy)"
+          className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+
+      <div className="text-xs text-slate-500">{filteredSnippets.length} of {snippets.length} templates</div>
+
+      {grouped.map(({ category, snippets: catSnippets }) => (
+        <div key={category}>
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{category}</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {cat.items.map((item) => {
-              const snippet = snippets.find((s) => s.prefix === item.prefix);
-              if (!snippet) return null;
-              const Icon = item.icon;
+            {catSnippets.map((snippet) => {
+              const meta = SNIPPET_CATEGORIES[snippet.prefix];
+              const Icon = meta?.icon || FileText;
+              const color = meta?.color || 'text-slate-400';
+              const gvr = meta?.gvr || 'v1/pods';
               return (
-                <button key={item.prefix} onClick={() => onSelectTemplate(snippet, item.gvr)}
+                <button key={snippet.prefix} onClick={() => onSelectTemplate(snippet, gvr)}
                   className="flex flex-col items-start gap-2 p-4 bg-slate-900 rounded-lg border border-slate-800 hover:border-slate-600 transition-colors text-left">
-                  <Icon className={cn('w-5 h-5', item.color)} />
+                  <Icon className={cn('w-5 h-5', color)} />
                   <div>
                     <div className="text-sm font-medium text-slate-200">{snippet.label}</div>
                     <div className="text-xs text-slate-500 mt-0.5">{snippet.description}</div>
@@ -676,6 +793,11 @@ function TemplatesTab({ onSelectTemplate, onSelectBlank }: {
           </div>
         </div>
       ))}
+
+      {filteredSnippets.length === 0 && (
+        <div className="text-center py-8 text-slate-500 text-sm">No templates match "{search}"</div>
+      )}
+
       <div>
         <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Or start from scratch</h2>
         <button onClick={() => onSelectBlank('v1/pods')}
@@ -692,18 +814,105 @@ function TemplatesTab({ onSelectTemplate, onSelectBlank }: {
 }
 
 // ===== Import YAML =====
+
+interface YamlValidation {
+  valid: boolean;
+  kind?: string;
+  apiVersion?: string;
+  name?: string;
+  errors: string[];
+  docCount: number;
+}
+
+function validateYaml(text: string): YamlValidation {
+  const result: YamlValidation = { valid: false, errors: [], docCount: 0 };
+  if (!text.trim()) {
+    result.errors.push('Empty input');
+    return result;
+  }
+
+  // Split on document separators
+  const docs = text.split(/^---$/m).filter(d => d.trim());
+  result.docCount = docs.length;
+
+  for (let i = 0; i < docs.length; i++) {
+    const doc = docs[i].trim();
+    const label = docs.length > 1 ? `Document ${i + 1}: ` : '';
+
+    // Check for JSON
+    if (doc.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(doc);
+        if (!parsed.apiVersion) result.errors.push(`${label}Missing apiVersion`);
+        if (!parsed.kind) result.errors.push(`${label}Missing kind`);
+        if (i === 0) { result.kind = parsed.kind; result.apiVersion = parsed.apiVersion; result.name = parsed.metadata?.name; }
+      } catch {
+        result.errors.push(`${label}Invalid JSON syntax`);
+      }
+      continue;
+    }
+
+    // YAML validation
+    if (!doc.includes(':')) {
+      result.errors.push(`${label}Does not look like YAML (no key: value pairs found)`);
+      continue;
+    }
+
+    // Check indentation consistency
+    const lines = doc.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+    const hasTabs = lines.some(l => l.startsWith('\t'));
+    if (hasTabs) {
+      result.errors.push(`${label}YAML uses tabs for indentation (use spaces instead)`);
+    }
+
+    // Check required fields
+    const hasApiVersion = lines.some(l => /^apiVersion\s*:/.test(l));
+    const hasKind = lines.some(l => /^kind\s*:/.test(l));
+    if (!hasApiVersion) result.errors.push(`${label}Missing apiVersion`);
+    if (!hasKind) result.errors.push(`${label}Missing kind`);
+
+    // Extract metadata for preview
+    if (i === 0) {
+      const avMatch = doc.match(/^apiVersion\s*:\s*(.+)$/m);
+      const kindMatch = doc.match(/^kind\s*:\s*(.+)$/m);
+      const nameMatch = doc.match(/^\s+name\s*:\s*(.+)$/m);
+      if (avMatch) result.apiVersion = avMatch[1].trim();
+      if (kindMatch) result.kind = kindMatch[1].trim();
+      if (nameMatch) result.name = nameMatch[1].trim();
+    }
+  }
+
+  result.valid = result.errors.length === 0;
+  return result;
+}
+
 function ImportYamlTab({ onImport }: { onImport: (yaml: string) => void }) {
   const [text, setText] = useState('');
+  const addToast = useUIStore((s) => s.addToast);
+
+  const validation = useMemo(() => text.trim() ? validateYaml(text) : null, [text]);
+
+  const handleValidatedImport = (content: string) => {
+    const v = validateYaml(content);
+    if (v.valid) {
+      onImport(content);
+    } else if (v.errors.length > 0 && (content.includes('apiVersion') || content.includes('kind'))) {
+      // Has some K8s structure but with issues — let them edit it
+      addToast({ type: 'warning', title: 'YAML has issues', detail: v.errors[0] });
+      onImport(content);
+    } else {
+      setText(content);
+      addToast({ type: 'error', title: 'Invalid YAML', detail: v.errors[0] || 'Does not appear to be a Kubernetes resource' });
+    }
+  };
 
   const handlePaste = async () => {
     try {
       const clip = await navigator.clipboard.readText();
-      if (clip.includes('apiVersion:') || clip.includes('"apiVersion"')) {
-        onImport(clip);
-      } else {
-        setText(clip);
-      }
-    } catch {}
+      handleValidatedImport(clip);
+    } catch {
+      addToast({ type: 'error', title: 'Clipboard access denied', detail: 'Paste directly into the text area instead' });
+    }
   };
 
   const handleUpload = () => {
@@ -714,7 +923,7 @@ function ImportYamlTab({ onImport }: { onImport: (yaml: string) => void }) {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       const content = await file.text();
-      onImport(content);
+      handleValidatedImport(content);
     };
     input.click();
   };
@@ -740,10 +949,44 @@ function ImportYamlTab({ onImport }: { onImport: (yaml: string) => void }) {
       <div>
         <label className="text-xs text-slate-400 block mb-1">Or paste YAML here</label>
         <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="apiVersion: v1&#10;kind: ConfigMap&#10;metadata:&#10;  name: my-config&#10;..." rows={12} className="w-full px-3 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-600 font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+        {/* Validation feedback */}
+        {validation && (
+          <div className={cn('mt-2 p-3 rounded-lg border text-xs', validation.valid ? 'bg-green-950/30 border-green-900' : 'bg-red-950/30 border-red-900')}>
+            {validation.valid ? (
+              <div className="flex items-center gap-2 text-green-300">
+                <span>✓</span>
+                <span>
+                  Valid {validation.kind && <span className="font-medium">{validation.kind}</span>}
+                  {validation.apiVersion && <span className="text-green-500 ml-1">({validation.apiVersion})</span>}
+                  {validation.name && <span className="text-green-500 ml-1">"{validation.name}"</span>}
+                  {validation.docCount > 1 && <span className="text-green-500 ml-1">— {validation.docCount} documents</span>}
+                </span>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {validation.errors.map((err, i) => (
+                  <div key={i} className="flex items-start gap-2 text-red-300">
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span>{err}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {text.trim() && (
-          <button onClick={() => onImport(text)} className="mt-2 flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded">
-            <Plus className="w-4 h-4" /> Open in Editor
-          </button>
+          <div className="flex items-center gap-2 mt-2">
+            <button onClick={() => handleValidatedImport(text)} disabled={!validation?.valid && !text.includes('apiVersion')}
+              className={cn('flex items-center gap-1.5 px-4 py-2 text-sm rounded transition-colors',
+                validation?.valid ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-slate-200')}>
+              <Plus className="w-4 h-4" /> {validation?.valid ? 'Open in Editor' : 'Open Anyway'}
+            </button>
+            {!validation?.valid && validation?.errors.length ? (
+              <span className="text-xs text-amber-400">Has {validation.errors.length} issue{validation.errors.length !== 1 ? 's' : ''} — you can still edit</span>
+            ) : null}
+          </div>
         )}
       </div>
     </div>
