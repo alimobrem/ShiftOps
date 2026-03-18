@@ -87,6 +87,12 @@ interface UIState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+
+  // Impersonation
+  impersonateUser: string | null;
+  impersonateGroups: string[];
+  setImpersonation: (user: string | null, groups?: string[]) => void;
+  clearImpersonation: () => void;
 }
 
 let tabIdCounter = Date.now();
@@ -287,6 +293,12 @@ export const useUIStore = create<UIState>()(
       sidebarCollapsed: false,
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+
+      // Impersonation
+      impersonateUser: null,
+      impersonateGroups: [],
+      setImpersonation: (user, groups = []) => set({ impersonateUser: user, impersonateGroups: groups }),
+      clearImpersonation: () => set({ impersonateUser: null, impersonateGroups: [] }),
     }),
     {
       name: 'openshiftview-ui-storage',

@@ -6,6 +6,20 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 
 import { K8S_BASE as BASE } from './gvr';
+import { useUIStore } from '../store/uiStore';
+
+/**
+ * Get impersonation headers if impersonation is active.
+ */
+function getImpersonationHeaders(): Record<string, string> {
+  const { impersonateUser, impersonateGroups } = useUIStore.getState();
+  if (!impersonateUser) return {};
+  const headers: Record<string, string> = { 'Impersonate-User': impersonateUser };
+  if (impersonateGroups.length > 0) {
+    headers['Impersonate-Group'] = impersonateGroups.join(',');
+  }
+  return headers;
+}
 
 interface K8sListResponse<T> {
   apiVersion: string;
@@ -42,7 +56,7 @@ export async function k8sList<T>(
     url = `${BASE}${parts.join('/')}`;
   }
 
-  const response = await fetch(url);
+  const response = await fetch(url, { headers: getImpersonationHeaders() });
 
   if (!response.ok) {
     let message = `Failed to list resources: ${response.statusText}`;
@@ -66,7 +80,7 @@ export async function k8sList<T>(
  * Get a single resource
  */
 export async function k8sGet<T>(apiPath: string): Promise<T> {
-  const response = await fetch(`${BASE}${apiPath}`);
+  const response = await fetch(`${BASE}${apiPath}`, { headers: getImpersonationHeaders() });
 
   if (!response.ok) {
     let message = `Failed to get resource: ${response.statusText}`;
@@ -85,6 +99,7 @@ export async function k8sCreate<T>(apiPath: string, body: T): Promise<T> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...getImpersonationHeaders(),
     },
     body: JSON.stringify(body),
   });
@@ -131,6 +146,7 @@ export async function k8sPatch<T>(
     method: 'PATCH',
     headers: {
       'Content-Type': patchType,
+      ...getImpersonationHeaders(),
     },
     body: JSON.stringify(patch),
   });
@@ -155,7 +171,7 @@ export async function k8sDelete(apiPath: string): Promise<void> {
     try {
       await fetch(`${BASE}${apiPath}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/strategic-merge-patch+json' },
+        headers: { 'Content-Type': 'application/strategic-merge-patch+json', ...getImpersonationHeaders() },
         body: JSON.stringify({ spec: { replicas: 0 } }),
       });
     } catch {
@@ -167,6 +183,7 @@ export async function k8sDelete(apiPath: string): Promise<void> {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
+      ...getImpersonationHeaders(),
     },
     body: JSON.stringify({
       kind: 'DeleteOptions',

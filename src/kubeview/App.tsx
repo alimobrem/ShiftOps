@@ -29,6 +29,7 @@ const DependencyView = lazy(() => import('./views/DependencyView'));
 const NodeLogsView = lazy(() => import('./views/NodeLogsView'));
 const TroubleshootView = lazy(() => import('./views/TroubleshootView'));
 const AccessControlView = lazy(() => import('./views/AccessControlView'));
+const UserManagementView = lazy(() => import('./views/UserManagementView'));
 const StorageView = lazy(() => import('./views/StorageView'));
 const AdminView = lazy(() => import('./views/AdminView'));
 const AlertsView = lazy(() => import('./views/AlertsView'));
@@ -184,6 +185,7 @@ export default function OpenShiftViewApp() {
             <Route path="dashboard" element={<Navigate to="/pulse" replace />} />
             <Route path="storage" element={<Suspense fallback={<LoadingFallback />}><StorageView /></Suspense>} />
             <Route path="access-control" element={<Suspense fallback={<LoadingFallback />}><AccessControlView /></Suspense>} />
+            <Route path="users" element={<Suspense fallback={<LoadingFallback />}><UserManagementView /></Suspense>} />
             <Route path="operators" element={<Navigate to="/admin" replace />} />
             <Route path="operatorhub" element={<Suspense fallback={<LoadingFallback />}><OperatorCatalogView /></Suspense>} />
             <Route path="admin" element={<Suspense fallback={<LoadingFallback />}><AdminView /></Suspense>} />

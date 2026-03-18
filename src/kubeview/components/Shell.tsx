@@ -25,8 +25,18 @@ export function Shell() {
   const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen);
   const browserOpen = useUIStore((s) => s.browserOpen);
   const dockPanel = useUIStore((s) => s.dockPanel);
+  const impersonateUser = useUIStore((s) => s.impersonateUser);
+  const clearImpersonation = useUIStore((s) => s.clearImpersonation);
   return (
     <div className="flex h-screen flex-col bg-slate-900 text-slate-100">
+      {/* Impersonation banner */}
+      {impersonateUser && (
+        <div className="flex items-center justify-between px-4 py-1.5 bg-amber-900/50 border-b border-amber-700 text-xs">
+          <span className="text-amber-200">Impersonating <span className="font-mono font-bold">{impersonateUser}</span> — all API requests use this identity</span>
+          <button onClick={clearImpersonation} className="px-2 py-0.5 text-amber-300 hover:text-white bg-amber-800 hover:bg-amber-700 rounded transition-colors">Stop</button>
+        </div>
+      )}
+
       {/* Command bar at top */}
       <CommandBar />
 

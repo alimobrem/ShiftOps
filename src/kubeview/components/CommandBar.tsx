@@ -13,6 +13,9 @@ export function CommandBar() {
   const [showNsDropdown, setShowNsDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [nsFilter, setNsFilter] = useState('');
+  const [showImpersonateInput, setShowImpersonateInput] = useState(false);
+  const [impersonateInput, setImpersonateInput] = useState('');
+  const impersonateUser = useUIStore((s) => s.impersonateUser);
 
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
   const setSelectedNamespace = useUIStore((s) => s.setSelectedNamespace);
@@ -245,6 +248,53 @@ export function CommandBar() {
                 >
                   Getting Started
                 </button>
+                <button
+                  onClick={() => { setShowUserMenu(false); go('/users', 'Users'); }}
+                  className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 transition-colors"
+                >
+                  User Management
+                </button>
+                {impersonateUser ? (
+                  <button
+                    onClick={() => {
+                      useUIStore.getState().clearImpersonation();
+                      addToast({ type: 'success', title: 'Impersonation cleared' });
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm text-amber-400 hover:bg-slate-700 transition-colors"
+                  >
+                    Stop impersonating {impersonateUser}
+                  </button>
+                ) : showImpersonateInput ? (
+                  <div className="px-3 py-2 space-y-1.5">
+                    <input
+                      type="text"
+                      value={impersonateInput}
+                      onChange={(e) => setImpersonateInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && impersonateInput.trim()) {
+                          useUIStore.getState().setImpersonation(impersonateInput.trim());
+                          addToast({ type: 'warning', title: `Impersonating ${impersonateInput.trim()}`, detail: 'All API requests now use this identity' });
+                          setShowImpersonateInput(false);
+                          setImpersonateInput('');
+                          setShowUserMenu(false);
+                        }
+                        if (e.key === 'Escape') { setShowImpersonateInput(false); setImpersonateInput(''); }
+                      }}
+                      placeholder="username or system:serviceaccount:ns:name"
+                      className="w-full px-2 py-1 text-xs bg-slate-900 border border-slate-600 rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                    />
+                    <div className="text-[10px] text-slate-500">Enter to apply, Esc to cancel</div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowImpersonateInput(true)}
+                    className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 transition-colors"
+                  >
+                    Impersonate User
+                  </button>
+                )}
                 <button
                   onClick={async () => {
                     setShowUserMenu(false);
