@@ -325,6 +325,10 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
         const newReplicas = Math.max(0, currentReplicas + delta);
         await k8sPatch(resourcePath, { spec: { replicas: newReplicas } });
         addToast({ type: 'success', title: `Scaled "${resourceName}" to ${newReplicas} replicas` });
+      } else if (action === 'scale-to') {
+        const replicas = p?.replicas ?? 0;
+        await k8sPatch(resourcePath, { spec: { replicas } });
+        addToast({ type: 'success', title: `Scaled "${resourceName}" to ${replicas} replicas` });
       } else if (action === 'cordon') {
         await k8sPatch(resourcePath, { spec: { unschedulable: true } });
         addToast({ type: 'success', title: `Node "${resourceName}" cordoned` });

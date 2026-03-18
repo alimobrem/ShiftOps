@@ -106,11 +106,9 @@ describe('deploymentEnhancer', () => {
     expect(access(deploymentEnhancer, 'strategy', sts)).toBe('OnDelete');
   });
 
-  it('has scale-down, scale-display, scale-up, restart inline actions', () => {
+  it('has scale and restart inline actions', () => {
     const ids = deploymentEnhancer.inlineActions!.map((a) => a.id);
-    expect(ids).toContain('scale-down');
-    expect(ids).toContain('scale-up');
-    expect(ids).toContain('scale-display');
+    expect(ids).toContain('scale');
     expect(ids).toContain('restart');
   });
 });
