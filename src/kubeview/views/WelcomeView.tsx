@@ -84,7 +84,7 @@ export default function WelcomeView() {
             <PageLink icon={<Shield className="w-5 h-5 text-indigo-400" />} title="Access Control" description="RBAC audit, recent changes, cluster-admin tracking" onClick={() => go('/access-control', 'Access Control')} />
             <PageLink icon={<Users className="w-5 h-5 text-teal-400" />} title="User Management" description="Users, groups, impersonation, identity audit, sessions" onClick={() => go('/users', 'Users')} />
             <PageLink icon={<Settings className="w-5 h-5 text-slate-400" />} title="Administration" description="Readiness (67 checks), config (10 sections), updates, snapshots" onClick={() => go('/admin', 'Administration')} />
-            <PageLink icon={<Clock className="w-5 h-5 text-blue-400" />} title="Timeline" description="Chronological cluster event feed" onClick={() => go('/timeline', 'Timeline')} />
+            <PageLink icon={<Clock className="w-5 h-5 text-blue-400" />} title="Timeline" description="Chronological cluster event feed" onClick={() => go('/admin?tab=timeline', 'Admin')} />
           </div>
         </div>
 

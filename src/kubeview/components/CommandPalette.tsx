@@ -205,7 +205,7 @@ function getCommandItems(
     const builtinPages: CommandItem[] = [
       { type: 'nav', id: 'welcome', title: 'Welcome', subtitle: 'Getting started guide', icon: 'Home', path: '/welcome' },
       { type: 'nav', id: 'pulse', title: 'Cluster Pulse', subtitle: 'Health overview', icon: 'Activity', path: '/pulse' },
-      { type: 'nav', id: 'timeline', title: 'Timeline', subtitle: 'Cluster event feed', icon: 'Clock', path: '/timeline' },
+      { type: 'nav', id: 'timeline', title: 'Timeline', subtitle: 'Cluster event feed', icon: 'Clock', path: '/admin?tab=timeline' },
       { type: 'nav', id: 'workloads', title: 'Workloads', subtitle: 'Deployments, StatefulSets, DaemonSets, Jobs, Pods', icon: 'Package', path: '/workloads' },
       { type: 'nav', id: 'networking', title: 'Networking', subtitle: 'Services, Routes, Ingresses, Network Policies', icon: 'Globe', path: '/networking' },
       { type: 'nav', id: 'compute', title: 'Compute', subtitle: 'Nodes, machines, cluster capacity', icon: 'Server', path: '/compute' },

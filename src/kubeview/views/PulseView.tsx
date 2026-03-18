@@ -429,7 +429,7 @@ export default function PulseView() {
                 <p className="text-sm text-slate-400 mb-4">No active issues detected across {nodes.length} nodes, {filteredPods.length} pods, and {filteredDeployments.length} deployments.</p>
                 <div className="flex items-center justify-center gap-3">
                   <button onClick={() => setActiveTab('issues')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">Run Diagnostics</button>
-                  <button onClick={() => go('/timeline', 'Timeline')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">View Timeline</button>
+                  <button onClick={() => go('/admin?tab=timeline', 'Admin')} className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors">View Timeline</button>
                 </div>
               </div>
             )}
@@ -440,7 +440,7 @@ export default function PulseView() {
               <span>·</span>
               <button onClick={() => go('/alerts', 'Alerts')} className="hover:text-slate-300 transition-colors">Alerts</button>
               <span>·</span>
-              <button onClick={() => go('/timeline', 'Timeline')} className="hover:text-slate-300 transition-colors">Timeline</button>
+              <button onClick={() => go('/admin?tab=timeline', 'Admin')} className="hover:text-slate-300 transition-colors">Timeline</button>
               <span>·</span>
               <button onClick={() => go('/admin', 'Administration')} className="hover:text-slate-300 transition-colors">Admin</button>
             </div>

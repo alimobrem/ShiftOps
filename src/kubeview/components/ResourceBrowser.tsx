@@ -171,7 +171,7 @@ export function ResourceBrowser() {
             { label: 'Networking', icon: Globe, path: '/networking', color: 'text-cyan-400' },
             { label: 'Compute', icon: Server, path: '/compute', color: 'text-blue-400' },
             { label: 'Storage', icon: HardDrive, path: '/storage', color: 'text-orange-400' },
-            { label: 'Timeline', icon: Clock, path: '/timeline', color: 'text-blue-400' },
+            { label: 'Timeline', icon: Clock, path: '/admin?tab=timeline', color: 'text-blue-400' },
             { label: 'Access Control', icon: Shield, path: '/access-control', color: 'text-indigo-400' },
             { label: 'Alerts', icon: Bell, path: '/alerts', color: 'text-red-400' },
             { label: 'Administration', icon: Settings, path: '/admin', color: 'text-slate-400' },

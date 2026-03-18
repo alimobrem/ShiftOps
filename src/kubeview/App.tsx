@@ -6,7 +6,7 @@ import PulseView from './views/PulseView';
 import WelcomeView from './views/WelcomeView';
 import TableView from './views/TableView';
 import DetailView from './views/DetailView';
-import TimelineView from './views/TimelineView';
+// TimelineView is now lazy-loaded inside AdminView
 import './styles/index.css';
 
 const queryClient = new QueryClient({
