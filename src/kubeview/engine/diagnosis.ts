@@ -294,13 +294,31 @@ function diagnosePVC(resource: K8sResource): Diagnosis[] {
 
   if (!status) return diagnoses;
 
-  // PVC pending
+  // PVC pending — show specific details about what's requested
   if (status.phase === 'Pending') {
+    const spec = resource.spec as any;
+    const storageClassName = spec?.storageClassName || '';
+    const accessModes = (spec?.accessModes || []).join(', ') || 'not specified';
+    const requestedStorage = spec?.resources?.requests?.storage || 'not specified';
+    const volumeName = spec?.volumeName;
+
+    let detail = `Requested: ${requestedStorage}, Access: ${accessModes}, Class: ${storageClassName || '(default)'}`;
+    let suggestion = '';
+
+    if (volumeName) {
+      detail += `. Waiting for PV "${volumeName}"`;
+      suggestion = `This PVC is waiting for a specific PV named "${volumeName}". Check: 1) Does the PV exist? Go to Storage page → PVs 2) Is it in "Available" status? 3) Do accessModes and capacity match?`;
+    } else if (!storageClassName) {
+      suggestion = 'No StorageClass specified and no default StorageClass is set. Fix: 1) Go to Storage page and check if a default StorageClass exists 2) Add storageClassName to the PVC spec via Edit YAML 3) Or set a default StorageClass in Admin → Cluster Config';
+    } else {
+      suggestion = `StorageClass "${storageClassName}" should auto-provision a volume. If stuck: 1) Check the Storage page — does this StorageClass exist? 2) Is the CSI driver running? 3) If binding mode is WaitForFirstConsumer, the PVC only binds when a Pod uses it 4) Check cloud provider quotas`;
+    }
+
     diagnoses.push({
       severity: 'warning',
       title: 'PersistentVolumeClaim is pending',
-      detail: 'Volume has not been bound',
-      suggestion: 'Check if a suitable PersistentVolume exists or if the StorageClass can provision one. Verify storage class configuration and capacity.',
+      detail,
+      suggestion,
     });
   }
 
