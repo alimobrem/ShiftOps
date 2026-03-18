@@ -85,10 +85,11 @@ export default function YamlEditorView({ gvrKey, namespace, name }: YamlEditorVi
   const gvrParts = gvrKey.split('/');
   const kind = gvrParts[gvrParts.length - 1];
 
-  // Build GVK for schema panel
+  // Build GVK for schema panel — use the actual Kind from the fetched resource (not guessed from plural)
+  const actualKind = resource?.kind || kind.replace(/s$/, '').replace(/^./, c => c.toUpperCase());
   const resourceGvk = gvrParts.length === 3
-    ? { group: gvrParts[0], version: gvrParts[1], kind: kind.replace(/s$/, '').replace(/^./, c => c.toUpperCase()) }
-    : { group: '', version: gvrParts[0], kind: kind.replace(/s$/, '').replace(/^./, c => c.toUpperCase()) };
+    ? { group: gvrParts[0], version: gvrParts[1], kind: actualKind }
+    : { group: '', version: gvrParts[0], kind: actualKind };
 
   if (isLoading) {
     return (

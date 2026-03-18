@@ -152,6 +152,24 @@ async function fetchOpenAPIV3Schema(
     }
   }
 
+  // Fallback: case-insensitive kind match (handles Persistentvolumeclaim vs PersistentVolumeClaim)
+  if (!schemaObj) {
+    const kindLower = kind.toLowerCase();
+    for (const [name, obj] of Object.entries(schemas)) {
+      const gvks = obj['x-kubernetes-group-version-kind'];
+      if (gvks) {
+        const match = gvks.find(
+          gvk => gvk.kind.toLowerCase() === kindLower && gvk.version === version && gvk.group === group
+        );
+        if (match) {
+          schemaObj = obj;
+          schemaName = name;
+          break;
+        }
+      }
+    }
+  }
+
   if (!schemaObj) {
     throw new Error(`Schema not found for ${kind}`);
   }
@@ -203,6 +221,23 @@ async function fetchOpenAPIV2Schema(
       if (match) {
         schemaObj = obj;
         break;
+      }
+    }
+  }
+
+  // Fallback: case-insensitive kind match
+  if (!schemaObj) {
+    const kindLower = kind.toLowerCase();
+    for (const [name, obj] of Object.entries(definitions)) {
+      const gvks = obj['x-kubernetes-group-version-kind'];
+      if (gvks) {
+        const match = gvks.find(
+          gvk => gvk.kind.toLowerCase() === kindLower && gvk.version === version && gvk.group === group
+        );
+        if (match) {
+          schemaObj = obj;
+          break;
+        }
       }
     }
   }
