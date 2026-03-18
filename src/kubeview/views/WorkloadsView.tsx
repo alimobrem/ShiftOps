@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-  Package, Box, Clock, RefreshCw, AlertCircle, CheckCircle, XCircle,
-  FileText, ArrowRight, Loader2,
+  Package, Box, Clock, AlertCircle, CheckCircle, XCircle,
+  FileText, ArrowRight, Plus, AlertTriangle, Info, RefreshCw,
+  Activity, Layers, Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { K8sResource } from '../engine/renderers';
@@ -9,7 +10,7 @@ import { getDeploymentStatus, getPodStatus } from '../engine/renderers/statusUti
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
-
+import { MetricCard } from '../components/metrics/Sparkline';
 
 export default function WorkloadsView() {
   const go = useNavigateTab();
@@ -22,128 +23,361 @@ export default function WorkloadsView() {
   const { data: pods = [] } = useK8sListWatch({ apiPath: '/api/v1/pods', namespace: nsFilter });
   const { data: jobs = [] } = useK8sListWatch({ apiPath: '/apis/batch/v1/jobs', namespace: nsFilter });
   const { data: cronjobs = [] } = useK8sListWatch({ apiPath: '/apis/batch/v1/cronjobs', namespace: nsFilter });
+  const { data: replicasets = [] } = useK8sListWatch({ apiPath: '/apis/apps/v1/replicasets', namespace: nsFilter });
 
-  // Data is already namespace-scoped from API when nsFilter is set
-  const fd = deployments as any[];
-  const fss = statefulsets as any[];
-  const fds = daemonsets as any[];
-  const fp = pods as any[];
-  const fj = jobs as any[];
-  const fc = cronjobs as any[];
+  // Pod status breakdown
+  const podStats = React.useMemo(() => {
+    const s = { Running: 0, Pending: 0, Succeeded: 0, Failed: 0, CrashLoop: 0, ImagePull: 0, Unknown: 0 };
+    for (const p of pods as any[]) {
+      const status = getPodStatus(p);
+      if (status.reason === 'CrashLoopBackOff') s.CrashLoop++;
+      else if (status.reason === 'ImagePullBackOff' || status.reason === 'ErrImagePull') s.ImagePull++;
+      else if (status.phase === 'Running') s.Running++;
+      else if (status.phase === 'Pending') s.Pending++;
+      else if (status.phase === 'Succeeded') s.Succeeded++;
+      else if (status.phase === 'Failed') s.Failed++;
+      else s.Unknown++;
+    }
+    return s;
+  }, [pods]);
 
-  const unhealthyDeploys = fd.filter((d) => !getDeploymentStatus(d).available);
-  const crashingPods = fp.filter((p) => {
-    const s = getPodStatus(p);
-    return s.reason === 'CrashLoopBackOff' || s.reason === 'ImagePullBackOff' || s.phase === 'Failed';
-  });
+  const unhealthyDeploys = React.useMemo(() =>
+    (deployments as any[]).filter(d => !getDeploymentStatus(d).available),
+  [deployments]);
+
+  const unhealthySS = React.useMemo(() =>
+    (statefulsets as any[]).filter(s => {
+      const ready = (s.status as any)?.readyReplicas ?? 0;
+      const desired = (s.spec as any)?.replicas ?? 0;
+      return desired > 0 && ready < desired;
+    }),
+  [statefulsets]);
+
+  const failedJobs = React.useMemo(() =>
+    (jobs as any[]).filter(j => {
+      const conditions = j.status?.conditions || [];
+      return conditions.some((c: any) => c.type === 'Failed' && c.status === 'True');
+    }),
+  [jobs]);
+
+  const crashingPods = React.useMemo(() =>
+    (pods as any[]).filter(p => {
+      const s = getPodStatus(p);
+      return s.reason === 'CrashLoopBackOff' || s.reason === 'ImagePullBackOff' || s.phase === 'Failed';
+    }),
+  [pods]);
+
+  // Container restart count
+  const highRestartPods = React.useMemo(() =>
+    (pods as any[]).filter(p => {
+      const restarts = (p.status?.containerStatuses || []).reduce((sum: number, c: any) => sum + (c.restartCount || 0), 0);
+      return restarts >= 5;
+    }).sort((a: any, b: any) => {
+      const ra = (a.status?.containerStatuses || []).reduce((s: number, c: any) => s + (c.restartCount || 0), 0);
+      const rb = (b.status?.containerStatuses || []).reduce((s: number, c: any) => s + (c.restartCount || 0), 0);
+      return rb - ra;
+    }),
+  [pods]);
+
+  // Old ReplicaSets (desired=0 but still present)
+  const oldReplicaSets = React.useMemo(() =>
+    (replicasets as any[]).filter(rs => (rs.spec?.replicas ?? 0) === 0 && (rs.status?.replicas ?? 0) === 0),
+  [replicasets]);
+
+  // Issues
+  const issues: Array<{ msg: string; severity: 'warning' | 'critical' }> = [];
+  if (podStats.CrashLoop > 0) issues.push({ msg: `${podStats.CrashLoop} pod${podStats.CrashLoop > 1 ? 's' : ''} in CrashLoopBackOff`, severity: 'critical' });
+  if (podStats.ImagePull > 0) issues.push({ msg: `${podStats.ImagePull} pod${podStats.ImagePull > 1 ? 's' : ''} with image pull errors`, severity: 'critical' });
+  if (unhealthyDeploys.length > 0) issues.push({ msg: `${unhealthyDeploys.length} deployment${unhealthyDeploys.length > 1 ? 's' : ''} not fully available`, severity: 'warning' });
+  if (unhealthySS.length > 0) issues.push({ msg: `${unhealthySS.length} StatefulSet${unhealthySS.length > 1 ? 's' : ''} not ready`, severity: 'warning' });
+  if (failedJobs.length > 0) issues.push({ msg: `${failedJobs.length} failed job${failedJobs.length > 1 ? 's' : ''}`, severity: 'warning' });
 
   return (
     <div className="h-full overflow-auto bg-slate-950 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2"><Package className="w-6 h-6 text-blue-500" /> Workloads</h1>
-          <p className="text-sm text-slate-400 mt-1">Deployments, StatefulSets, DaemonSets, Jobs, and Pods</p>
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+              <Package className="w-6 h-6 text-blue-500" /> Workloads
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              Deployments, StatefulSets, DaemonSets, Jobs, and Pods
+              {nsFilter && <span className="text-blue-400 ml-1">in {nsFilter}</span>}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => go('/create/apps~v1~deployments', 'Create Deployment')} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors">
+              <Plus className="w-3 h-3" /> Create Deployment
+            </button>
+          </div>
         </div>
+
+        {/* Issues */}
+        {issues.length > 0 && (
+          <div className="space-y-2">
+            {issues.map((issue, i) => (
+              <div key={i} className={cn('flex items-center px-4 py-2.5 rounded-lg border',
+                issue.severity === 'critical' ? 'bg-red-950/30 border-red-900' : 'bg-yellow-950/30 border-yellow-900')}>
+                <div className="flex items-center gap-2">
+                  {issue.severity === 'critical' ? <AlertCircle className="w-4 h-4 text-red-400" /> : <AlertTriangle className="w-4 h-4 text-amber-400" />}
+                  <span className="text-sm text-slate-200">{issue.msg}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard label="Deployments" value={fd.length} issues={unhealthyDeploys.length} onClick={() => go('/r/apps~v1~deployments', 'Deployments')} />
-          <StatCard label="StatefulSets" value={fss.length} onClick={() => go('/r/apps~v1~statefulsets', 'StatefulSets')} />
-          <StatCard label="DaemonSets" value={fds.length} onClick={() => go('/r/apps~v1~daemonsets', 'DaemonSets')} />
-          <StatCard label="Pods" value={fp.length} issues={crashingPods.length} onClick={() => go('/r/v1~pods', 'Pods')} />
-          <StatCard label="Jobs" value={fj.length} onClick={() => go('/r/batch~v1~jobs', 'Jobs')} />
-          <StatCard label="CronJobs" value={fc.length} onClick={() => go('/r/batch~v1~cronjobs', 'CronJobs')} />
+          <button onClick={() => go('/r/apps~v1~deployments', 'Deployments')} className={cn('bg-slate-900 rounded-lg border p-3 text-left hover:border-slate-600 transition-colors', unhealthyDeploys.length > 0 ? 'border-yellow-800' : 'border-slate-800')}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-slate-400">Deployments</span>
+              {unhealthyDeploys.length > 0 ? <span className="text-xs px-1.5 py-0.5 bg-red-900 text-red-300 rounded">{unhealthyDeploys.length}</span> : <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+            </div>
+            <div className="text-xl font-bold text-slate-100">{deployments.length}</div>
+          </button>
+          <button onClick={() => go('/r/apps~v1~statefulsets', 'StatefulSets')} className={cn('bg-slate-900 rounded-lg border p-3 text-left hover:border-slate-600 transition-colors', unhealthySS.length > 0 ? 'border-yellow-800' : 'border-slate-800')}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-slate-400">StatefulSets</span>
+              {unhealthySS.length > 0 ? <span className="text-xs px-1.5 py-0.5 bg-red-900 text-red-300 rounded">{unhealthySS.length}</span> : <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+            </div>
+            <div className="text-xl font-bold text-slate-100">{statefulsets.length}</div>
+          </button>
+          <button onClick={() => go('/r/apps~v1~daemonsets', 'DaemonSets')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 text-left hover:border-slate-600 transition-colors">
+            <div className="text-xs text-slate-400 mb-1">DaemonSets</div>
+            <div className="text-xl font-bold text-slate-100">{daemonsets.length}</div>
+          </button>
+          <button onClick={() => go('/r/v1~pods', 'Pods')} className={cn('bg-slate-900 rounded-lg border p-3 text-left hover:border-slate-600 transition-colors', crashingPods.length > 0 ? 'border-yellow-800' : 'border-slate-800')}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-slate-400">Pods</span>
+              {crashingPods.length > 0 ? <span className="text-xs px-1.5 py-0.5 bg-red-900 text-red-300 rounded">{crashingPods.length}</span> : <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+            </div>
+            <div className="text-xl font-bold text-slate-100">{pods.length}</div>
+          </button>
+          <button onClick={() => go('/r/batch~v1~jobs', 'Jobs')} className={cn('bg-slate-900 rounded-lg border p-3 text-left hover:border-slate-600 transition-colors', failedJobs.length > 0 ? 'border-yellow-800' : 'border-slate-800')}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-slate-400">Jobs</span>
+              {failedJobs.length > 0 && <span className="text-xs px-1.5 py-0.5 bg-red-900 text-red-300 rounded">{failedJobs.length}</span>}
+            </div>
+            <div className="text-xl font-bold text-slate-100">{jobs.length}</div>
+          </button>
+          <button onClick={() => go('/r/batch~v1~cronjobs', 'CronJobs')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 text-left hover:border-slate-600 transition-colors">
+            <div className="text-xs text-slate-400 mb-1">CronJobs</div>
+            <div className="text-xl font-bold text-slate-100">{cronjobs.length}</div>
+          </button>
         </div>
 
-        {/* Unhealthy workloads */}
-        {unhealthyDeploys.length > 0 && (
-          <div className="bg-red-950/30 rounded-lg border border-red-900 p-4">
-            <h2 className="text-sm font-semibold text-slate-100 mb-3 flex items-center gap-2"><XCircle className="w-4 h-4 text-red-500" /> Unhealthy Deployments ({unhealthyDeploys.length})</h2>
-            <div className="space-y-1">
-              {unhealthyDeploys.slice(0, 10).map((d: any) => {
-                const s = getDeploymentStatus(d);
-                return (
-                  <button key={d.metadata.uid} onClick={() => go(`/r/apps~v1~deployments/${d.metadata.namespace}/${d.metadata.name}`, d.metadata.name)}
-                    className="w-full flex items-center justify-between p-2 rounded hover:bg-slate-800/50 text-left">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                      <span className="text-sm text-slate-200 truncate">{d.metadata.name}</span>
-                      <span className="text-xs text-slate-500">{d.metadata.namespace}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-red-400">{s.ready}/{s.desired}</span>
-                      <ArrowRight className="w-3 h-3 text-slate-600" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MetricCard
+            title="Pod CPU Usage"
+            query={nsFilter
+              ? `sum(rate(container_cpu_usage_seconds_total{namespace="${nsFilter}",container!=""}[5m])) / sum(kube_pod_container_resource_requests{namespace="${nsFilter}",resource="cpu"}) * 100`
+              : 'sum(rate(container_cpu_usage_seconds_total{container!=""}[5m])) / sum(kube_pod_container_resource_requests{resource="cpu"}) * 100'}
+            unit="%"
+            color="#3b82f6"
+            thresholds={{ warning: 70, critical: 90 }}
+          />
+          <MetricCard
+            title="Pod Memory Usage"
+            query={nsFilter
+              ? `sum(container_memory_working_set_bytes{namespace="${nsFilter}",container!=""}) / sum(kube_pod_container_resource_requests{namespace="${nsFilter}",resource="memory"}) * 100`
+              : 'sum(container_memory_working_set_bytes{container!=""}) / sum(kube_pod_container_resource_requests{resource="memory"}) * 100'}
+            unit="%"
+            color="#8b5cf6"
+            thresholds={{ warning: 75, critical: 90 }}
+          />
+          <MetricCard
+            title="Container Restarts"
+            query={nsFilter
+              ? `sum(rate(kube_pod_container_status_restarts_total{namespace="${nsFilter}"}[1h])) * 3600`
+              : 'sum(rate(kube_pod_container_status_restarts_total[1h])) * 3600'}
+            unit=" /hr"
+            color="#f59e0b"
+            thresholds={{ warning: 5, critical: 20 }}
+          />
+          <MetricCard
+            title="Pod Start Rate"
+            query={nsFilter
+              ? `sum(rate(kube_pod_start_time{namespace="${nsFilter}"}[1h])) * 3600`
+              : 'sum(rate(kube_pod_start_time[1h])) * 3600'}
+            unit=" /hr"
+            color="#06b6d4"
+          />
+        </div>
 
-        {/* Recent deployments */}
-        <div className="bg-slate-900 rounded-lg border border-slate-800">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-100">Deployments</h2>
-            <button onClick={() => go('/r/apps~v1~deployments', 'Deployments')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></button>
-          </div>
-          <div className="divide-y divide-slate-800 max-h-80 overflow-auto">
-            {fd.slice(0, 20).map((d: any) => {
-              const s = getDeploymentStatus(d);
+        {/* Pod Status Breakdown */}
+        <Panel title="Pod Status" icon={<Box className="w-4 h-4 text-blue-400" />}>
+          <div className="space-y-2">
+            {Object.entries(podStats).filter(([, count]) => count > 0).map(([status, count]) => {
+              const maxCount = Math.max(...Object.values(podStats).filter(v => v > 0), 1);
+              const pct = (count / maxCount) * 100;
+              const color = status === 'Running' ? 'bg-green-500' : status === 'Succeeded' ? 'bg-blue-500' : status === 'Pending' ? 'bg-amber-500' : 'bg-red-500';
               return (
-                <button key={d.metadata.uid} onClick={() => go(`/r/apps~v1~deployments/${d.metadata.namespace}/${d.metadata.name}`, d.metadata.name)}
-                  className="w-full flex items-center justify-between px-4 py-2 hover:bg-slate-800/50 text-left">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn('w-2 h-2 rounded-full shrink-0', s.available ? 'bg-green-500' : 'bg-red-500')} />
-                    <span className="text-sm text-slate-200 truncate">{d.metadata.name}</span>
-                    <span className="text-xs text-slate-500">{d.metadata.namespace}</span>
+                <div key={status}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className={cn('w-2.5 h-2.5 rounded-full', color)} />
+                      <span className="text-sm text-slate-300">{status}</span>
+                    </div>
+                    <span className="text-sm font-mono text-slate-400">{count}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={cn('text-xs font-mono', s.available ? 'text-green-400' : 'text-red-400')}>{s.ready}/{s.desired}</span>
-                    <button onClick={(e) => { e.stopPropagation(); go(`/logs/${d.metadata.namespace}/${d.metadata.name}?selector=${encodeURIComponent(`app=${d.metadata.name}`)}&kind=Deployment`, `${d.metadata.name} (Logs)`); }}
-                      className="text-xs text-slate-500 hover:text-blue-400" title="View Logs"><FileText className="w-3.5 h-3.5" /></button>
+                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
+        </Panel>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Unhealthy Deployments */}
+          {unhealthyDeploys.length > 0 && (
+            <Panel title={`Unhealthy Deployments (${unhealthyDeploys.length})`} icon={<XCircle className="w-4 h-4 text-red-500" />}>
+              <div className="space-y-1">
+                {unhealthyDeploys.slice(0, 10).map((d: any) => {
+                  const s = getDeploymentStatus(d);
+                  return (
+                    <button key={d.metadata.uid} onClick={() => go(`/r/apps~v1~deployments/${d.metadata.namespace}/${d.metadata.name}`, d.metadata.name)}
+                      className="w-full flex items-center justify-between p-2 rounded hover:bg-slate-800/50 text-left transition-colors">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                        <span className="text-sm text-slate-200 truncate">{d.metadata.name}</span>
+                        <span className="text-xs px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">{d.metadata.namespace}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-red-400">{s.ready}/{s.desired}</span>
+                        <ArrowRight className="w-3 h-3 text-slate-600" />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Panel>
+          )}
+
+          {/* High Restart Pods */}
+          {highRestartPods.length > 0 && (
+            <Panel title={`High Restart Pods (${highRestartPods.length})`} icon={<RefreshCw className="w-4 h-4 text-amber-500" />}>
+              <div className="space-y-1">
+                {highRestartPods.slice(0, 8).map((p: any) => {
+                  const restarts = (p.status?.containerStatuses || []).reduce((s: number, c: any) => s + (c.restartCount || 0), 0);
+                  return (
+                    <button key={p.metadata.uid} onClick={() => go(`/r/v1~pods/${p.metadata.namespace}/${p.metadata.name}`, p.metadata.name)}
+                      className="w-full flex items-center justify-between p-2 rounded hover:bg-slate-800/50 text-left transition-colors">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                        <span className="text-sm text-slate-200 truncate">{p.metadata.name}</span>
+                        <span className="text-xs px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">{p.metadata.namespace}</span>
+                      </div>
+                      <span className="text-xs font-mono text-amber-400">{restarts} restarts</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                Pods with 5+ container restarts. High restarts may indicate OOM kills, failing health checks, or application crashes.
+              </div>
+            </Panel>
+          )}
         </div>
 
-        {/* Pod status breakdown */}
-        {crashingPods.length > 0 && (
-          <div className="bg-yellow-950/30 rounded-lg border border-yellow-900 p-4">
-            <h2 className="text-sm font-semibold text-slate-100 mb-3 flex items-center gap-2"><AlertCircle className="w-4 h-4 text-yellow-500" /> Problem Pods ({crashingPods.length})</h2>
-            <div className="space-y-1">
-              {crashingPods.slice(0, 8).map((p: any) => {
-                const s = getPodStatus(p);
+        {/* Deployments list */}
+        <Panel title={`Deployments (${deployments.length})`} icon={<Package className="w-4 h-4 text-blue-400" />}>
+          {deployments.length === 0 ? (
+            <div className="text-center py-6 text-sm text-slate-500">No deployments{nsFilter ? ` in ${nsFilter}` : ''}</div>
+          ) : (
+            <div className="divide-y divide-slate-800 max-h-80 overflow-auto">
+              {(deployments as any[]).slice(0, 25).map((d) => {
+                const s = getDeploymentStatus(d);
                 return (
-                  <button key={p.metadata.uid} onClick={() => go(`/r/v1~pods/${p.metadata.namespace}/${p.metadata.name}`, p.metadata.name)}
-                    className="w-full flex items-center justify-between p-2 rounded hover:bg-slate-800/50 text-left">
+                  <button key={d.metadata.uid} onClick={() => go(`/r/apps~v1~deployments/${d.metadata.namespace}/${d.metadata.name}`, d.metadata.name)}
+                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-800/50 text-left transition-colors">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" />
-                      <span className="text-sm text-slate-200 truncate">{p.metadata.name}</span>
-                      <span className="text-xs text-slate-500">{p.metadata.namespace}</span>
+                      <div className={cn('w-2 h-2 rounded-full shrink-0', s.available ? 'bg-green-500' : 'bg-red-500')} />
+                      <span className="text-sm text-slate-200 truncate">{d.metadata.name}</span>
+                      <span className="text-xs text-slate-600">{d.metadata.namespace}</span>
                     </div>
-                    <span className="text-xs px-2 py-0.5 bg-red-900/50 text-red-300 rounded">{s.reason || s.phase}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={cn('text-xs font-mono', s.available ? 'text-green-400' : 'text-red-400')}>{s.ready}/{s.desired}</span>
+                      <span className="text-xs text-slate-600">{(d.spec as any)?.strategy?.type || 'RollingUpdate'}</span>
+                      <button onClick={(e) => { e.stopPropagation(); go(`/logs/${d.metadata.namespace}/${d.metadata.name}?selector=${encodeURIComponent(`app=${d.metadata.name}`)}&kind=Deployment`, `${d.metadata.name} (Logs)`); }}
+                        className="text-slate-500 hover:text-blue-400 transition-colors" title="View Logs"><FileText className="w-3.5 h-3.5" /></button>
+                    </div>
                   </button>
                 );
               })}
             </div>
-          </div>
+          )}
+          {deployments.length > 25 && (
+            <div className="px-3 py-2 border-t border-slate-800">
+              <button onClick={() => go('/r/apps~v1~deployments', 'Deployments')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                View all {deployments.length} <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </Panel>
+
+        {/* Failed Jobs */}
+        {failedJobs.length > 0 && (
+          <Panel title={`Failed Jobs (${failedJobs.length})`} icon={<XCircle className="w-4 h-4 text-red-500" />}>
+            <div className="space-y-1">
+              {(failedJobs as any[]).slice(0, 8).map((j) => (
+                <button key={j.metadata.uid} onClick={() => go(`/r/batch~v1~jobs/${j.metadata.namespace}/${j.metadata.name}`, j.metadata.name)}
+                  className="w-full flex items-center justify-between p-2 rounded hover:bg-slate-800/50 text-left transition-colors">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                    <span className="text-sm text-slate-200 truncate">{j.metadata.name}</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">{j.metadata.namespace}</span>
+                  </div>
+                  <ArrowRight className="w-3 h-3 text-slate-600" />
+                </button>
+              ))}
+            </div>
+          </Panel>
         )}
+
+        {/* Guidance */}
+        <Panel title="Workload Best Practices" icon={<Info className="w-4 h-4 text-blue-500" />}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="space-y-2">
+              <Tip title="Set resource requests and limits" desc="Every container should have CPU/memory requests for scheduling and limits for OOM protection" />
+              <Tip title="Configure liveness and readiness probes" desc="Probes enable automatic restart of unhealthy containers and safe traffic routing" />
+              <Tip title="Use PodDisruptionBudgets" desc="PDBs prevent voluntary disruptions (node drains, upgrades) from taking down too many pods" />
+            </div>
+            <div className="space-y-2">
+              <Tip title="Set pod anti-affinity for HA" desc="Spread replicas across nodes with podAntiAffinity to survive node failures" />
+              <Tip title="Use RollingUpdate strategy" desc="Avoid Recreate strategy in production — it causes downtime during updates" />
+              <Tip title="Clean up completed Jobs" desc={`${oldReplicaSets.length} old ReplicaSets and completed Jobs consume API resources. Set ttlSecondsAfterFinished on Jobs.`} />
+            </div>
+          </div>
+        </Panel>
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value, issues, onClick }: { label: string; value: number; issues?: number; onClick: () => void }) {
+function Tip({ title, desc }: { title: string; desc: string }) {
   return (
-    <div onClick={onClick} className={cn('bg-slate-900 rounded-lg border p-3 cursor-pointer hover:border-slate-600 transition-colors', issues ? 'border-yellow-800' : 'border-slate-800')}>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-slate-400">{label}</span>
-        {issues ? <span className="text-xs px-1.5 py-0.5 bg-red-900 text-red-300 rounded">{issues}</span> : <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+    <div className="flex gap-2">
+      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+      <div>
+        <span className="font-medium text-slate-200">{title}</span>
+        <p className="text-slate-500">{desc}</p>
       </div>
-      <div className="text-xl font-bold text-slate-100">{value}</div>
+    </div>
+  );
+}
+
+function Panel({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="bg-slate-900 rounded-lg border border-slate-800">
+      <div className="px-4 py-3 border-b border-slate-800">
+        <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">{icon}{title}</h2>
+      </div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }

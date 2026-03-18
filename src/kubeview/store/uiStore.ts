@@ -101,9 +101,7 @@ const DEFAULT_TABS: Tab[] = [
   { id: 'compute', title: 'Compute', icon: 'Server', path: '/compute', pinned: true, closable: false },
   { id: 'storage', title: 'Storage', icon: 'HardDrive', path: '/storage', pinned: true, closable: false },
   { id: 'networking', title: 'Networking', icon: 'Globe', path: '/networking', pinned: true, closable: false },
-  { id: 'alerts', title: 'Alerts', icon: 'Bell', path: '/alerts', pinned: true, closable: false },
   { id: 'operators', title: 'Operators', icon: 'Puzzle', path: '/operatorhub', pinned: true, closable: false },
-  { id: 'create', title: 'Create', icon: 'FilePlus', path: '/create/v1~pods', pinned: true, closable: false },
 ];
 
 // Default toast durations (ms)
