@@ -64,7 +64,14 @@ export default function AlertsView() {
   const queryClient = useQueryClient();
   const addToast = useUIStore((s) => s.addToast);
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
-  const [activeTab, setActiveTab] = useState<Tab>('firing');
+  const urlTab = new URLSearchParams(window.location.search).get('tab') as Tab;
+  const [activeTab, setActiveTabState] = useState<Tab>(urlTab || 'firing');
+  const setActiveTab = (tab: Tab) => {
+    setActiveTabState(tab);
+    const url = new URL(window.location.href);
+    if (tab === 'firing') url.searchParams.delete('tab'); else url.searchParams.set('tab', tab);
+    window.history.replaceState(null, '', url.toString());
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'warning' | 'info'>('all');
   const [groupBy, setGroupBy] = useState<'none' | 'namespace' | 'alertname'>('none');

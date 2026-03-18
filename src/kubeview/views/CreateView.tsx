@@ -73,7 +73,14 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
   const registry = useClusterStore((s) => s.resourceRegistry);
 
-  const [activeTab, setActiveTab] = useState<CreateTab>('installed');
+  const urlTab = new URLSearchParams(window.location.search).get('tab') as CreateTab;
+  const [activeTab, setActiveTabState] = useState<CreateTab>(urlTab || 'installed');
+  const setActiveTab = (tab: CreateTab) => {
+    setActiveTabState(tab);
+    const url = new URL(window.location.href);
+    if (tab === 'installed') url.searchParams.delete('tab'); else url.searchParams.set('tab', tab);
+    window.history.replaceState(null, '', url.toString());
+  };
   const [editMode, setEditMode] = useState(false);
   const [activeGvr, setActiveGvr] = useState(gvrKey);
   const [yaml, setYaml] = useState('');
