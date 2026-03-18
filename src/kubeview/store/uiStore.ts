@@ -95,10 +95,10 @@ let toastIdCounter = 0;
 const DEFAULT_TABS: Tab[] = [
   { id: 'welcome', title: 'Welcome', icon: 'Home', path: '/welcome', pinned: true, closable: false },
   { id: 'pulse', title: 'Pulse', icon: 'Activity', path: '/pulse', pinned: true, closable: false },
+  { id: 'admin', title: 'Admin', icon: 'Settings', path: '/admin', pinned: true, closable: false },
   { id: 'workloads', title: 'Workloads', icon: 'Package', path: '/workloads', pinned: true, closable: false },
   { id: 'troubleshoot', title: 'Troubleshoot', icon: 'Zap', path: '/troubleshoot', pinned: true, closable: false },
   { id: 'operators', title: 'Operators', icon: 'Puzzle', path: '/operatorhub', pinned: true, closable: false },
-  { id: 'admin', title: 'Admin', icon: 'Settings', path: '/admin', pinned: true, closable: false },
   { id: 'create', title: 'Create', icon: 'FilePlus', path: '/create/v1~pods', pinned: true, closable: false },
 ];
 
