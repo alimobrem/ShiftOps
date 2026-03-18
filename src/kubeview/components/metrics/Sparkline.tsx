@@ -32,11 +32,12 @@ export function Sparkline({
   className = '',
   refreshInterval = 60000,
 }: SparklineProps) {
-  const [start, end] = getTimeRange(duration);
-
   const { data: series = [] } = useQuery({
     queryKey: ['sparkline', query, duration],
-    queryFn: () => queryRange(query, start, end),
+    queryFn: () => {
+      const [start, end] = getTimeRange(duration);
+      return queryRange(query, start, end).catch(() => []);
+    },
     refetchInterval: refreshInterval,
     staleTime: 30000,
   });
@@ -105,11 +106,12 @@ export function MetricCard({
   duration?: string;
   thresholds?: { warning: number; critical: number };
 }) {
-  const [start, end] = getTimeRange(duration);
-
   const { data: series = [] } = useQuery({
     queryKey: ['metric-card', query, duration],
-    queryFn: () => queryRange(query, start, end),
+    queryFn: () => {
+      const [start, end] = getTimeRange(duration);
+      return queryRange(query, start, end).catch(() => []);
+    },
     refetchInterval: 60000,
     staleTime: 30000,
   });
