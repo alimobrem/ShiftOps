@@ -1102,6 +1102,12 @@ const SNIPPET_CATEGORIES: Record<string, { category: string; icon: any; color: s
   cm: { category: 'Config & Storage', icon: FileText, color: 'text-yellow-400', gvr: 'v1/configmaps' },
   secret: { category: 'Config & Storage', icon: Lock, color: 'text-red-400', gvr: 'v1/secrets' },
   pvc: { category: 'Config & Storage', icon: HardDrive, color: 'text-orange-400', gvr: 'v1/persistentvolumeclaims' },
+  'pvc-rwx': { category: 'Storage', icon: HardDrive, color: 'text-orange-400', gvr: 'v1/persistentvolumeclaims' },
+  'pvc-block': { category: 'Storage', icon: HardDrive, color: 'text-purple-400', gvr: 'v1/persistentvolumeclaims' },
+  'pvc-snapshot': { category: 'Storage', icon: HardDrive, color: 'text-blue-400', gvr: 'v1/persistentvolumeclaims' },
+  'pvc-clone': { category: 'Storage', icon: HardDrive, color: 'text-cyan-400', gvr: 'v1/persistentvolumeclaims' },
+  volumesnapshot: { category: 'Storage', icon: HardDrive, color: 'text-green-400', gvr: 'snapshot.storage.k8s.io/v1/volumesnapshots' },
+  storageclass: { category: 'Storage', icon: Database, color: 'text-amber-400', gvr: 'storage.k8s.io/v1/storageclasses' },
   ns: { category: 'Access Control', icon: Folder, color: 'text-amber-400', gvr: 'v1/namespaces' },
   sa: { category: 'Access Control', icon: User, color: 'text-teal-400', gvr: 'v1/serviceaccounts' },
   rb: { category: 'Access Control', icon: Shield, color: 'text-indigo-400', gvr: 'rbac.authorization.k8s.io/v1/rolebindings' },
@@ -1118,7 +1124,7 @@ const SNIPPET_CATEGORIES: Record<string, { category: string; icon: any; color: s
   clusterlogforwarder: { category: 'Logging', icon: FileText, color: 'text-orange-400', gvr: 'observability.openshift.io/v1/clusterlogforwarders' },
 };
 
-const CATEGORY_ORDER = ['Workloads', 'Networking', 'Config & Storage', 'Access Control', 'Autoscaling', 'Operators', 'Logging'];
+const CATEGORY_ORDER = ['Workloads', 'Networking', 'Config & Storage', 'Storage', 'Access Control', 'Autoscaling', 'Operators', 'Logging'];
 
 function TemplatesTab({ onSelectTemplate, onSelectBlank }: {
   onSelectTemplate: (snippet: Snippet, gvr: string) => void;

@@ -93,6 +93,113 @@ spec:
   storageClassName: \${5:standard}`,
   },
   {
+    prefix: 'pvc-rwx',
+    label: 'PVC (ReadWriteMany)',
+    description: 'Shared PVC for multiple pods (requires RWX-capable storage)',
+    body: `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: \${1:shared-data}
+  namespace: \${2:default}
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: \${3:50Gi}
+  storageClassName: \${4:ocs-storagecluster-cephfs}`,
+  },
+  {
+    prefix: 'pvc-block',
+    label: 'PVC (Block Volume)',
+    description: 'Raw block device PVC for databases or high-performance I/O',
+    body: `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: \${1:db-block-volume}
+  namespace: \${2:default}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  volumeMode: Block
+  resources:
+    requests:
+      storage: \${3:100Gi}
+  storageClassName: \${4:gp3-csi}`,
+  },
+  {
+    prefix: 'pvc-snapshot',
+    label: 'PVC from Snapshot',
+    description: 'Create a PVC from an existing VolumeSnapshot (clone/restore)',
+    body: `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: \${1:restored-data}
+  namespace: \${2:default}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: \${3:10Gi}
+  storageClassName: \${4:gp3-csi}
+  dataSource:
+    name: \${5:my-snapshot}
+    kind: VolumeSnapshot
+    apiGroup: snapshot.storage.k8s.io`,
+  },
+  {
+    prefix: 'pvc-clone',
+    label: 'PVC Clone',
+    description: 'Clone an existing PVC (creates a copy of the data)',
+    body: `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: \${1:cloned-data}
+  namespace: \${2:default}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: \${3:10Gi}
+  storageClassName: \${4:gp3-csi}
+  dataSource:
+    name: \${5:source-pvc}
+    kind: PersistentVolumeClaim`,
+  },
+  {
+    prefix: 'volumesnapshot',
+    label: 'VolumeSnapshot',
+    description: 'Create a point-in-time snapshot of a PVC',
+    body: `apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: \${1:my-snapshot}
+  namespace: \${2:default}
+spec:
+  volumeSnapshotClassName: \${3:csi-snapclass}
+  source:
+    persistentVolumeClaimName: \${4:my-pvc}`,
+  },
+  {
+    prefix: 'storageclass',
+    label: 'StorageClass',
+    description: 'Create a StorageClass for dynamic provisioning',
+    body: `apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: \${1:fast-storage}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "\${2:false}"
+provisioner: \${3:kubernetes.io/aws-ebs}
+parameters:
+  type: \${4:gp3}
+reclaimPolicy: \${5:Retain}
+volumeBindingMode: \${6:WaitForFirstConsumer}
+allowVolumeExpansion: true`,
+  },
+  {
     prefix: 'cm',
     label: 'ConfigMap',
     description: 'Create a ConfigMap',
