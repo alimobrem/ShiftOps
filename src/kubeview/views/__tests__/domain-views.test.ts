@@ -225,32 +225,54 @@ describe('UserManagementView specifics', () => {
   });
 });
 
-describe('PulseView (merged Troubleshoot)', () => {
+describe('PulseView (4-Zone Daily Briefing)', () => {
   const source = readView('PulseView.tsx');
+  const reportSource = readView('pulse/ReportTab.tsx');
 
-  it('has 3 tabs: report, issues, runbooks', () => {
-    expect(source).toContain("'report'");
-    expect(source).toContain("'issues'");
-    expect(source).toContain("'runbooks'");
+  it('is a single-page layout without tabs', () => {
+    expect(source).not.toContain("activeTab");
+    expect(source).not.toContain("'runbooks'");
+  });
+
+  it('renders ReportTab with all data props', () => {
+    expect(source).toContain('ReportTab');
+    expect(source).toContain('deployments=');
+    expect(source).toContain('pvcs=');
   });
 
   it('has MetricCard sparklines via ReportTab', () => {
-    const reportSource = readView('pulse/ReportTab.tsx');
     expect(reportSource).toContain('MetricCard');
     expect(reportSource).toContain('CPU');
   });
 
-  it('has diagnosis with log enrichment', () => {
-    expect(source).toContain('diagnoseResource');
+  it('has 4 zones: Heartbeat, Bottleneck, Fire Alarm, Roadmap', () => {
+    expect(reportSource).toContain('Heartbeat');
+    expect(reportSource).toContain('Bottleneck');
+    expect(reportSource).toContain('Fire Alarm');
+    expect(reportSource).toContain('Roadmap');
   });
 
-  it('has 6 runbooks', () => {
-    expect(source).toContain("id: 'crashloop'");
-    expect(source).toContain("id: 'imagepull'");
-    expect(source).toContain("id: 'pending'");
+  it('has inline runbook steps on attention items', () => {
+    expect(reportSource).toContain('steps');
+    expect(reportSource).toContain('Check pod logs for error messages');
   });
 
-  it('has report tab with risk score', () => {
-    expect(source).toContain('ReportTab');
+  it('has diagnosis via diagnoseResource', () => {
+    expect(reportSource).toContain('diagnoseResource');
+  });
+
+  it('queries control plane metrics', () => {
+    expect(reportSource).toContain('apiserver_request_duration_seconds_bucket');
+    expect(reportSource).toContain('etcd_server_is_leader');
+  });
+
+  it('fetches cluster version for updates', () => {
+    expect(reportSource).toContain('clusterversions/version');
+  });
+
+  it('shows recent events with links and source', () => {
+    expect(reportSource).toContain('/api/v1/events');
+    expect(reportSource).toContain('recentChanges');
+    expect(reportSource).toContain('involvedObject');
   });
 });

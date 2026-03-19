@@ -279,11 +279,11 @@ describe('P1: Consistent useK8sListWatch usage', () => {
 // ===== P1: Issue severity colors =====
 
 describe('P1: Issue severity-based colors', () => {
-  it('Issues tab uses severity-based colors for diagnosed resources', () => {
-    const source = readSrc('views/PulseView.tsx');
-    expect(source).toContain("maxSeverity === 'critical'");
-    expect(source).toContain('bg-red-900/50 text-red-300');
-    expect(source).toContain('bg-yellow-900/50 text-yellow-300');
+  it('Pulse report uses severity-based colors for attention items', () => {
+    const source = readSrc('views/pulse/ReportTab.tsx');
+    expect(source).toContain("severity === 'critical'");
+    expect(source).toContain('text-red-400');
+    expect(source).toContain('text-amber-400');
   });
 });
 

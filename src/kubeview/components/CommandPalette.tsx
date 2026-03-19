@@ -219,6 +219,7 @@ function getCommandItems(
       { type: 'nav', id: 'networking', title: 'Networking', subtitle: 'Services, Routes, Ingresses, Network Policies', icon: 'Globe', path: '/networking' },
       { type: 'nav', id: 'compute', title: 'Compute', subtitle: 'Nodes, machines, cluster capacity', icon: 'Server', path: '/compute' },
       { type: 'nav', id: 'storage', title: 'Storage', subtitle: 'PVs, PVCs, StorageClasses', icon: 'HardDrive', path: '/storage' },
+      { type: 'nav', id: 'security', title: 'Security', subtitle: 'Security audit, SCCs, network policies, access', icon: 'ShieldCheck', path: '/security' },
       { type: 'nav', id: 'access-control', title: 'Access Control', subtitle: 'RBAC roles, bindings, service accounts', icon: 'Shield', path: '/access-control' },
       { type: 'nav', id: 'alerts', title: 'Alerts', subtitle: 'Prometheus alerts, rules, silences', icon: 'Bell', path: '/alerts' },
       { type: 'nav', id: 'builds', title: 'Builds', subtitle: 'BuildConfigs, Builds, ImageStreams', icon: 'Hammer', path: '/builds' },

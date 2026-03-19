@@ -62,6 +62,10 @@ vi.mock('../../engine/gvr', () => ({
   resourceDetailUrl: (r: any) => `/r/v1~pods/${r.metadata?.namespace}/${r.metadata?.name}`,
 }));
 
+vi.mock('../../engine/diagnosis', () => ({
+  diagnoseResource: () => [],
+}));
+
 import PulseView from '../PulseView';
 
 function setMockData(data: Record<string, { data: any[]; isLoading: boolean }>) {
@@ -79,10 +83,10 @@ function createQueryClient() {
   });
 }
 
-function renderPulse(tab: string = 'issues') {
+function renderPulse() {
   const queryClient = createQueryClient();
   Object.defineProperty(window, 'location', {
-    value: { ...window.location, search: `?tab=${tab}`, href: `http://localhost/pulse?tab=${tab}` },
+    value: { ...window.location, search: '', href: 'http://localhost/pulse' },
     writable: true,
   });
   return render(
@@ -94,34 +98,6 @@ function renderPulse(tab: string = 'issues') {
   );
 }
 
-function makePod(name: string, phase: string, opts?: {
-  namespace?: string;
-  containerState?: Record<string, unknown>;
-  ownerKind?: string;
-  uid?: string;
-}) {
-  const containerStatuses = opts?.containerState
-    ? [{ name: 'main', ready: false, restartCount: 5, state: opts.containerState }]
-    : phase === 'Running'
-    ? [{ name: 'main', ready: true, restartCount: 0, state: { running: {} } }]
-    : [];
-
-  return {
-    apiVersion: 'v1',
-    kind: 'Pod',
-    metadata: {
-      name,
-      namespace: opts?.namespace ?? 'default',
-      uid: opts?.uid ?? `uid-${name}`,
-      ownerReferences: opts?.ownerKind
-        ? [{ kind: opts.ownerKind, name: 'owner', uid: 'owner-uid', apiVersion: 'v1' }]
-        : [],
-    },
-    spec: {},
-    status: { phase, containerStatuses },
-  };
-}
-
 function makeNode(name: string, ready: boolean) {
   return {
     apiVersion: 'v1',
@@ -129,16 +105,6 @@ function makeNode(name: string, ready: boolean) {
     metadata: { name, uid: `uid-${name}`, labels: {} },
     spec: {},
     status: { conditions: [{ type: 'Ready', status: ready ? 'True' : 'False' }] },
-  };
-}
-
-function makeDeployment(name: string, ready: number, desired: number) {
-  return {
-    apiVersion: 'apps/v1',
-    kind: 'Deployment',
-    metadata: { name, namespace: 'default', uid: `uid-${name}` },
-    spec: { replicas: desired },
-    status: { readyReplicas: ready, availableReplicas: ready },
   };
 }
 
@@ -164,81 +130,32 @@ describe('PulseView', () => {
   afterEach(cleanup);
 
   it('renders header with Cluster Pulse title', () => {
-    renderPulse('report');
+    renderPulse();
     expect(screen.getByText('Cluster Pulse')).toBeDefined();
   });
 
-  it('renders 3 tabs: Report, Issues, Runbooks', () => {
-    renderPulse('report');
-    expect(screen.getByText('Report')).toBeDefined();
-    expect(screen.getByText(/Issues/)).toBeDefined();
-    expect(screen.getByText('Runbooks')).toBeDefined();
+  it('renders daily briefing subtitle instead of tabs', () => {
+    renderPulse();
+    expect(screen.getByText(/Daily briefing/)).toBeDefined();
   });
 
-  it('shows "No issues detected" on Issues tab when healthy', () => {
+  it('renders zone headers for all 4 zones', () => {
     setMockData({
       '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
-      '/api/v1/pods': { data: [makePod('pod-1', 'Running')], isLoading: false },
-      '/apis/apps/v1/deployments': { data: [makeDeployment('d1', 1, 1)], isLoading: false },
-      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
-      '/apis/config.openshift.io/v1/clusteroperators': { data: [makeOperator('auth', false)], isLoading: false },
-    });
-
-    renderPulse('issues');
-    expect(screen.getByText('No issues detected')).toBeDefined();
-  });
-
-  it('shows diagnosed CrashLoopBackOff pod on Issues tab', () => {
-    const crashPod = makePod('crash-pod', 'Running', {
-      containerState: { waiting: { reason: 'CrashLoopBackOff' } },
-    });
-
-    setMockData({
-      '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
-      '/api/v1/pods': { data: [crashPod], isLoading: false },
+      '/api/v1/pods': { data: [], isLoading: false },
       '/apis/apps/v1/deployments': { data: [], isLoading: false },
       '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
-      '/apis/config.openshift.io/v1/clusteroperators': { data: [], isLoading: false },
+      '/apis/config.openshift.io/v1/clusteroperators': { data: [makeOperator('kube-apiserver', false)], isLoading: false },
     });
 
-    renderPulse('issues');
-    expect(screen.getByText('crash-pod')).toBeDefined();
+    renderPulse();
+    expect(screen.getByText('Heartbeat')).toBeDefined();
+    expect(screen.getByText('Bottleneck')).toBeDefined();
+    expect(screen.getByText('Fire Alarm')).toBeDefined();
+    expect(screen.getByText('Roadmap')).toBeDefined();
   });
 
-  it('shows runbooks with affected count', () => {
-    const crashPod = makePod('crash-pod', 'Running', {
-      containerState: { waiting: { reason: 'CrashLoopBackOff' } },
-    });
-
-    setMockData({
-      '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
-      '/api/v1/pods': { data: [crashPod], isLoading: false },
-      '/apis/apps/v1/deployments': { data: [], isLoading: false },
-      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
-      '/apis/config.openshift.io/v1/clusteroperators': { data: [], isLoading: false },
-    });
-
-    renderPulse('runbooks');
-    expect(screen.getByText('Pod CrashLoopBackOff')).toBeDefined();
-    expect(screen.getByText('1 affected')).toBeDefined();
-  });
-
-  it('excludes installer pods from diagnosis', () => {
-    const installerPod = makePod('installer-1-node-1', 'Failed', { ownerKind: 'Job' });
-
-    setMockData({
-      '/api/v1/nodes': { data: [], isLoading: false },
-      '/api/v1/pods': { data: [installerPod], isLoading: false },
-      '/apis/apps/v1/deployments': { data: [], isLoading: false },
-      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
-      '/apis/config.openshift.io/v1/clusteroperators': { data: [], isLoading: false },
-    });
-
-    renderPulse('issues');
-    expect(screen.getByText('No issues detected')).toBeDefined();
-  });
-
-  it('renders metric sparkline cards on Report tab', () => {
+  it('renders metric sparkline cards', () => {
     setMockData({
       '/api/v1/nodes': { data: [], isLoading: false },
       '/api/v1/pods': { data: [], isLoading: false },
@@ -247,8 +164,34 @@ describe('PulseView', () => {
       '/apis/config.openshift.io/v1/clusteroperators': { data: [], isLoading: false },
     });
 
-    renderPulse('report');
+    renderPulse();
     const cards = screen.getAllByTestId('metric-card');
     expect(cards.length).toBe(4);
+  });
+
+  it('shows all clear when cluster is healthy', () => {
+    setMockData({
+      '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
+      '/api/v1/pods': { data: [], isLoading: false },
+      '/apis/apps/v1/deployments': { data: [], isLoading: false },
+      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
+      '/apis/config.openshift.io/v1/clusteroperators': { data: [makeOperator('auth', false)], isLoading: false },
+    });
+
+    renderPulse();
+    expect(screen.getByText('All clear')).toBeDefined();
+  });
+
+  it('shows control plane section', () => {
+    setMockData({
+      '/api/v1/nodes': { data: [], isLoading: false },
+      '/api/v1/pods': { data: [], isLoading: false },
+      '/apis/apps/v1/deployments': { data: [], isLoading: false },
+      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
+      '/apis/config.openshift.io/v1/clusteroperators': { data: [makeOperator('kube-apiserver', false)], isLoading: false },
+    });
+
+    renderPulse();
+    expect(screen.getByText('Control Plane')).toBeDefined();
   });
 });
