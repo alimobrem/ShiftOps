@@ -13,7 +13,7 @@ export interface ClusterSnapshot {
   storageClasses: string[];
   namespaceCount: number;
   rbac?: {
-    clusterAdminSubjectCount: number;
+    clusterAdminSubjects: string[];
     clusterRoleBindingCount: number;
     roleBindingCount: number;
   };
@@ -133,8 +133,7 @@ export async function captureSnapshot(label: string): Promise<ClusterSnapshot> {
       }
     }
     snapshot.rbac = {
-      // Store only the count of cluster-admin subjects, not their names (security sensitive)
-      clusterAdminSubjectCount: clusterAdminSubjects.length,
+      clusterAdminSubjects: clusterAdminSubjects.sort(),
       clusterRoleBindingCount: crbData?.items?.length || 0,
       roleBindingCount: rbData?.items?.length || 0,
     };
@@ -184,7 +183,12 @@ export function compareSnapshots(left: ClusterSnapshot, right: ClusterSnapshot):
     rows.push({ field: 'ClusterRoleBindings', category: 'RBAC', left: String(left.rbac.clusterRoleBindingCount), right: String(right.rbac.clusterRoleBindingCount), changed: left.rbac.clusterRoleBindingCount !== right.rbac.clusterRoleBindingCount });
     rows.push({ field: 'RoleBindings', category: 'RBAC', left: String(left.rbac.roleBindingCount), right: String(right.rbac.roleBindingCount), changed: left.rbac.roleBindingCount !== right.rbac.roleBindingCount });
 
-    rows.push({ field: 'Cluster-Admin Subjects', category: 'RBAC', left: String(left.rbac.clusterAdminSubjectCount), right: String(right.rbac.clusterAdminSubjectCount), changed: left.rbac.clusterAdminSubjectCount !== right.rbac.clusterAdminSubjectCount });
+    const leftAdmins = new Set(left.rbac.clusterAdminSubjects);
+    const rightAdmins = new Set(right.rbac.clusterAdminSubjects);
+    const addedAdmins = right.rbac.clusterAdminSubjects.filter(a => !leftAdmins.has(a));
+    const removedAdmins = left.rbac.clusterAdminSubjects.filter(a => !rightAdmins.has(a));
+    if (addedAdmins.length > 0) rows.push({ field: 'Cluster-Admin Added', category: 'RBAC', left: '', right: addedAdmins.join(', '), changed: true });
+    if (removedAdmins.length > 0) rows.push({ field: 'Cluster-Admin Removed', category: 'RBAC', left: removedAdmins.join(', '), right: '', changed: true });
   }
 
   if (left.config && right.config) {

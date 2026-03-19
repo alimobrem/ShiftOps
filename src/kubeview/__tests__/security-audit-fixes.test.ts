@@ -162,14 +162,15 @@ describe('M7: user:full scope documented', () => {
   });
 });
 
-describe('L2: Sensitive data in localStorage', () => {
+describe('L2: Snapshot data in localStorage', () => {
   const source = readSrc('engine/snapshot.ts');
 
-  it('stores only count of cluster-admin subjects, not names', () => {
-    // The interface type should use count, not the full subject array
-    expect(source).toContain('clusterAdminSubjectCount: number');
-    // The snapshot should store count, not the array
-    expect(source).toContain('clusterAdminSubjectCount: clusterAdminSubjects.length');
+  it('stores cluster-admin subjects for snapshot comparison', () => {
+    expect(source).toContain('clusterAdminSubjects');
+  });
+
+  it('filters out system: prefixed subjects', () => {
+    expect(source).toContain("s.name?.startsWith('system:')");
   });
 });
 
