@@ -34,7 +34,7 @@ export default function WelcomeView() {
               Welcome to <span className="bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">ShiftOps</span>
             </h1>
             <p className="text-slate-400 max-w-xl mx-auto leading-relaxed">
-              67 automated health checks, real-time diagnosis, and one-click remediation — built for day-2 operations.
+              A single pane of glass for your OpenShift cluster — health audits, real-time diagnosis, and one-click remediation.
             </p>
             <div className="mt-5">
               <ClusterStatusPill

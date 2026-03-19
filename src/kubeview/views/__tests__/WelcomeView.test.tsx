@@ -49,7 +49,7 @@ describe('WelcomeView', () => {
 
   it('shows the value proposition tagline', () => {
     renderView();
-    expect(screen.getByText(/67 automated health checks/)).toBeDefined();
+    expect(screen.getByText(/single pane of glass/)).toBeDefined();
   });
 
   it('shows connected cluster status pill with node count', () => {
