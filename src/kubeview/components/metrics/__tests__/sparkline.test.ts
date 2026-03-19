@@ -33,8 +33,8 @@ describe('Sparkline component', () => {
     expect(source).toContain('getTimeRange');
   });
 
-  it('PulseView uses MetricCard for CPU, Memory, Network, Disk', () => {
-    const source = fs.readFileSync(path.join(SRC, 'views/PulseView.tsx'), 'utf-8');
+  it('ReportTab uses MetricCard for CPU, Memory, Network, Disk', () => {
+    const source = fs.readFileSync(path.join(SRC, 'views/pulse/ReportTab.tsx'), 'utf-8');
     expect(source).toContain('MetricCard');
     expect(source).toContain('CPU Usage');
     expect(source).toContain('Memory Usage');

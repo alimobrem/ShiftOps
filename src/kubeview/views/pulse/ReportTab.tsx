@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { k8sList } from '../../engine/query';
 import { queryInstant } from '../../components/metrics/prometheus';
+import { MetricCard } from '../../components/metrics/Sparkline';
 import { Panel } from '../../components/primitives/Panel';
 import type { K8sResource } from '../../engine/renderers';
 
@@ -224,13 +225,14 @@ export function ReportTab({ nodes, allPods, operators, go }: ReportTabProps) {
         <Panel title="Cluster Risk Score" icon={<Shield className="w-4 h-4 text-blue-400" />}>
           <div className="flex flex-col items-center py-2">
             <RiskScoreRing score={riskScore} />
-            <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-400">
-              <span>Critical alerts: {criticalAlerts.length}</span>
-              <span>Warning alerts: {warningAlerts.length}</span>
-              <span>Unhealthy nodes: {unhealthyNodes.length}</span>
-              <span>Degraded operators: {degradedOperators.length}</span>
-              <span>Certs &lt;7d: {certsExpiringSoon7.length}</span>
-              <span>Failed pods: {failedPods.length}</span>
+            <div className="mt-3 w-full space-y-1.5 text-xs">
+              <ScoreFactor label="Critical alerts" count={criticalAlerts.length} points={20} max={40} score={Math.min(40, criticalAlerts.length * 20)} />
+              <ScoreFactor label="Warning alerts" count={warningAlerts.length} points={5} max={20} score={Math.min(20, warningAlerts.length * 5)} />
+              <ScoreFactor label="Unhealthy nodes" count={unhealthyNodes.length} points={15} max={null} score={unhealthyNodes.length * 15} />
+              <ScoreFactor label="Degraded operators" count={degradedOperators.length} points={10} max={null} score={degradedOperators.length * 10} />
+              <ScoreFactor label="Certs expiring <7d" count={certsExpiringSoon7.length} points={15} max={null} score={certsExpiringSoon7.length * 15} />
+              <ScoreFactor label="Certs expiring <30d" count={certsExpiringSoon30.length} points={5} max={null} score={certsExpiringSoon30.length * 5} />
+              <ScoreFactor label="Failed pods" count={failedPods.length} points={3} max={15} score={Math.min(15, failedPods.length * 3)} />
             </div>
           </div>
         </Panel>
@@ -274,6 +276,14 @@ export function ReportTab({ nodes, allPods, operators, go }: ReportTabProps) {
           color={unhealthyNodes.length > 0 ? 'text-red-400' : 'text-green-400'} />
         <VitalCard icon={<HeartPulse className="w-3.5 h-3.5" />} label="Pod Health" value={`${runningPods.length} / ${userPods.length}`}
           color={failedPods.length > 0 ? 'text-amber-400' : 'text-green-400'} />
+      </div>
+
+      {/* Metric sparklines */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricCard title="CPU Usage" query="sum(rate(node_cpu_seconds_total{mode!='idle'}[5m])) / sum(machine_cpu_cores) * 100" unit="%" color="#3b82f6" thresholds={{ warning: 70, critical: 90 }} />
+        <MetricCard title="Memory Usage" query="(1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100" unit="%" color="#8b5cf6" thresholds={{ warning: 75, critical: 90 }} />
+        <MetricCard title="Network In" query="sum(rate(node_network_receive_bytes_total{device!~'lo|veth.*|br.*'}[5m])) / 1024 / 1024" unit=" MB/s" color="#06b6d4" />
+        <MetricCard title="Disk I/O" query="sum(rate(node_disk_read_bytes_total[5m]) + rate(node_disk_written_bytes_total[5m])) / 1024 / 1024" unit=" MB/s" color="#f59e0b" />
       </div>
 
       {/* Change Summary + Cert Expiry */}
@@ -338,6 +348,19 @@ function ChangeStat({ icon, label, count }: { icon: React.ReactNode; label: stri
       <div className="text-slate-400">{icon}</div>
       <div className="flex-1 text-sm text-slate-300">{label}</div>
       <span className={cn('text-sm font-semibold tabular-nums', count > 0 ? 'text-slate-100' : 'text-slate-600')}>{count}</span>
+    </div>
+  );
+}
+
+function ScoreFactor({ label, count, points, max, score }: {
+  label: string; count: number; points: number; max: number | null; score: number;
+}) {
+  return (
+    <div className="flex items-center gap-2 px-1">
+      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', score > 0 ? 'bg-red-500' : 'bg-slate-700')} />
+      <span className="flex-1 text-slate-400">{label}</span>
+      <span className="text-slate-500 tabular-nums">{count} x {points}pt{max ? ` (max ${max})` : ''}</span>
+      <span className={cn('w-8 text-right font-mono tabular-nums', score > 0 ? 'text-red-400' : 'text-slate-600')}>+{score}</span>
     </div>
   );
 }

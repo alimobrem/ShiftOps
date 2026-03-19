@@ -228,16 +228,16 @@ describe('UserManagementView specifics', () => {
 describe('PulseView (merged Troubleshoot)', () => {
   const source = readView('PulseView.tsx');
 
-  it('has 4 tabs: report, overview, issues, runbooks', () => {
+  it('has 3 tabs: report, issues, runbooks', () => {
     expect(source).toContain("'report'");
-    expect(source).toContain("'overview'");
     expect(source).toContain("'issues'");
     expect(source).toContain("'runbooks'");
   });
 
-  it('has MetricCard sparklines', () => {
-    expect(source).toContain('MetricCard');
-    expect(source).toContain('CPU Usage');
+  it('has MetricCard sparklines via ReportTab', () => {
+    const reportSource = readView('pulse/ReportTab.tsx');
+    expect(reportSource).toContain('MetricCard');
+    expect(reportSource).toContain('CPU Usage');
   });
 
   it('has diagnosis with log enrichment', () => {

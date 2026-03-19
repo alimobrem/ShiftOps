@@ -276,15 +276,14 @@ describe('P1: Consistent useK8sListWatch usage', () => {
   });
 });
 
-// ===== P1: IssueRow severity =====
+// ===== P1: Issue severity colors =====
 
-describe('P1: IssueRow severity-based colors', () => {
-  it('IssueRow accepts severity prop and uses semantic colors', () => {
+describe('P1: Issue severity-based colors', () => {
+  it('Issues tab uses severity-based colors for diagnosed resources', () => {
     const source = readSrc('views/PulseView.tsx');
-    expect(source).toContain("severity?: 'critical' | 'warning'");
-    expect(source).toContain('severity="warning"');
-    // Warning items use amber, critical use red
-    expect(source).toMatch(/severity\s*===\s*'critical'\s*\?\s*'bg-red-500'\s*:\s*'bg-amber-500'/);
+    expect(source).toContain("maxSeverity === 'critical'");
+    expect(source).toContain('bg-red-900/50 text-red-300');
+    expect(source).toContain('bg-yellow-900/50 text-yellow-300');
   });
 });
 

@@ -5,8 +5,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
-// --- Mocks (vi.mock is hoisted before imports) ---
-
 const navigateMock = vi.fn();
 const addTabMock = vi.fn();
 
@@ -21,12 +19,12 @@ vi.mock('../../store/uiStore', () => ({
       selectedNamespace: '*',
       addTab: addTabMock,
       setConnectionStatus: vi.fn(),
+      addToast: vi.fn(),
     };
     return selector(state);
   },
 }));
 
-// Mock useK8sListWatch — returns data based on apiPath
 const _mockListWatchData: Record<string, { data: any[]; isLoading: boolean }> = {};
 
 vi.mock('../../hooks/useK8sListWatch', () => ({
@@ -64,13 +62,9 @@ vi.mock('../../engine/gvr', () => ({
   resourceDetailUrl: (r: any) => `/r/v1~pods/${r.metadata?.namespace}/${r.metadata?.name}`,
 }));
 
-// Now import the component (mocks are hoisted above this)
 import PulseView from '../PulseView';
 
-// --- Helpers ---
-
 function setMockData(data: Record<string, { data: any[]; isLoading: boolean }>) {
-  // Clear and repopulate the shared mock data object
   for (const key of Object.keys(_mockListWatchData)) {
     delete _mockListWatchData[key];
   }
@@ -85,7 +79,7 @@ function createQueryClient() {
   });
 }
 
-function renderPulse(tab: string = 'overview') {
+function renderPulse(tab: string = 'issues') {
   const queryClient = createQueryClient();
   Object.defineProperty(window, 'location', {
     value: { ...window.location, search: `?tab=${tab}`, href: `http://localhost/pulse?tab=${tab}` },
@@ -100,7 +94,6 @@ function renderPulse(tab: string = 'overview') {
   );
 }
 
-// Pod factory
 function makePod(name: string, phase: string, opts?: {
   namespace?: string;
   containerState?: Record<string, unknown>;
@@ -129,36 +122,26 @@ function makePod(name: string, phase: string, opts?: {
   };
 }
 
-// Node factory
-function makeNode(name: string, ready: boolean, pressure?: { disk?: boolean; memory?: boolean; pid?: boolean }) {
-  const conditions: Array<Record<string, string>> = [
-    { type: 'Ready', status: ready ? 'True' : 'False' },
-  ];
-  if (pressure?.disk) conditions.push({ type: 'DiskPressure', status: 'True' });
-  if (pressure?.memory) conditions.push({ type: 'MemoryPressure', status: 'True' });
-  if (pressure?.pid) conditions.push({ type: 'PIDPressure', status: 'True' });
-
+function makeNode(name: string, ready: boolean) {
   return {
     apiVersion: 'v1',
     kind: 'Node',
     metadata: { name, uid: `uid-${name}`, labels: {} },
     spec: {},
-    status: { conditions },
+    status: { conditions: [{ type: 'Ready', status: ready ? 'True' : 'False' }] },
   };
 }
 
-// Deployment factory
-function makeDeployment(name: string, ready: number, desired: number, opts?: { namespace?: string }) {
+function makeDeployment(name: string, ready: number, desired: number) {
   return {
     apiVersion: 'apps/v1',
     kind: 'Deployment',
-    metadata: { name, namespace: opts?.namespace ?? 'default', uid: `uid-${name}` },
+    metadata: { name, namespace: 'default', uid: `uid-${name}` },
     spec: { replicas: desired },
     status: { readyReplicas: ready, availableReplicas: ready },
   };
 }
 
-// Operator factory
 function makeOperator(name: string, degraded: boolean) {
   return {
     apiVersion: 'config.openshift.io/v1',
@@ -172,185 +155,100 @@ function makeOperator(name: string, degraded: boolean) {
   };
 }
 
-// --- Tests ---
-
 describe('PulseView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setMockData({});
   });
 
-  afterEach(() => {
-    cleanup();
+  afterEach(cleanup);
+
+  it('renders header with Cluster Pulse title', () => {
+    renderPulse('report');
+    expect(screen.getByText('Cluster Pulse')).toBeDefined();
   });
 
-  it('renders "Everything looks good" when no issues', () => {
+  it('renders 3 tabs: Report, Issues, Runbooks', () => {
+    renderPulse('report');
+    expect(screen.getByText('Report')).toBeDefined();
+    expect(screen.getByText(/Issues/)).toBeDefined();
+    expect(screen.getByText('Runbooks')).toBeDefined();
+  });
+
+  it('shows "No issues detected" on Issues tab when healthy', () => {
     setMockData({
-      '/api/v1/nodes': { data: [makeNode('node-1', true), makeNode('node-2', true)], isLoading: false },
+      '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
       '/api/v1/pods': { data: [makePod('pod-1', 'Running')], isLoading: false },
-      '/apis/apps/v1/deployments': { data: [makeDeployment('deploy-1', 2, 2)], isLoading: false },
+      '/apis/apps/v1/deployments': { data: [makeDeployment('d1', 1, 1)], isLoading: false },
       '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
       '/apis/config.openshift.io/v1/clusteroperators': { data: [makeOperator('auth', false)], isLoading: false },
     });
 
-    renderPulse();
-    expect(screen.getByText('Everything looks good')).toBeDefined();
-    expect(screen.getByText('All systems healthy')).toBeDefined();
+    renderPulse('issues');
+    expect(screen.getByText('No issues detected')).toBeDefined();
   });
 
-  it('shows failing pod count when pods are in CrashLoopBackOff', () => {
+  it('shows diagnosed CrashLoopBackOff pod on Issues tab', () => {
     const crashPod = makePod('crash-pod', 'Running', {
       containerState: { waiting: { reason: 'CrashLoopBackOff' } },
     });
 
     setMockData({
       '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
-      '/api/v1/pods': { data: [crashPod, makePod('ok-pod', 'Running')], isLoading: false },
+      '/api/v1/pods': { data: [crashPod], isLoading: false },
       '/apis/apps/v1/deployments': { data: [], isLoading: false },
       '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
       '/apis/config.openshift.io/v1/clusteroperators': { data: [], isLoading: false },
     });
 
-    renderPulse();
-    expect(screen.getByText('Failing Pods (1)')).toBeDefined();
+    renderPulse('issues');
     expect(screen.getByText('crash-pod')).toBeDefined();
-    expect(screen.getByText('CrashLoopBackOff')).toBeDefined();
   });
 
-  it('shows stat cards (Nodes, Pods, Deployments, Operators, CPU, Memory)', () => {
-    setMockData({
-      '/api/v1/nodes': { data: [makeNode('node-1', true), makeNode('node-2', true)], isLoading: false },
-      '/api/v1/pods': { data: [makePod('pod-1', 'Running'), makePod('pod-2', 'Running')], isLoading: false },
-      '/apis/apps/v1/deployments': { data: [makeDeployment('d1', 1, 1)], isLoading: false },
-      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
-      '/apis/config.openshift.io/v1/clusteroperators': { data: [makeOperator('dns', false)], isLoading: false },
+  it('shows runbooks with affected count', () => {
+    const crashPod = makePod('crash-pod', 'Running', {
+      containerState: { waiting: { reason: 'CrashLoopBackOff' } },
     });
-
-    renderPulse();
-    expect(screen.getByText('Nodes')).toBeDefined();
-    expect(screen.getByText('Pods')).toBeDefined();
-    expect(screen.getByText('Deployments')).toBeDefined();
-    expect(screen.getByText('Operators')).toBeDefined();
-    expect(screen.getByText('CPU')).toBeDefined();
-    expect(screen.getByText('Memory')).toBeDefined();
-
-    // Values: healthy/total format (multiple stat cards may show same ratio)
-    expect(screen.getAllByText('2/2').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('1/1').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('shows degraded operator section', () => {
-    setMockData({
-      '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
-      '/api/v1/pods': { data: [], isLoading: false },
-      '/apis/apps/v1/deployments': { data: [], isLoading: false },
-      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
-      '/apis/config.openshift.io/v1/clusteroperators': {
-        data: [makeOperator('auth', true), makeOperator('dns', false)],
-        isLoading: false,
-      },
-    });
-
-    renderPulse();
-    expect(screen.getByText('Degraded Operators (1)')).toBeDefined();
-    expect(screen.getByText('auth')).toBeDefined();
-    expect(screen.getByText('Degraded')).toBeDefined();
-  });
-
-  it('excludes installer pods from failing pods', () => {
-    const installerPod = makePod('installer-1-node-1', 'Failed');
-    const prunerPod = makePod('revision-pruner-1-node-1', 'Failed');
 
     setMockData({
       '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
-      '/api/v1/pods': { data: [installerPod, prunerPod, makePod('ok-pod', 'Running')], isLoading: false },
+      '/api/v1/pods': { data: [crashPod], isLoading: false },
       '/apis/apps/v1/deployments': { data: [], isLoading: false },
       '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
       '/apis/config.openshift.io/v1/clusteroperators': { data: [], isLoading: false },
     });
 
-    renderPulse();
-    expect(screen.getByText('Everything looks good')).toBeDefined();
-    expect(screen.queryByText('Failing Pods')).toBeNull();
+    renderPulse('runbooks');
+    expect(screen.getByText('Pod CrashLoopBackOff')).toBeDefined();
+    expect(screen.getByText('1 affected')).toBeDefined();
   });
 
-  it('excludes job-owned failed pods', () => {
-    const jobPod = makePod('job-pod-abc', 'Failed', { ownerKind: 'Job' });
+  it('excludes installer pods from diagnosis', () => {
+    const installerPod = makePod('installer-1-node-1', 'Failed', { ownerKind: 'Job' });
 
     setMockData({
-      '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
-      '/api/v1/pods': { data: [jobPod], isLoading: false },
+      '/api/v1/nodes': { data: [], isLoading: false },
+      '/api/v1/pods': { data: [installerPod], isLoading: false },
       '/apis/apps/v1/deployments': { data: [], isLoading: false },
       '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
       '/apis/config.openshift.io/v1/clusteroperators': { data: [], isLoading: false },
     });
 
-    renderPulse();
-    expect(screen.getByText('Everything looks good')).toBeDefined();
+    renderPulse('issues');
+    expect(screen.getByText('No issues detected')).toBeDefined();
   });
 
-  it('shows unready nodes section', () => {
+  it('renders metric sparkline cards on Report tab', () => {
     setMockData({
-      '/api/v1/nodes': { data: [makeNode('bad-node', false), makeNode('good-node', true)], isLoading: false },
+      '/api/v1/nodes': { data: [], isLoading: false },
       '/api/v1/pods': { data: [], isLoading: false },
       '/apis/apps/v1/deployments': { data: [], isLoading: false },
       '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
       '/apis/config.openshift.io/v1/clusteroperators': { data: [], isLoading: false },
     });
 
-    renderPulse();
-    expect(screen.getByText('Unready Nodes (1)')).toBeDefined();
-    expect(screen.getByText('bad-node')).toBeDefined();
-    expect(screen.getByText('NotReady')).toBeDefined();
-  });
-
-  it('shows "Cluster-wide" label for node/operator issues', () => {
-    setMockData({
-      '/api/v1/nodes': { data: [makeNode('bad-node', false)], isLoading: false },
-      '/api/v1/pods': { data: [], isLoading: false },
-      '/apis/apps/v1/deployments': { data: [], isLoading: false },
-      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
-      '/apis/config.openshift.io/v1/clusteroperators': { data: [makeOperator('auth', true)], isLoading: false },
-    });
-
-    renderPulse();
-    expect(screen.getByText('Cluster-wide issues')).toBeDefined();
-    expect(screen.getByText('Cluster-wide')).toBeDefined();
-  });
-
-  it('shows separate namespace and cluster stat sections', () => {
-    setMockData({
-      '/api/v1/nodes': { data: [makeNode('node-1', true)], isLoading: false },
-      '/api/v1/pods': { data: [makePod('pod-1', 'Running')], isLoading: false },
-      '/apis/apps/v1/deployments': { data: [makeDeployment('d1', 1, 1)], isLoading: false },
-      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
-      '/apis/config.openshift.io/v1/clusteroperators': { data: [makeOperator('dns', false)], isLoading: false },
-    });
-
-    renderPulse();
-    // Cluster-wide label always shows
-    expect(screen.getByText('Cluster-wide')).toBeDefined();
-    // Cluster stats
-    expect(screen.getByText('Nodes')).toBeDefined();
-    expect(screen.getByText('Operators')).toBeDefined();
-    expect(screen.getByText('CPU')).toBeDefined();
-    expect(screen.getByText('Memory')).toBeDefined();
-    // Namespace stats
-    expect(screen.getByText('Pods')).toBeDefined();
-    expect(screen.getByText('Deployments')).toBeDefined();
-    expect(screen.getByText('PVCs')).toBeDefined();
-  });
-
-  it('shows the issue count badge when there are issues', () => {
-    setMockData({
-      '/api/v1/nodes': { data: [makeNode('bad-node', false)], isLoading: false },
-      '/api/v1/pods': { data: [], isLoading: false },
-      '/apis/apps/v1/deployments': { data: [], isLoading: false },
-      '/api/v1/persistentvolumeclaims': { data: [], isLoading: false },
-      '/apis/config.openshift.io/v1/clusteroperators': { data: [], isLoading: false },
-    });
-
-    renderPulse();
-    expect(screen.getByText('1 issue')).toBeDefined();
+    renderPulse('report');
+    const cards = screen.getAllByTestId('metric-card');
+    expect(cards.length).toBe(4);
   });
 });
