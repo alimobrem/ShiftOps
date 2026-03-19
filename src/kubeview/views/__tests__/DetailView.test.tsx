@@ -235,8 +235,8 @@ describe('DetailView', () => {
     renderDetailView({ gvrKey: 'apps/v1/deployments', namespace: 'default', name: 'my-deployment' });
 
     await waitFor(() => {
-      // The replicas count badge
-      expect(screen.getByText('3')).toBeDefined();
+      // The replicas count appears in scale controls and deployment summary
+      expect(screen.getAllByText('3').length).toBeGreaterThanOrEqual(1);
     });
     // Restart button for deployments
     expect(screen.getByText('Restart')).toBeDefined();

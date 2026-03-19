@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronDown, Layers, Bell, User, Server, Plus, LogOut } from 'lucide-react';
+import { Search, ChevronDown, Layers, Bell, User, Server, Plus, LogOut, ClipboardCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useUIStore } from '../store/uiStore';
 import { k8sList } from '../engine/query';
@@ -212,6 +212,15 @@ export function CommandBar() {
             </>
           )}
         </div>
+
+        {/* Morning Report */}
+        <button
+          onClick={() => go('/morning-report', 'Morning Report')}
+          className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-colors"
+          title="Morning Report — cluster health summary"
+        >
+          <ClipboardCheck className="w-4 h-4" />
+        </button>
 
         {/* Notification bell */}
         <button
