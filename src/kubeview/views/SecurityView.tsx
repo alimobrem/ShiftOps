@@ -57,6 +57,16 @@ export default function SecurityView() {
     },
     staleTime: 120000,
   });
+  const { data: externalSecrets = [] } = useQuery<K8sResource[]>({
+    queryKey: ['security', 'externalsecrets'],
+    queryFn: () => k8sList<K8sResource>('/apis/external-secrets.io/v1beta1/externalsecrets').catch(() => []),
+    staleTime: 120000,
+  });
+  const { data: sealedSecrets = [] } = useQuery<K8sResource[]>({
+    queryKey: ['security', 'sealedsecrets'],
+    queryFn: () => k8sList<K8sResource>('/apis/bitnami.com/v1alpha1/sealedsecrets').catch(() => []),
+    staleTime: 120000,
+  });
 
   // Derived
   const identityProviders = oauthConfig?.spec?.identityProviders || [];
@@ -191,8 +201,24 @@ export default function SecurityView() {
       link: '/admin?tab=certificates', linkTitle: 'Certificates',
     });
 
+    // Secrets management
+    const hasExternalSecrets = externalSecrets.length > 0;
+    const hasSealedSecrets = sealedSecrets.length > 0;
+    const hasSecretsMgmt = hasExternalSecrets || hasSealedSecrets;
+    c.push({
+      id: 'secrets-mgmt',
+      label: 'Secrets management',
+      pass: hasSecretsMgmt,
+      detail: hasExternalSecrets
+        ? `${externalSecrets.length} ExternalSecret${externalSecrets.length !== 1 ? 's' : ''}`
+        : hasSealedSecrets
+        ? `${sealedSecrets.length} SealedSecret${sealedSecrets.length !== 1 ? 's' : ''}`
+        : 'No external secrets operator detected — secrets stored as base64 in etcd',
+      severity: hasSecretsMgmt ? 'info' : 'warning',
+    });
+
     return c;
-  }, [identityProviders, kubeadminExists, tlsProfile, encryptionType, clusterAdmins, unprotectedNamespaces, userNamespaces, sccs, privilegedSCCs, tlsSecretCount, opaqueSecretCount]);
+  }, [identityProviders, kubeadminExists, tlsProfile, encryptionType, clusterAdmins, unprotectedNamespaces, userNamespaces, sccs, privilegedSCCs, tlsSecretCount, opaqueSecretCount, externalSecrets, sealedSecrets]);
 
   const passCount = checks.filter(c => c.pass).length;
   const auditScore = Math.round((passCount / checks.length) * 100);

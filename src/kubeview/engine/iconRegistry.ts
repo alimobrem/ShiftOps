@@ -44,6 +44,8 @@ import {
   TrendingUp,
   Search,
   Bell,
+  Hammer,
+  Users,
 
   // Additional action icons
   FileEdit,
@@ -94,6 +96,8 @@ const iconRegistry: Record<string, LucideIcon> = {
   GitCompare,
   FilePlus,
   Bell,
+  Hammer,
+  Users,
 
   // Actions
   ArrowUpDown,
