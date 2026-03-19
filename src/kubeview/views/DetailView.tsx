@@ -27,9 +27,10 @@ import {
   Shield,
   Loader2,
   ScrollText,
+  Bug,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { k8sGet, k8sList, k8sDelete, k8sPatch, k8sLogs } from '../engine/query';
+import { k8sGet, k8sList, k8sDelete, k8sPatch, k8sCreate, k8sLogs } from '../engine/query';
 import { MetricCard } from '../components/metrics/Sparkline';
 import type { K8sResource } from '../engine/renderers';
 import { diagnoseResource, enrichDiagnosesWithLogs, type Diagnosis } from '../engine/diagnosis';
@@ -224,6 +225,72 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
     go(`/metrics/${gvrUrl}/${ns}/${name}`, `${name} (Metrics)`);
   };
 
+  const handleDebug = async () => {
+    if (!resource || actionLoading) return;
+    setActionLoading('debug');
+    try {
+      if (resource.kind === 'Node') {
+        // Create a debug pod on the node
+        const debugName = `debug-${resource.metadata.name.slice(0, 20)}-${Date.now().toString(36).slice(-4)}`;
+        const debugPod = {
+          apiVersion: 'v1',
+          kind: 'Pod',
+          metadata: {
+            name: debugName,
+            namespace: 'default',
+            labels: { 'shiftops/debug': 'true', 'shiftops/debug-node': resource.metadata.name },
+          },
+          spec: {
+            nodeName: resource.metadata.name,
+            hostPID: true,
+            hostNetwork: true,
+            restartPolicy: 'Never',
+            containers: [{
+              name: 'debug',
+              image: 'registry.redhat.io/rhel9/support-tools:latest',
+              command: ['sleep', '3600'],
+              securityContext: { privileged: true },
+              volumeMounts: [{ name: 'host', mountPath: '/host' }],
+            }],
+            volumes: [{ name: 'host', hostPath: { path: '/' } }],
+          },
+        };
+        await k8sCreate('/api/v1/namespaces/default/pods', debugPod);
+        addToast({ type: 'success', title: `Debug pod created: ${debugName}`, detail: 'Host filesystem at /host. Run: chroot /host. Pod auto-deletes in 1 hour.' });
+        go(`/r/v1~pods/default/${debugName}`, debugName);
+      } else if (resource.kind === 'Pod' && namespace) {
+        // Create ephemeral debug container
+        const debugContainerName = `debug-${Date.now().toString(36).slice(-6)}`;
+        const patch = {
+          spec: {
+            ephemeralContainers: [
+              ...((resource.spec as any)?.ephemeralContainers || []),
+              {
+                name: debugContainerName,
+                image: 'busybox:latest',
+                command: ['sh'],
+                stdin: true,
+                tty: true,
+                targetContainerName: (resource.spec as any)?.containers?.[0]?.name,
+              },
+            ],
+          },
+        };
+        await k8sPatch(
+          `/api/v1/namespaces/${namespace}/pods/${resource.metadata.name}/ephemeralcontainers`,
+          patch,
+          'application/strategic-merge-patch+json'
+        );
+        addToast({ type: 'success', title: `Debug container "${debugContainerName}" added`, detail: 'Shares process namespace with the target container. Connect via terminal.' });
+        queryClient.invalidateQueries({ queryKey: ['detail', apiPath] });
+      }
+    } catch (err) {
+      addToast({ type: 'error', title: 'Debug failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleScale = async (delta: number) => {
     if (!resource || actionLoading) return;
     const currentReplicas = (resource.spec as any)?.replicas ?? 0;
@@ -381,9 +448,15 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
               </button>
             )}
             {(resource.kind === 'Pod' || resource.kind === 'Node') && (
-              <button onClick={() => setShowTerminal(true)} className="px-2.5 py-1.5 text-xs text-slate-400 rounded hover:bg-slate-800 hover:text-slate-200 flex items-center gap-1.5 transition-colors">
-                <Terminal className="w-3.5 h-3.5" /> Terminal
-              </button>
+              <>
+                <button onClick={() => setShowTerminal(true)} className="px-2.5 py-1.5 text-xs text-slate-400 rounded hover:bg-slate-800 hover:text-slate-200 flex items-center gap-1.5 transition-colors">
+                  <Terminal className="w-3.5 h-3.5" /> Terminal
+                </button>
+                <button onClick={handleDebug} disabled={!!actionLoading} className="px-2.5 py-1.5 text-xs text-slate-400 rounded hover:bg-slate-800 hover:text-amber-400 flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                  <Bug className={cn('w-3.5 h-3.5', actionLoading === 'debug' && 'animate-pulse')} />
+                  {actionLoading === 'debug' ? 'Creating...' : 'Debug'}
+                </button>
+              </>
             )}
             {isScalable && (
               <div className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-slate-800/50">
