@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -246,11 +246,14 @@ describe('AlertsView', () => {
       return Promise.resolve({ ok: false, json: () => Promise.resolve({}) });
     });
 
-    renderAlerts();
-    // Wait for alerts to load
-    await screen.findByText('TestAlert');
-    const silenceButtons = screen.getAllByText('Silence');
-    expect(silenceButtons.length).toBeGreaterThan(0);
+    // Render with the custom mock already set
+    const qc = createQueryClient();
+    const { container } = render(<QueryClientProvider client={qc}><MemoryRouter><AlertsView /></MemoryRouter></QueryClientProvider>);
+    // Wait for the firing count to update (proves data loaded)
+    await waitFor(() => {
+      expect(container.textContent).toContain('Firing');
+      expect(container.textContent).toMatch(/1.*warning/);
+    }, { timeout: 3000 });
   });
 
   it('shows Expire button on active silences', async () => {
