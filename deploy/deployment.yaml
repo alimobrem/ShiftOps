@@ -213,20 +213,20 @@ data:
           proxy_read_timeout 120s;
         }
 
-        # Proxy Prometheus
+        # Proxy Prometheus (uses service-ca signed certs)
         location /api/prometheus/ {
           proxy_pass https://thanos-querier.openshift-monitoring.svc:9091/;
           proxy_ssl_verify on;
-          proxy_ssl_trusted_certificate /var/run/secrets/kubernetes.io/serviceaccount/ca.crt;
+          proxy_ssl_trusted_certificate /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt;
           proxy_set_header Authorization "Bearer $http_x_forwarded_access_token";
           proxy_read_timeout 60s;
         }
 
-        # Proxy Alertmanager
+        # Proxy Alertmanager (uses service-ca signed certs)
         location /api/alertmanager/ {
           proxy_pass https://alertmanager-main.openshift-monitoring.svc:9094/;
           proxy_ssl_verify on;
-          proxy_ssl_trusted_certificate /var/run/secrets/kubernetes.io/serviceaccount/ca.crt;
+          proxy_ssl_trusted_certificate /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt;
           proxy_set_header Authorization "Bearer $http_x_forwarded_access_token";
           proxy_read_timeout 60s;
         }
