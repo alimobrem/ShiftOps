@@ -102,9 +102,9 @@ let tabIdCounter = Date.now();
 let toastIdCounter = 0;
 
 const DEFAULT_TABS: Tab[] = [
-  { id: 'welcome', title: 'Welcome', icon: 'Home', path: '/welcome', pinned: true, closable: false },
-  { id: 'pulse', title: 'Pulse', icon: 'Activity', path: '/pulse', pinned: true, closable: false },
-  { id: 'admin', title: 'Admin', icon: 'Settings', path: '/admin', pinned: true, closable: false },
+  { id: 'welcome', title: 'Welcome', icon: 'Home', path: '/welcome', pinned: true, closable: true },
+  { id: 'pulse', title: 'Pulse', icon: 'Activity', path: '/pulse', pinned: true, closable: true },
+  { id: 'admin', title: 'Admin', icon: 'Settings', path: '/admin', pinned: true, closable: true },
 ];
 
 // Default toast durations (ms)

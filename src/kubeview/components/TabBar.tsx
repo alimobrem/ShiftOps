@@ -181,7 +181,7 @@ export function TabBar() {
             )}
           >
             {/* Pin indicator for pinned tabs */}
-            {tab.pinned && tab.id !== 'pulse' && (
+            {tab.pinned && (
               <Pin className="h-2.5 w-2.5 shrink-0 text-blue-400/60 group-hover:hidden" />
             )}
 
@@ -209,7 +209,7 @@ export function TabBar() {
             </span>
 
             {/* Pin/Unpin button (hover) */}
-            {tab.pinned && tab.id !== 'pulse' ? (
+            {tab.pinned ? (
               <button
                 onClick={(e) => { e.stopPropagation(); unpinTab(tab.id); }}
                 className="rounded p-0.5 opacity-0 transition-opacity hover:bg-slate-600 group-hover:opacity-100 text-blue-400"
@@ -282,7 +282,7 @@ export function TabBar() {
                       📌 Pin tab
                     </button>
                   )}
-                  {tab.pinned && tab.id !== 'pulse' && (
+                  {tab.pinned && (
                     <button
                       onClick={() => { unpinTab(tab.id); setContextMenu(null); }}
                       className="w-full px-3 py-1.5 text-left text-sm text-slate-300 hover:bg-slate-700"
