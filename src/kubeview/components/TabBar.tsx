@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Pin, PinOff } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { cn } from '@/lib/utils';
 import { useEffect, useRef } from 'react';
@@ -180,11 +180,24 @@ export function TabBar() {
               draggedIdx === tabIndex && 'opacity-50'
             )}
           >
+            {/* Pin indicator for pinned tabs */}
+            {tab.pinned && tab.id !== 'pulse' && (
+              <Pin className="h-2.5 w-2.5 shrink-0 text-blue-400/60 group-hover:hidden" />
+            )}
+
             {/* Icon */}
-            {Icon && (
+            {Icon && !tab.pinned && (
               <Icon
                 className={cn(
                   'h-3.5 w-3.5 shrink-0',
+                  isActive ? 'text-emerald-400' : 'text-slate-500'
+                )}
+              />
+            )}
+            {Icon && tab.pinned && (
+              <Icon
+                className={cn(
+                  'h-3.5 w-3.5 shrink-0 hidden group-hover:block',
                   isActive ? 'text-emerald-400' : 'text-slate-500'
                 )}
               />
@@ -194,6 +207,25 @@ export function TabBar() {
             <span className={cn('truncate', tab.pinned ? 'text-xs' : 'flex-1')}>
               {tab.title}
             </span>
+
+            {/* Pin/Unpin button (hover) */}
+            {tab.pinned && tab.id !== 'pulse' ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); unpinTab(tab.id); }}
+                className="rounded p-0.5 opacity-0 transition-opacity hover:bg-slate-600 group-hover:opacity-100 text-blue-400"
+                title="Unpin tab"
+              >
+                <PinOff className="h-3 w-3" />
+              </button>
+            ) : tab.closable && !tab.pinned ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); pinTab(tab.id); }}
+                className="rounded p-0.5 opacity-0 transition-opacity hover:bg-slate-600 group-hover:opacity-100"
+                title="Pin tab"
+              >
+                <Pin className="h-3 w-3" />
+              </button>
+            ) : null}
 
             {/* Close button */}
             {tab.closable && (
