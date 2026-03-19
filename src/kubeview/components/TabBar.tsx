@@ -90,6 +90,12 @@ export function TabBar() {
     }
   };
 
+  // Paths that redirect to other routes — don't create tabs for these
+  const REDIRECT_PATHS = new Set([
+    '/', '/dashboard', '/software', '/operators', '/operatorhub',
+    '/morning-report', '/troubleshoot', '/config-compare', '/timeline',
+  ]);
+
   // Sync active tab with current route
   useEffect(() => {
     const currentPath = location.pathname;
@@ -100,8 +106,8 @@ export function TabBar() {
       if (activeTabId !== matchingTab.id) {
         setActiveTab(matchingTab.id);
       }
-    } else if (currentPath !== '/pulse' && currentPath !== '/welcome') {
-      // Create a new tab for this path
+    } else if (!REDIRECT_PATHS.has(currentPath)) {
+      // Create a new tab for this path (skip redirects and pinned defaults)
       const title = getTabTitle(currentPath);
 
       addTab({

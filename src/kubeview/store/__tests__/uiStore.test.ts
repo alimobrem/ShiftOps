@@ -173,6 +173,49 @@ describe('uiStore', () => {
     });
   });
 
+  describe('tab title generation', () => {
+    it('never creates a tab with title "Untitled"', () => {
+      useUIStore.getState().addTab({ title: '', path: '/workloads', pinned: false, closable: true });
+      const tab = useUIStore.getState().tabs.find((t) => t.path === '/workloads');
+      expect(tab?.title).toBe('Workloads');
+      expect(tab?.title).not.toBe('Untitled');
+    });
+
+    it('derives title from last path segment when title is empty', () => {
+      useUIStore.getState().addTab({ title: '', path: '/r/apps~v1~deployments', pinned: false, closable: true });
+      const tab = useUIStore.getState().tabs.find((t) => t.path === '/r/apps~v1~deployments');
+      expect(tab?.title).toBe('Apps~v1~deployments');
+    });
+
+    it('capitalizes first letter of derived title', () => {
+      useUIStore.getState().addTab({ title: '', path: '/compute', pinned: false, closable: true });
+      const tab = useUIStore.getState().tabs.find((t) => t.path === '/compute');
+      expect(tab?.title).toBe('Compute');
+    });
+  });
+
+  describe('TabBar redirect handling', () => {
+    it('TabBar excludes redirect paths from tab creation', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const source = fs.readFileSync(path.join(__dirname, '../../components/TabBar.tsx'), 'utf-8');
+      // Verify REDIRECT_PATHS includes root and legacy paths
+      expect(source).toContain("'/'");
+      expect(source).toContain("'/dashboard'");
+      expect(source).toContain("'/software'");
+      expect(source).toContain("'/troubleshoot'");
+      expect(source).toContain('REDIRECT_PATHS.has(currentPath)');
+    });
+
+    it('store merge drops tabs for redirect paths', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const source = fs.readFileSync(path.join(__dirname, '../uiStore.ts'), 'utf-8');
+      expect(source).toContain('STALE_PATHS');
+      expect(source).toContain("tab.title === 'Untitled'");
+    });
+  });
+
   // --- Command Palette ---
 
   describe('command palette', () => {
