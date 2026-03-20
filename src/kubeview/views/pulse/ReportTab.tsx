@@ -420,15 +420,15 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
             <div className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-3">Control Plane</div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
               {controlPlaneOps.map(op => (
-                <div key={op.name} className="flex items-center gap-2">
+                <button key={op.name} onClick={() => go(`/r/config.openshift.io~v1~clusteroperators/_/${op.name}`, op.name)} className="flex items-center gap-2 hover:bg-slate-800/50 rounded px-1.5 py-1 -mx-1.5 transition-colors text-left">
                   <StatusDot ok={op.found && op.available && !op.degraded} />
                   <span className="text-xs text-slate-300 truncate">{op.name}</span>
-                </div>
+                </button>
               ))}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 px-3 py-2 bg-slate-800/50 rounded">
+              <button onClick={() => go('/compute', 'Compute')} className="flex items-center gap-3 px-3 py-2 bg-slate-800/50 rounded hover:bg-slate-800 transition-colors text-left">
                 <Gauge className="w-4 h-4 text-slate-400" />
                 <div>
                   <div className="text-xs text-slate-500">API Latency (p99)</div>
@@ -436,8 +436,8 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
                     {apiLatency !== null && apiLatency !== undefined ? `${apiLatency.toFixed(0)}ms` : '—'}
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 px-3 py-2 bg-slate-800/50 rounded">
+              </button>
+              <button onClick={() => go('/compute', 'Compute')} className="flex items-center gap-3 px-3 py-2 bg-slate-800/50 rounded hover:bg-slate-800 transition-colors text-left">
                 <Database className="w-4 h-4 text-slate-400" />
                 <div>
                   <div className="text-xs text-slate-500">Etcd Leader Changes (1h)</div>
@@ -445,7 +445,7 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
                     {etcdLeaderChanges !== null && etcdLeaderChanges !== undefined ? etcdLeaderChanges : <span title="Metric unavailable (etcd may run outside this cluster)">N/A</span>}
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
 
             {/* Urgent certs in Zone 1 */}
@@ -501,9 +501,9 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
 
         {/* Vitals row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard title="CPU" query="sum(rate(node_cpu_seconds_total{mode!='idle'}[5m])) / sum(machine_cpu_cores) * 100" unit="%" color="#3b82f6" thresholds={{ warning: 70, critical: 90 }} />
-          <MetricCard title="Memory" query="(1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100" unit="%" color="#8b5cf6" thresholds={{ warning: 75, critical: 90 }} />
-          <div className="bg-slate-900 rounded-lg border border-slate-800 p-3">
+          <MetricCard title="CPU" query="sum(rate(node_cpu_seconds_total{mode!='idle'}[5m])) / sum(machine_cpu_cores) * 100" unit="%" color="#3b82f6" thresholds={{ warning: 70, critical: 90 }} onClick={() => go('/compute', 'Compute')} />
+          <MetricCard title="Memory" query="(1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100" unit="%" color="#8b5cf6" thresholds={{ warning: 75, critical: 90 }} onClick={() => go('/compute', 'Compute')} />
+          <button onClick={() => go('/compute', 'Compute')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 hover:border-slate-600 transition-colors text-left">
             <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wider">
               <Server className="w-3.5 h-3.5" />Nodes
             </div>
@@ -511,8 +511,8 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
               {readyNodes.length} / {nodes.length}
             </div>
             <div className="text-xs text-slate-500 mt-0.5">ready</div>
-          </div>
-          <div className="bg-slate-900 rounded-lg border border-slate-800 p-3">
+          </button>
+          <button onClick={() => go('/workloads', 'Workloads')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 hover:border-slate-600 transition-colors text-left">
             <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wider">
               <HeartPulse className="w-3.5 h-3.5" />Pods
             </div>
@@ -520,13 +520,13 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
               {runningPods.length} / {userPods.length}
             </div>
             <div className="text-xs text-slate-500 mt-0.5">user namespaces</div>
-          </div>
+          </button>
         </div>
 
         {/* Network + Disk */}
         <div className="grid grid-cols-2 gap-3">
-          <MetricCard title="Network In" query="sum(rate(node_network_receive_bytes_total{device!~'lo|veth.*|br.*'}[5m])) / 1024 / 1024" unit=" MB/s" color="#06b6d4" />
-          <MetricCard title="Disk I/O" query="sum(rate(node_disk_read_bytes_total[5m]) + rate(node_disk_written_bytes_total[5m])) / 1024 / 1024" unit=" MB/s" color="#f59e0b" />
+          <MetricCard title="Network In" query="sum(rate(node_network_receive_bytes_total{device!~'lo|veth.*|br.*'}[5m])) / 1024 / 1024" unit=" MB/s" color="#06b6d4" onClick={() => go('/networking', 'Networking')} />
+          <MetricCard title="Disk I/O" query="sum(rate(node_disk_read_bytes_total[5m]) + rate(node_disk_written_bytes_total[5m])) / 1024 / 1024" unit=" MB/s" color="#f59e0b" onClick={() => go('/storage', 'Storage')} />
         </div>
 
         {/* Pressure / PV / Quota warnings */}
@@ -560,13 +560,14 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
                   <Database className="w-3.5 h-3.5 text-amber-400" />
                   <span className="text-xs font-medium text-slate-200">PVs Over 85% Used</span>
                   <span className="text-xs text-slate-500">{pvOverloaded.length} volume{pvOverloaded.length !== 1 ? 's' : ''}</span>
+                  <button onClick={() => go('/storage', 'Storage')} className="text-xs text-blue-400 hover:text-blue-300 ml-auto flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></button>
                 </div>
                 <div className="space-y-1">
                   {pvOverloaded.slice(0, 5).map((pv, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs px-2 py-1">
+                    <button key={i} onClick={() => go('/storage', 'Storage')} className="w-full flex items-center justify-between text-xs px-2 py-1 hover:bg-slate-800/50 rounded transition-colors text-left">
                       <span className="text-slate-300 truncate">{pv.metric.persistentvolumeclaim || pv.metric.namespace || 'unknown'}</span>
                       <span className="text-amber-400 font-mono">{pv.value.toFixed(1)}%</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -576,14 +577,15 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
                   <span className="text-xs font-medium text-slate-200">Quota Overages</span>
+                  <button onClick={() => go('/admin?tab=quotas', 'Quotas')} className="text-xs text-blue-400 hover:text-blue-300 ml-auto flex items-center gap-1">View all <ArrowRight className="w-3 h-3" /></button>
                 </div>
                 <div className="space-y-1">
                   {quotaOverages.slice(0, 5).map((q, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs px-2 py-1">
+                    <button key={i} onClick={() => go('/admin?tab=quotas', 'Quotas')} className="w-full flex items-center gap-2 text-xs px-2 py-1 hover:bg-slate-800/50 rounded transition-colors text-left">
                       <span className="text-slate-300">{q.namespace}/{q.name}</span>
                       <span className="text-slate-500">{q.resource}</span>
                       <span className="text-red-400 font-mono ml-auto">{q.used} / {q.hard}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -684,11 +686,11 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
 
         {/* All clear in Zone 3 */}
         {attentionItems.length === 0 && pendingPods.length === 0 && topRestartingPods.length === 0 && (
-          <div className="bg-slate-900 rounded-lg border border-green-900/30 p-4 text-center">
+          <button onClick={() => go('/admin?tab=readiness', 'Readiness')} className="w-full bg-slate-900 rounded-lg border border-green-900/30 p-4 text-center hover:border-green-800/50 transition-colors">
             <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-1" />
             <div className="text-sm font-medium text-slate-200">All clear</div>
             <div className="text-xs text-slate-500 mt-0.5">{nodes.length} nodes, {operators.length} operators, {userPods.length} user pods — no issues detected</div>
-          </div>
+          </button>
         )}
       </div>
 
@@ -713,7 +715,7 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
                 </button>
               </div>
             ) : (
-              <div className="text-xs text-slate-500">Up to date</div>
+              <button onClick={() => go('/admin?tab=updates', 'Updates')} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">Up to date</button>
             )}
           </div>
 

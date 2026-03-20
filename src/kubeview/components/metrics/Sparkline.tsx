@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
 import { queryRange, getTimeRange } from './prometheus';
 
 interface SparklineProps {
@@ -98,6 +99,7 @@ export function MetricCard({
   color = '#3b82f6',
   duration = '1h',
   thresholds,
+  onClick,
 }: {
   title: string;
   query: string;
@@ -105,6 +107,7 @@ export function MetricCard({
   color?: string;
   duration?: string;
   thresholds?: { warning: number; critical: number };
+  onClick?: () => void;
 }) {
   const { data: series = [] } = useQuery({
     queryKey: ['metric-card', query, duration],
@@ -143,7 +146,7 @@ export function MetricCard({
     : '';
 
   return (
-    <div className="bg-slate-900 rounded-lg border border-slate-800 p-3">
+    <div className={cn('bg-slate-900 rounded-lg border border-slate-800 p-3', onClick && 'cursor-pointer hover:border-slate-600 transition-colors')} onClick={onClick} role={onClick ? 'button' : undefined}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-slate-400">{title}</span>
         <span className="text-sm font-mono font-bold" style={{ color: displayColor }}>
