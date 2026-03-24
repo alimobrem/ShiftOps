@@ -10,10 +10,13 @@ import { useK8sListWatch } from '../hooks/useK8sListWatch';
 import { k8sCreate, k8sGet } from '../engine/query';
 import { useQuery } from '@tanstack/react-query';
 import { Panel } from '../components/primitives/Panel';
+import { MetricCard } from '../components/metrics/Sparkline';
+import { CHART_COLORS } from '../engine/colors';
 import { formatDuration, timeAgo } from '../engine/dateUtils';
 import type { Build, BuildConfig, ImageStream } from '../engine/types';
 import { Card } from '../components/primitives/Card';
 import { MetricGrid } from '../components/primitives/MetricGrid';
+import { ScrollText } from 'lucide-react';
 
 function getBuildStatus(build: Build): { phase: string; color: string; icon: React.ReactNode } {
   const phase = build.status?.phase || 'Unknown';
@@ -176,6 +179,47 @@ export default function BuildsView() {
           </Card>
         </MetricGrid>
 
+        {/* Build Metrics */}
+        {builds.length > 0 && (
+          <MetricGrid>
+            <MetricCard
+              title="Build Rate"
+              query='sum(increase(openshift_build_total[1h]))'
+              unit="/hr"
+              color={CHART_COLORS.blue}
+            />
+            <MetricCard
+              title="Avg Duration"
+              query='avg(openshift_build_duration_seconds{phase="Complete"}) / 60'
+              unit=" min"
+              color={CHART_COLORS.amber}
+            />
+            <MetricCard
+              title="Failure Rate"
+              query='sum(rate(openshift_build_total{phase="failed"}[1h])) / sum(rate(openshift_build_total[1h])) * 100'
+              unit="%"
+              color={CHART_COLORS.red}
+              thresholds={{ warning: 10, critical: 30 }}
+            />
+            <Card className="p-3">
+              <div className="text-xs text-slate-400 mb-1">Success Rate</div>
+              <div className={cn('text-xl font-bold', (() => {
+                const complete = recentBuilds.filter(b => b.status?.phase === 'Complete').length;
+                const total = recentBuilds.filter(b => b.status?.phase === 'Complete' || b.status?.phase === 'Failed' || b.status?.phase === 'Error').length;
+                const rate = total > 0 ? Math.round((complete / total) * 100) : 100;
+                return rate >= 90 ? 'text-emerald-400' : rate >= 70 ? 'text-amber-400' : 'text-red-400';
+              })())}>
+                {(() => {
+                  const complete = recentBuilds.filter(b => b.status?.phase === 'Complete').length;
+                  const total = recentBuilds.filter(b => b.status?.phase === 'Complete' || b.status?.phase === 'Failed' || b.status?.phase === 'Error').length;
+                  return total > 0 ? `${Math.round((complete / total) * 100)}%` : '—';
+                })()}
+              </div>
+              <div className="text-xs text-slate-500 mt-0.5">last {recentBuilds.length} builds</div>
+            </Card>
+          </MetricGrid>
+        )}
+
         {/* Build Status Breakdown */}
         {builds.length > 0 && (
           <Panel title="Build Status" icon={<Hammer className="w-4 h-4 text-orange-400" />}>
@@ -279,6 +323,10 @@ export default function BuildsView() {
                       <Timer className="w-3 h-3" />
                       {start ? formatDuration(start) : '—'}
                     </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); go(`/logs/${ns}/${name}?container=&kind=Build`, `${name} (Logs)`); }}
+                      className="text-slate-500 hover:text-blue-400 transition-colors" title="View Build Logs"
+                    ><ScrollText className="w-3.5 h-3.5" /></button>
                     <span className={cn('text-xs', color)}>{phase}</span>
                   </div>
                 );
@@ -305,6 +353,10 @@ export default function BuildsView() {
                         className="text-sm font-medium text-blue-400 hover:text-blue-300 truncate block">{name}</button>
                       {message && <div className="text-xs text-red-400 truncate mt-0.5">{message}</div>}
                     </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); go(`/logs/${ns}/${name}?container=&kind=Build`, `${name} (Logs)`); }}
+                      className="text-slate-500 hover:text-blue-400 transition-colors" title="View Build Logs"
+                    ><ScrollText className="w-3.5 h-3.5" /></button>
                     <div className="text-xs text-slate-500 shrink-0 flex items-center gap-2">
                       <span>{start && end ? formatDuration(start, end) : '—'}</span>
                       <span>{timeAgo(b.metadata?.creationTimestamp)}</span>
@@ -331,6 +383,7 @@ export default function BuildsView() {
                     <th className="py-2 pr-4">Strategy</th>
                     <th className="py-2 pr-4">Duration</th>
                     <th className="py-2 pr-4">Started</th>
+                    <th className="py-2 pr-4">Logs</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
@@ -357,6 +410,12 @@ export default function BuildsView() {
                         <td className="py-2 pr-4 text-slate-500">{strategy}</td>
                         <td className="py-2 pr-4 text-slate-400 font-mono">{start ? formatDuration(start, end || undefined) : '—'}</td>
                         <td className="py-2 pr-4 text-slate-500">{timeAgo(b.metadata?.creationTimestamp)}</td>
+                        <td className="py-2 pr-4">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); go(`/logs/${ns}/${name}?container=&kind=Build`, `${name} (Logs)`); }}
+                            className="text-slate-500 hover:text-blue-400 transition-colors" title="View Build Logs"
+                          ><ScrollText className="w-3.5 h-3.5" /></button>
+                        </td>
                       </tr>
                     );
                   })}
