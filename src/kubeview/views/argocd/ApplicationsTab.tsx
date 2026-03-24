@@ -84,8 +84,9 @@ export function ApplicationsTab({ applications, syncing, onSync, go }: Applicati
 
           return (
             <div key={app.metadata.uid || app.metadata.name}>
-              <div
-                className={cn('flex items-center justify-between px-4 py-3 hover:bg-slate-800/30 transition-colors cursor-pointer', syncFailed && 'border-l-2 border-red-500')}
+              <button
+                type="button"
+                className={cn('flex items-center justify-between px-4 py-3 hover:bg-slate-800/30 transition-colors cursor-pointer w-full text-left', syncFailed && 'border-l-2 border-red-500')}
                 onClick={() => setExpandedApp(isExpanded ? null : app.metadata.name)}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -156,7 +157,7 @@ export function ApplicationsTab({ applications, syncing, onSync, go }: Applicati
                   </button>
                   <ArrowRight className={cn('w-3 h-3 text-slate-600 transition-transform', isExpanded && 'rotate-90')} />
                 </div>
-              </div>
+              </button>
 
               {/* Expanded detail panel */}
               {isExpanded && (

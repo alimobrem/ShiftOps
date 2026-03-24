@@ -68,8 +68,9 @@ export function RolloutsTab({ rollouts, go }: RolloutsTabProps) {
 
           return (
             <div key={rollout.metadata.uid || key}>
-              <div
-                className="flex items-center justify-between px-4 py-3 hover:bg-slate-800/30 transition-colors cursor-pointer"
+              <button
+                type="button"
+                className="flex items-center justify-between px-4 py-3 hover:bg-slate-800/30 transition-colors cursor-pointer w-full text-left"
                 onClick={() => setExpandedRollout(isExpanded ? null : key)}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -122,7 +123,7 @@ export function RolloutsTab({ rollouts, go }: RolloutsTabProps) {
                     isExpanded && 'rotate-180'
                   )} />
                 </div>
-              </div>
+              </button>
 
               {isExpanded && strategy === 'Canary' && (
                 <div className="px-4 pb-4 border-t border-slate-800/50 bg-slate-800/10">

@@ -4,6 +4,7 @@ import { useArgoCDStore } from '../store/argoCDStore';
 // Mock the query module
 vi.mock('../engine/query', () => ({
   k8sList: vi.fn(),
+  getImpersonationHeaders: vi.fn(() => ({})),
 }));
 
 // Mock fetch for API group detection
@@ -51,7 +52,7 @@ describe('ArgoCDStore', () => {
 
   describe('detect', () => {
     it('sets available=true when argoproj.io API group exists and apps are found', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: true }); // API group check
+      mockFetch.mockResolvedValueOnce({ ok: true, clone: () => ({ json: () => Promise.resolve({ resources: [] }) }) }); // API group check
       mockK8sList.mockResolvedValueOnce([makeArgoApp('my-app')]); // openshift-gitops namespace
       mockK8sList.mockResolvedValue([]); // subsequent loadApplications
 
@@ -80,7 +81,7 @@ describe('ArgoCDStore', () => {
     });
 
     it('falls back to argocd namespace when openshift-gitops fails', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: true }); // API group exists
+      mockFetch.mockResolvedValueOnce({ ok: true, clone: () => ({ json: () => Promise.resolve({ resources: [] }) }) }); // API group exists
       mockK8sList
         .mockRejectedValueOnce(new Error('Not found')) // openshift-gitops fails
         .mockResolvedValueOnce([makeArgoApp('my-app', 'argocd')]) // argocd works

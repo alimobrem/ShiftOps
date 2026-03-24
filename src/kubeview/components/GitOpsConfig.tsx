@@ -78,8 +78,8 @@ export function GitOpsConfig() {
         <div className="space-y-4">
           {/* Provider */}
           <div>
-            <label className="text-xs text-slate-400 block mb-1">Git Provider</label>
-            <div className="flex gap-2">
+            <label htmlFor="gitops-provider" className="text-xs text-slate-400 block mb-1">Git Provider</label>
+            <div id="gitops-provider" className="flex gap-2" role="group" aria-label="Git Provider">
               {(['github', 'gitlab', 'bitbucket'] as const).map((p) => (
                 <button
                   key={p}
@@ -97,8 +97,9 @@ export function GitOpsConfig() {
 
           {/* Repo URL */}
           <div>
-            <label className="text-xs text-slate-400 block mb-1">Repository URL</label>
+            <label htmlFor="gitops-repo-url" className="text-xs text-slate-400 block mb-1">Repository URL</label>
             <input
+              id="gitops-repo-url"
               type="text"
               value={form.repoUrl}
               onChange={(e) => setForm({ ...form, repoUrl: e.target.value })}
@@ -109,8 +110,9 @@ export function GitOpsConfig() {
 
           {/* Base Branch */}
           <div>
-            <label className="text-xs text-slate-400 block mb-1">Base Branch</label>
+            <label htmlFor="gitops-branch" className="text-xs text-slate-400 block mb-1">Base Branch</label>
             <input
+              id="gitops-branch"
               type="text"
               value={form.baseBranch}
               onChange={(e) => setForm({ ...form, baseBranch: e.target.value })}
@@ -121,14 +123,16 @@ export function GitOpsConfig() {
 
           {/* Token */}
           <div>
-            <label className="text-xs text-slate-400 block mb-1">
+            <label htmlFor="gitops-token" className="text-xs text-slate-400 block mb-1">
               Personal Access Token
               <span className="text-slate-600 ml-1">(stored in K8s Secret, not localStorage)</span>
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <input
+                  id="gitops-token"
                   type={showToken ? 'text' : 'password'}
+                  autoComplete="off"
                   value={form.token}
                   onChange={(e) => setForm({ ...form, token: e.target.value })}
                   placeholder={form.provider === 'github' ? 'ghp_...' : form.provider === 'gitlab' ? 'glpat-...' : 'App password'}
@@ -142,14 +146,18 @@ export function GitOpsConfig() {
                 </button>
               </div>
             </div>
+            <p className="text-xs text-slate-600 mt-1">
+              Required scopes: GitHub <code>repo</code>, GitLab <code>api</code>, Bitbucket <code>repository:write</code>
+            </p>
           </div>
 
           {/* Path Prefix */}
           <div>
-            <label className="text-xs text-slate-400 block mb-1">
+            <label htmlFor="gitops-path-prefix" className="text-xs text-slate-400 block mb-1">
               Path Prefix <span className="text-slate-600">(optional, for monorepos)</span>
             </label>
             <input
+              id="gitops-path-prefix"
               type="text"
               value={form.pathPrefix}
               onChange={(e) => setForm({ ...form, pathPrefix: e.target.value })}

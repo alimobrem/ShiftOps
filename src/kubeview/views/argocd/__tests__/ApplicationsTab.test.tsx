@@ -76,7 +76,7 @@ describe('ApplicationsTab', () => {
     const { container } = render(<ApplicationsTab applications={[appWithConditions]} syncing={null} onSync={onSync} go={go} />);
 
     // Click the row to expand
-    const row = within(container).getAllByText('cond-app')[0].closest('div[class*="cursor-pointer"]')!;
+    const row = within(container).getAllByText('cond-app')[0].closest('button[class*="cursor-pointer"]')!;
     fireEvent.click(row);
 
     // Check condition timeline is visible
@@ -101,7 +101,7 @@ describe('ApplicationsTab', () => {
     const { container } = render(<ApplicationsTab applications={[appWithConditionsNoTime]} syncing={null} onSync={onSync} go={go} />);
 
     // Click the row to expand
-    const row = within(container).getByText('notime-app').closest('div[class*="cursor-pointer"]')!;
+    const row = within(container).getByText('notime-app').closest('button[class*="cursor-pointer"]')!;
     fireEvent.click(row);
 
     // Conditions section should show, but not the timeline
@@ -124,7 +124,7 @@ describe('ApplicationsTab', () => {
     };
 
     const { container } = render(<ApplicationsTab applications={[appWithConditions]} syncing={null} onSync={onSync} go={go} />);
-    const row = within(container).getByText('sort-app').closest('div[class*="cursor-pointer"]')!;
+    const row = within(container).getByText('sort-app').closest('button[class*="cursor-pointer"]')!;
     fireEvent.click(row);
 
     // Find the Condition Timeline container and check order within it

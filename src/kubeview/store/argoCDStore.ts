@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import { k8sList } from '../engine/query';
+import { k8sList, getImpersonationHeaders } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
 import type { ArgoApplication, ArgoSyncInfo, ArgoSyncStatus, ArgoHealthStatus } from '../engine/types';
 
@@ -78,7 +78,7 @@ export const useArgoCDStore = create<ArgoCDState>((set, get) => ({
     set({ detecting: true, detectionError: null });
     try {
       // Check if argoproj.io API group exists
-      const res = await fetch('/api/kubernetes/apis/argoproj.io/v1alpha1');
+      const res = await fetch('/api/kubernetes/apis/argoproj.io/v1alpha1', { headers: getImpersonationHeaders() });
       if (!res.ok) {
         set({ available: false, detecting: false });
         return;
@@ -102,17 +102,15 @@ export const useArgoCDStore = create<ArgoCDState>((set, get) => ({
           const apps = await k8sList<K8sResource>(
             `/apis/argoproj.io/v1alpha1/namespaces/${ns}/applications`
           );
-          if (apps.length >= 0) {
-            // Namespace is valid (even if 0 apps, the API responded)
-            set({
-              available: true,
-              detecting: false,
-              namespace: ns,
-            });
-            // Load applications fully
-            get().loadApplications();
-            return;
-          }
+          // Namespace is valid (even if 0 apps, the API responded)
+          set({
+            available: true,
+            detecting: false,
+            namespace: ns,
+          });
+          // Load applications fully
+          get().loadApplications();
+          return;
         } catch {
           // Namespace doesn't exist or no access, try next
         }

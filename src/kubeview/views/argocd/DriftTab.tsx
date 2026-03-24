@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ArgoApplication, ArgoManagedResource, ArgoSyncStatus } from '../../engine/types';
+import { kindToPlural } from '../../engine/renderers/index';
 import { Card } from '../../components/primitives/Card';
 import { ResourceDiffPanel } from './ResourceDiffPanel';
 
@@ -136,9 +137,10 @@ function ResourceRow({ resource, go, showDiff, onToggleDiff }: {
   showDiff?: boolean;
   onToggleDiff?: () => void;
 }) {
+  const plural = kindToPlural(resource.kind);
   const gvr = resource.group
-    ? `${resource.group}~${resource.version}~${resource.kind.toLowerCase()}s`
-    : `${resource.version}~${resource.kind.toLowerCase()}s`;
+    ? `${resource.group}~${resource.version}~${plural}`
+    : `${resource.version}~${plural}`;
 
   return (
     <div

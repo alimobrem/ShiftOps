@@ -18,7 +18,44 @@ export interface GitOpsConfig {
   pathPrefix?: string;
 }
 
+function validateRepoUrl(repoUrl: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(repoUrl);
+  } catch {
+    throw new Error('Invalid repository URL');
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new Error('Repository URL must use https:// scheme');
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  const blockedPatterns = [
+    '.local', '.internal', '.cluster',
+    'localhost',
+    '127.0.0.1',
+    '10.',
+    '192.168.',
+  ];
+
+  if (blockedPatterns.some(p => hostname.includes(p))) {
+    throw new Error('Repository URL points to a blocked internal hostname');
+  }
+
+  // Check 172.16.0.0 – 172.31.255.255
+  const ipMatch = hostname.match(/^(\d+)\.(\d+)\./);
+  if (ipMatch && ipMatch[1] === '172') {
+    const second = parseInt(ipMatch[2], 10);
+    if (second >= 16 && second <= 31) {
+      throw new Error('Repository URL points to a blocked internal hostname');
+    }
+  }
+}
+
 export function createGitProvider(config: GitOpsConfig): GitProvider {
+  validateRepoUrl(config.repoUrl);
+
   switch (config.provider) {
     case 'github': return new GitHubProvider(config);
     case 'gitlab': return new GitLabProvider(config);
@@ -186,10 +223,17 @@ class BitbucketProvider implements GitProvider {
   }
 
   async createBranch(baseBranch: string, newBranch: string): Promise<void> {
+    // Resolve branch name to commit hash
+    const branchRes = await fetch(`${this.apiBase}/refs/branches/${baseBranch}`, { headers: this.headers });
+    if (!branchRes.ok) throw new Error(`Failed to get base branch: ${branchRes.status}`);
+    const branchData = await branchRes.json();
+    const hash = branchData.target?.hash;
+    if (!hash) throw new Error('Could not resolve base branch commit hash');
+
     const res = await fetch(`${this.apiBase}/refs/branches`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify({ name: newBranch, target: { hash: baseBranch } }),
+      body: JSON.stringify({ name: newBranch, target: { hash } }),
     });
     if (!res.ok) throw new Error(`Failed to create branch: ${res.status}`);
   }

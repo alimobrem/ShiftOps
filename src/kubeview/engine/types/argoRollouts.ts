@@ -73,6 +73,7 @@ export interface Rollout {
         stable?: { weight?: number };
       };
     };
+    canaryWeight?: number;
     currentPodHash?: string;
     availableReplicas?: number;
     readyReplicas?: number;

@@ -9,6 +9,8 @@ import { useArgoCDStore } from '../../store/argoCDStore';
 import { useArgoSyncInfo } from '../../hooks/useArgoCD';
 import { Card } from '../../components/primitives/Card';
 import type { ArgoApplication, ArgoSyncHistoryEntry } from '../../engine/types';
+import { buildCommitUrl } from '../../engine/gitUtils';
+import { timeAgo } from '../../engine/dateUtils';
 
 interface ResourceHistoryPanelProps {
   kind: string;
@@ -58,7 +60,7 @@ export function ResourceHistoryPanel({ kind, namespace, name }: ResourceHistoryP
         {sorted.slice(0, 20).map((entry, i) => {
           const shortSha = entry.revision?.slice(0, 7);
           const deployedAt = new Date(entry.deployedAt);
-          const timeAgo = getTimeAgo(deployedAt);
+          const ago = timeAgo(entry.deployedAt);
           const commitUrl =
             repoURL && entry.revision
               ? buildCommitUrl(repoURL, entry.revision)
@@ -96,7 +98,7 @@ export function ResourceHistoryPanel({ kind, namespace, name }: ResourceHistoryP
               </div>
               <div className="flex items-center gap-1.5 text-xs text-slate-500 shrink-0">
                 <Clock className="w-3 h-3" />
-                <span title={deployedAt.toLocaleString()}>{timeAgo}</span>
+                <span title={deployedAt.toLocaleString()}>{ago}</span>
               </div>
             </div>
           );
@@ -104,25 +106,4 @@ export function ResourceHistoryPanel({ kind, namespace, name }: ResourceHistoryP
       </div>
     </Card>
   );
-}
-
-function getTimeAgo(date: Date): string {
-  const ms = Date.now() - date.getTime();
-  if (ms < 60000) return `${Math.floor(ms / 1000)}s ago`;
-  if (ms < 3600000) return `${Math.floor(ms / 60000)}m ago`;
-  if (ms < 86400000) return `${Math.floor(ms / 3600000)}h ago`;
-  return `${Math.floor(ms / 86400000)}d ago`;
-}
-
-function buildCommitUrl(repoURL: string, revision: string): string | null {
-  try {
-    const clean = repoURL.replace(/\.git$/, '');
-    if (clean.includes('github.com')) return `${clean}/commit/${revision}`;
-    if (clean.includes('gitlab')) return `${clean}/-/commit/${revision}`;
-    if (clean.includes('bitbucket.org'))
-      return `${clean}/commits/${revision}`;
-    return `${clean}/commit/${revision}`;
-  } catch {
-    return null;
-  }
 }

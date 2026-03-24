@@ -11,6 +11,7 @@ import { useArgoCDStore } from '../store/argoCDStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { Card } from './primitives/Card';
 import type { ArgoSyncStatus } from '../engine/types';
+import { buildCommitUrl } from '../engine/gitUtils';
 
 interface GitOpsInfoCardProps {
   kind: string;
@@ -104,16 +105,4 @@ export function GitOpsInfoCard({ kind, namespace, name }: GitOpsInfoCardProps) {
       </div>
     </Card>
   );
-}
-
-function buildCommitUrl(repoURL: string, revision: string): string | null {
-  try {
-    const clean = repoURL.replace(/\.git$/, '');
-    if (clean.includes('github.com')) return `${clean}/commit/${revision}`;
-    if (clean.includes('gitlab.com') || clean.includes('gitlab')) return `${clean}/-/commit/${revision}`;
-    if (clean.includes('bitbucket.org')) return `${clean}/commits/${revision}`;
-    return `${clean}/commit/${revision}`; // generic fallback
-  } catch {
-    return null;
-  }
 }

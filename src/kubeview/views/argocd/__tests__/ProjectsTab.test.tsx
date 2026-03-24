@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, cleanup, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock query module
@@ -37,6 +37,10 @@ describe('ProjectsTab', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   it('shows empty state when no projects exist', async () => {
     mockK8sList.mockResolvedValue([]);
     renderTab();
@@ -67,7 +71,7 @@ describe('ProjectsTab', () => {
     });
   });
 
-  it.skip('shows default project with special badge', async () => {
+  it('shows default project with special badge', async () => {
     mockK8sList.mockResolvedValue([
       {
         apiVersion: 'argoproj.io/v1alpha1',
@@ -83,15 +87,14 @@ describe('ProjectsTab', () => {
     ]);
     renderTab();
     await waitFor(() => {
-      expect(screen.getAllByText('default')[0]).toBeDefined();
-      // Badge text
-      const badges = screen.getAllByText('default');
-      expect(badges.length).toBeGreaterThanOrEqual(1);
+      // Name + badge both show "default"
+      const defaults = screen.getAllByText('default');
+      expect(defaults.length).toBeGreaterThanOrEqual(2);
       expect(screen.getByText('* (all)')).toBeDefined();
     });
   });
 
-  it.skip('sorts default project first', async () => {
+  it('sorts default project first', async () => {
     mockK8sList.mockResolvedValue([
       { apiVersion: 'argoproj.io/v1alpha1', kind: 'AppProject', metadata: { name: 'zebra', uid: 'z1' }, spec: {} },
       { apiVersion: 'argoproj.io/v1alpha1', kind: 'AppProject', metadata: { name: 'default', uid: 'd1' }, spec: {} },
@@ -99,9 +102,8 @@ describe('ProjectsTab', () => {
     ]);
     renderTab();
     await waitFor(() => {
-      // Each project card has a name element with exact text
       const zebra = screen.getByText('zebra');
-      const defaultEl = screen.getAllByText('default')[0]; // name element
+      const defaultEl = screen.getAllByText('default')[0];
       const alphaEl = screen.getByText('alpha');
       // default should come before alpha and zebra in DOM order
       expect(defaultEl.compareDocumentPosition(alphaEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

@@ -6,6 +6,7 @@ import { useArgoCDStore } from '../store/argoCDStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { k8sPatch } from '../engine/query';
 import { useUIStore } from '../store/uiStore';
+import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 import { Card } from '../components/primitives/Card';
 import { MetricGrid } from '../components/primitives/MetricGrid';
 import { useGitOpsConfig } from '../hooks/useGitOpsConfig';
@@ -13,8 +14,9 @@ import { ApplicationsTab } from './argocd/ApplicationsTab';
 import { SyncHistoryTab } from './argocd/SyncHistoryTab';
 import { DriftTab } from './argocd/DriftTab';
 import { ProjectsTab } from './argocd/ProjectsTab';
+import { RolloutsTab } from './argocd/RolloutsTab';
 
-type Tab = 'applications' | 'history' | 'drift' | 'projects';
+type Tab = 'applications' | 'history' | 'drift' | 'projects' | 'rollouts';
 
 export default function ArgoCDView() {
   const go = useNavigateTab();
@@ -24,11 +26,19 @@ export default function ArgoCDView() {
   const { isConfigured } = useGitOpsConfig();
   const [activeTab, setActiveTab] = React.useState<Tab>('applications');
   const [syncing, setSyncing] = React.useState<string | null>(null);
+  const [confirmSync, setConfirmSync] = React.useState<{name: string, ns: string} | null>(null);
 
   const outOfSyncCount = applications.filter(a => a.status?.sync?.status === 'OutOfSync').length;
   const degradedCount = applications.filter(a => a.status?.health?.status === 'Degraded').length;
 
-  const handleSync = async (appName: string, appNs: string) => {
+  const handleSync = (appName: string, appNs: string) => {
+    setConfirmSync({ name: appName, ns: appNs });
+  };
+
+  const executeSync = async () => {
+    if (!confirmSync) return;
+    const { name: appName, ns: appNs } = confirmSync;
+    setConfirmSync(null);
     setSyncing(appName);
     try {
       await k8sPatch(`/apis/argoproj.io/v1alpha1/namespaces/${appNs}/applications/${appName}`, {
@@ -88,6 +98,7 @@ export default function ArgoCDView() {
     { id: 'history', label: 'Sync History' },
     { id: 'drift', label: `Drift${outOfSyncCount > 0 ? ` (${outOfSyncCount})` : ''}` },
     { id: 'projects', label: 'Projects' },
+    ...(useArgoCDStore.getState().rolloutsAvailable ? [{ id: 'rollouts' as Tab, label: 'Rollouts' }] : []),
   ];
 
   return (
@@ -209,9 +220,20 @@ export default function ArgoCDView() {
             {activeTab === 'projects' && (
               <ProjectsTab />
             )}
+            {activeTab === 'rollouts' && <RolloutsTab />}
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!confirmSync}
+        title="Confirm Sync"
+        description={`Trigger sync for ${confirmSync?.name}?`}
+        confirmLabel="Sync"
+        variant="warning"
+        onConfirm={executeSync}
+        onClose={() => setConfirmSync(null)}
+      />
     </div>
   );
 }

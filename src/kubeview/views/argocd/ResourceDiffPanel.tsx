@@ -73,11 +73,11 @@ export function ResourceDiffPanel({ resource, appName, appNamespace }: ResourceD
       <div className="flex items-center gap-2 mb-2">
         <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
         <span className="text-xs text-amber-300 font-medium">
-          Live cluster state (out of sync with {appName})
+          Live Cluster State (out of sync with {appName})
         </span>
       </div>
       <p className="text-xs text-slate-500 mb-2">
-        The desired state is defined in the Git repository. Compare this live state with the source in ArgoCD to identify drift.
+        This shows the current state on the cluster. To see the desired state, check the Git repository.
       </p>
       <pre className="text-xs text-slate-300 font-mono bg-slate-950 p-3 rounded overflow-auto max-h-80 border border-slate-800">
         {yaml}

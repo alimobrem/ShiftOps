@@ -35,7 +35,8 @@ export function GitOpsActionDialog({
 
   if (!open) return null;
 
-  const branchName = `pulse/${resourceKind.toLowerCase()}-${resourceName}-${Date.now()}`;
+  const safeName = resourceName.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+  const branchName = `pulse/${resourceKind.toLowerCase()}-${safeName}-${Date.now()}`;
   const filePath = syncInfo.path
     ? `${syncInfo.path}/${resourceKind.toLowerCase()}-${resourceName}.yaml`
     : `${resourceKind.toLowerCase()}-${resourceName}.yaml`;
@@ -101,11 +102,22 @@ export function GitOpsActionDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={status === 'idle' || status === 'done' || status === 'error' ? onClose : undefined} />
-      <div className="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg p-6 z-50">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="gitops-dialog-heading"
+        className="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg p-6 z-50"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape' && (status === 'idle' || status === 'done' || status === 'error')) {
+            onClose();
+          }
+        }}
+        tabIndex={-1}
+      >
         {/* Header */}
         <div className="flex items-center gap-2 mb-4">
           <GitBranch className="w-5 h-5 text-violet-400" />
-          <h2 className="text-lg font-semibold text-slate-100">GitOps Save</h2>
+          <h2 id="gitops-dialog-heading" className="text-lg font-semibold text-slate-100">GitOps Save</h2>
         </div>
 
         <p className="text-sm text-slate-400 mb-1">
