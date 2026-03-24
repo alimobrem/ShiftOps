@@ -1,0 +1,118 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import React from 'react';
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+    useSearchParams: () => [new URLSearchParams()],
+  };
+});
+
+let mockPodQueryResult: any = { data: undefined, isLoading: false, error: null };
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual('@tanstack/react-query');
+  return {
+    ...actual,
+    useQuery: () => mockPodQueryResult,
+  };
+});
+
+vi.mock('../../hooks/useK8sListWatch', () => ({
+  useK8sListWatch: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock('../../components/logs/LogStream', () => ({
+  default: ({ namespace, podName, containerName }: any) => (
+    <div data-testid="log-stream">LogStream: {podName} {containerName}</div>
+  ),
+}));
+vi.mock('../../components/logs/MultiContainerLogs', () => ({
+  default: ({ podName, containers }: any) => (
+    <div data-testid="multi-container-logs">MultiContainerLogs: {podName} ({containers.length} containers)</div>
+  ),
+}));
+vi.mock('../../components/logs/MultiPodLogs', () => ({
+  default: () => <div data-testid="multi-pod-logs">MultiPodLogs</div>,
+}));
+vi.mock('@/lib/utils', () => ({ cn: (...args: any[]) => args.filter(Boolean).join(' ') }));
+
+import LogsView from '../LogsView';
+
+function renderView(props: { namespace: string; podName: string }) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <LogsView {...props} />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+}
+
+describe('LogsView', () => {
+  afterEach(() => {
+    cleanup();
+    mockPodQueryResult = { data: undefined, isLoading: false, error: null };
+  });
+
+  it('renders heading with pod name and namespace', () => {
+    mockPodQueryResult = {
+      data: { spec: { containers: [{ name: 'app' }] }, status: { containerStatuses: [{ name: 'app', state: { running: {} } }] } },
+      isLoading: false,
+      error: null,
+    };
+    renderView({ namespace: 'default', podName: 'my-pod' });
+    expect(screen.getByText('Logs')).toBeDefined();
+    expect(screen.getByText('my-pod')).toBeDefined();
+    expect(screen.getByText('default')).toBeDefined();
+  });
+
+  it('shows LogStream for single-container pod', () => {
+    mockPodQueryResult = {
+      data: { spec: { containers: [{ name: 'app' }] }, status: { containerStatuses: [{ name: 'app', state: { running: {} } }] } },
+      isLoading: false,
+      error: null,
+    };
+    renderView({ namespace: 'default', podName: 'my-pod' });
+    expect(screen.getByTestId('log-stream')).toBeDefined();
+    expect(screen.getByText(/LogStream: my-pod app/)).toBeDefined();
+  });
+
+  it('shows MultiContainerLogs for multi-container pod', () => {
+    mockPodQueryResult = {
+      data: {
+        spec: { containers: [{ name: 'app' }, { name: 'sidecar' }] },
+        status: {
+          containerStatuses: [
+            { name: 'app', state: { running: {} } },
+            { name: 'sidecar', state: { running: {} } },
+          ],
+        },
+      },
+      isLoading: false,
+      error: null,
+    };
+    renderView({ namespace: 'default', podName: 'my-pod' });
+    expect(screen.getByTestId('multi-container-logs')).toBeDefined();
+    expect(screen.getByText(/2 containers/)).toBeDefined();
+  });
+
+  it('shows error message on fetch failure', () => {
+    mockPodQueryResult = { data: undefined, isLoading: false, error: new Error('404 Not Found') };
+    renderView({ namespace: 'default', podName: 'missing-pod' });
+    expect(screen.getByText(/Failed to load pod/)).toBeDefined();
+    expect(screen.getByText(/404 Not Found/)).toBeDefined();
+  });
+
+  it('shows loading skeleton while pod data loads', () => {
+    mockPodQueryResult = { data: undefined, isLoading: true, error: null };
+    const { container } = renderView({ namespace: 'default', podName: 'my-pod' });
+    expect(container.querySelector('.kv-skeleton')).toBeDefined();
+  });
+});
