@@ -93,12 +93,14 @@ export function CommandBar() {
           className="flex items-center gap-2 group"
           title="Home"
         >
-          <svg className="w-6 h-6 shrink-0" viewBox="0 0 32 32">
-            <defs><linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#2563eb"/><stop offset="100%" stopColor="#1d4ed8"/></linearGradient></defs>
-            <rect width="32" height="32" rx="8" fill="url(#logo-g)"/>
-            <text x="7" y="24" fontFamily="system-ui,-apple-system,sans-serif" fontWeight="800" fontSize="22" fill="white">P</text>
-            <path d="M23 5l0.8-2.4L26.2 2l-2.4-0.8L23-1.2 22.2 1.2 19.8 2l2.4 0.8Z" fill="#93c5fd"/>
-            <path d="M27 9l0.5-1.5L29 7l-1.5-0.5L27 5l-0.5 1.5L25 7l1.5 0.5Z" fill="#93c5fd" opacity="0.7"/>
+          <svg className="w-7 h-7 shrink-0" viewBox="0 0 32 32">
+            <defs>
+              <linearGradient id="logo-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#2563eb"/><stop offset="100%" stopColor="#7c3aed"/></linearGradient>
+              <linearGradient id="logo-line" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#60a5fa"/><stop offset="50%" stopColor="#ffffff"/><stop offset="100%" stopColor="#a78bfa"/></linearGradient>
+            </defs>
+            <rect width="32" height="32" rx="7" fill="url(#logo-bg)"/>
+            <polyline points="4,16.5 9,16.5 11,16.5 13,12 15,21 17,7 19,25 21,13 23,16.5 25,16.5 28,16.5" fill="none" stroke="url(#logo-line)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="17" cy="7" r="1.2" fill="white" opacity="0.5"/>
           </svg>
           <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors hidden md:inline">
             OpenShift<span className="text-blue-400"> Pulse</span>
