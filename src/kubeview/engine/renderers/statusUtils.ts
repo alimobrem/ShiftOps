@@ -1,4 +1,5 @@
 import type { K8sResource } from './index';
+import type { Pod, Node, Deployment } from '../types';
 
 // Detect the "status" of any K8s resource generically
 export function detectResourceStatus(resource: K8sResource): {
@@ -107,35 +108,32 @@ export function getPodStatus(pod: K8sResource): {
     restartCount: number;
   }>;
 } {
-  const status = pod.status as Record<string, unknown> | undefined;
-  const phase = String(status?.phase ?? 'Unknown');
-  const reason = status?.reason ? String(status.reason) : undefined;
+  const p = pod as Pod;
+  const phase = p.status?.phase ?? 'Unknown';
+  const reason = p.status?.reason;
 
-  const containerStatuses = (status?.containerStatuses ?? []) as Array<Record<string, unknown>>;
-  const initContainerStatuses = (status?.initContainerStatuses ?? []) as Array<Record<string, unknown>>;
-
-  const allStatuses = [...containerStatuses, ...initContainerStatuses];
+  const allStatuses = [
+    ...(p.status?.containerStatuses ?? []),
+    ...(p.status?.initContainerStatuses ?? []),
+  ];
 
   const parsedStatuses = allStatuses.map((cs) => {
-    const name = String(cs.name ?? '');
-    const ready = Boolean(cs.ready);
-    const restartCount = Number(cs.restartCount ?? 0);
+    const name = cs.name;
+    const ready = cs.ready;
+    const restartCount = cs.restartCount;
 
-    const stateObj = cs.state as Record<string, unknown> | undefined;
     let state: 'running' | 'waiting' | 'terminated' = 'waiting';
     let stateReason: string | undefined;
 
-    if (stateObj) {
-      if (stateObj.running) {
+    if (cs.state) {
+      if (cs.state.running) {
         state = 'running';
-      } else if (stateObj.waiting) {
+      } else if (cs.state.waiting) {
         state = 'waiting';
-        const waitingObj = stateObj.waiting as Record<string, unknown>;
-        stateReason = String(waitingObj.reason ?? '');
-      } else if (stateObj.terminated) {
+        stateReason = cs.state.waiting.reason ?? '';
+      } else if (cs.state.terminated) {
         state = 'terminated';
-        const terminatedObj = stateObj.terminated as Record<string, unknown>;
-        stateReason = String(terminatedObj.reason ?? '');
+        stateReason = cs.state.terminated.reason ?? '';
       }
     }
 
@@ -166,19 +164,15 @@ export function getDeploymentStatus(deployment: K8sResource): {
   available: boolean;
   progressing: boolean;
 } {
-  const spec = deployment.spec as Record<string, unknown> | undefined;
-  const status = deployment.status as Record<string, unknown> | undefined;
+  const d = deployment as Deployment;
 
-  const desired = Number(spec?.replicas ?? 0);
-  const ready = Number(status?.readyReplicas ?? status?.availableReplicas ?? 0);
+  const desired = d.spec?.replicas ?? 0;
+  const ready = d.status?.readyReplicas ?? d.status?.availableReplicas ?? 0;
   const available = ready === desired && desired > 0;
 
-  // Check conditions for progressing state
-  const conditions = (status?.conditions ?? []) as Array<Record<string, unknown>>;
+  const conditions = d.status?.conditions ?? [];
   const progressingCondition = conditions.find((c) => c.type === 'Progressing');
-  const progressing = progressingCondition
-    ? String(progressingCondition.status ?? '') === 'True'
-    : false;
+  const progressing = progressingCondition?.status === 'True';
 
   return { ready, desired, available, progressing };
 }
@@ -190,14 +184,14 @@ export function getNodeStatus(node: K8sResource): {
   roles: string[];
   pressure: { disk: boolean; memory: boolean; pid: boolean };
 } {
-  const status = node.status as Record<string, unknown> | undefined;
-  const labels = node.metadata.labels ?? {};
+  const n = node as Node;
+  const labels = n.metadata.labels ?? {};
 
-  const conditions = ((status?.conditions ?? []) as Array<Record<string, unknown>>).map((c) => ({
-    type: String(c.type ?? ''),
-    status: String(c.status ?? ''),
-    reason: c.reason ? String(c.reason) : undefined,
-    message: c.message ? String(c.message) : undefined,
+  const conditions = (n.status?.conditions ?? []).map((c) => ({
+    type: c.type,
+    status: c.status,
+    reason: c.reason,
+    message: c.message,
   }));
 
   const readyCondition = conditions.find((c) => c.type === 'Ready');
@@ -205,10 +199,9 @@ export function getNodeStatus(node: K8sResource): {
 
   // Extract roles from labels
   const roles: string[] = [];
-  for (const [key, value] of Object.entries(labels)) {
+  for (const key of Object.keys(labels)) {
     if (key.startsWith('node-role.kubernetes.io/')) {
-      const role = key.replace('node-role.kubernetes.io/', '');
-      roles.push(role);
+      roles.push(key.replace('node-role.kubernetes.io/', ''));
     }
   }
 

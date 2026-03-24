@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ScrollText, RotateCw } from 'lucide-react';
 import type { ResourceEnhancer } from './index';
 import type { K8sResource } from '../renderers/index';
+import type { Pod } from '../types';
 import { getPodStatus } from '../renderers/statusUtils';
 
 export const podEnhancer: ResourceEnhancer = {
@@ -52,9 +53,9 @@ export const podEnhancer: ResourceEnhancer = {
       id: 'ready',
       header: 'Ready',
       accessorFn: (resource) => {
-        const status = resource.status as Record<string, unknown> | undefined;
-        const containerStatuses = (status?.containerStatuses ?? []) as Array<Record<string, unknown>>;
-        const ready = containerStatuses.filter((c) => c.ready === true).length;
+        const p = resource as Pod;
+        const containerStatuses = p.status?.containerStatuses ?? [];
+        const ready = containerStatuses.filter((c) => c.ready).length;
         const total = containerStatuses.length;
         return `${ready}/${total}`;
       },
@@ -96,8 +97,8 @@ export const podEnhancer: ResourceEnhancer = {
       id: 'node',
       header: 'Node',
       accessorFn: (resource) => {
-        const spec = resource.spec as Record<string, unknown> | undefined;
-        return spec?.nodeName ?? '-';
+        const p = resource as Pod;
+        return p.spec?.nodeName ?? '-';
       },
       render: (value) => {
         if (!value || value === '-') {
@@ -121,8 +122,8 @@ export const podEnhancer: ResourceEnhancer = {
       id: 'ip',
       header: 'IP',
       accessorFn: (resource) => {
-        const status = resource.status as Record<string, unknown> | undefined;
-        return status?.podIP ?? '-';
+        const p = resource as Pod;
+        return p.status?.podIP ?? '-';
       },
       render: (value) => {
         if (!value || value === '-') {

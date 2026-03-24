@@ -2,6 +2,7 @@ import React from 'react';
 import { Minus, Plus, RotateCw } from 'lucide-react';
 import type { ResourceEnhancer } from './index';
 import type { K8sResource } from '../renderers/index';
+import type { Deployment } from '../types';
 import { getDeploymentStatus } from '../renderers/statusUtils';
 
 export const deploymentEnhancer: ResourceEnhancer = {
@@ -70,15 +71,12 @@ export const deploymentEnhancer: ResourceEnhancer = {
       id: 'image',
       header: 'Image',
       accessorFn: (resource) => {
-        const spec = resource.spec as Record<string, unknown> | undefined;
-        const template = spec?.template as Record<string, unknown> | undefined;
-        const podSpec = template?.spec as Record<string, unknown> | undefined;
-        const containers = (podSpec?.containers ?? []) as Array<Record<string, unknown>>;
+        const d = resource as Deployment;
+        const containers = d.spec?.template?.spec?.containers ?? [];
 
         if (containers.length === 0) return '-';
 
-        const image = String(containers[0].image ?? '-');
-        // Shorten image name (remove registry, keep name:tag)
+        const image = containers[0].image ?? '-';
         const parts = image.split('/');
         return parts[parts.length - 1] ?? image;
       },
@@ -107,7 +105,6 @@ export const deploymentEnhancer: ResourceEnhancer = {
         const spec = resource.spec as Record<string, unknown> | undefined;
         const strategy = spec?.strategy as Record<string, unknown> | undefined;
         const updateStrategy = spec?.updateStrategy as Record<string, unknown> | undefined;
-
         return String(strategy?.type ?? updateStrategy?.type ?? '-');
       },
       render: (value) => {

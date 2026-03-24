@@ -2,6 +2,7 @@ import React from 'react';
 import { ShieldCheck, ShieldOff, ArrowDownToLine } from 'lucide-react';
 import type { ResourceEnhancer } from './index';
 import type { K8sResource } from '../renderers/index';
+import type { Node } from '../types';
 import { getNodeStatus } from '../renderers/statusUtils';
 
 export const nodeEnhancer: ResourceEnhancer = {
@@ -94,8 +95,8 @@ export const nodeEnhancer: ResourceEnhancer = {
       id: 'cpu',
       header: 'CPU',
       accessorFn: (resource) => {
-        const cap = (resource.status as any)?.capacity?.cpu;
-        return cap ? String(cap) : '-';
+        const n = resource as Node;
+        return n.status?.capacity?.cpu ?? '-';
       },
       render: (value) => <span className="font-mono text-xs text-slate-300">{String(value)} cores</span>,
       sortable: true,
@@ -105,9 +106,10 @@ export const nodeEnhancer: ResourceEnhancer = {
       id: 'memory',
       header: 'Memory',
       accessorFn: (resource) => {
-        const cap = (resource.status as any)?.capacity?.memory;
+        const n = resource as Node;
+        const cap = n.status?.capacity?.memory;
         if (!cap) return '-';
-        const match = String(cap).match(/^(\d+)/);
+        const match = cap.match(/^(\d+)/);
         if (!match) return cap;
         const ki = parseInt(match[1]);
         return `${Math.round(ki / 1024 / 1024)} Gi`;
@@ -120,8 +122,8 @@ export const nodeEnhancer: ResourceEnhancer = {
       id: 'pods',
       header: 'Pods',
       accessorFn: (resource) => {
-        const allocatable = (resource.status as any)?.allocatable?.pods || '-';
-        return String(allocatable);
+        const n = resource as Node;
+        return n.status?.allocatable?.pods ?? '-';
       },
       render: (value) => <span className="font-mono text-xs text-slate-300">{String(value)}</span>,
       sortable: true,
@@ -131,7 +133,8 @@ export const nodeEnhancer: ResourceEnhancer = {
       id: 'taints',
       header: 'Taints',
       accessorFn: (resource) => {
-        const taints = ((resource.spec as any)?.taints || []) as Array<{ key: string; effect: string }>;
+        const n = resource as Node;
+        const taints = n.spec?.taints ?? [];
         return taints.length > 0 ? taints.map(t => `${t.key.split('/').pop()}:${t.effect}`).join(', ') : 'None';
       },
       render: (value) => {

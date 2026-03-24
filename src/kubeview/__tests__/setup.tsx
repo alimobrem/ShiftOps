@@ -12,7 +12,9 @@ import { setupServer } from 'msw/node';
 
 // --- K8s mock data factories ---
 
-export function makeDeployment(name: string, namespace = 'default', replicas = 1) {
+import type { Deployment, Pod, ConfigMap, Node } from '../engine/types';
+
+export function makeDeployment(name: string, namespace = 'default', replicas = 1): Deployment {
   return {
     apiVersion: 'apps/v1',
     kind: 'Deployment',
@@ -37,7 +39,7 @@ export function makeDeployment(name: string, namespace = 'default', replicas = 1
   };
 }
 
-export function makePod(name: string, namespace = 'default', phase = 'Running') {
+export function makePod(name: string, namespace = 'default', phase = 'Running'): Pod {
   return {
     apiVersion: 'v1',
     kind: 'Pod',
@@ -56,7 +58,7 @@ export function makePod(name: string, namespace = 'default', phase = 'Running') 
   };
 }
 
-export function makeConfigMap(name: string, namespace = 'default') {
+export function makeConfigMap(name: string, namespace = 'default'): ConfigMap {
   return {
     apiVersion: 'v1',
     kind: 'ConfigMap',
@@ -65,7 +67,7 @@ export function makeConfigMap(name: string, namespace = 'default') {
   };
 }
 
-export function makeNode(name: string) {
+export function makeNode(name: string): Node {
   return {
     apiVersion: 'v1',
     kind: 'Node',
