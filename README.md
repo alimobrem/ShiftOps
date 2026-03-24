@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alimobrem/OpenshiftPulse/releases/tag/v4.1.0"><img src="https://img.shields.io/badge/version-v4.1.0-blue" alt="Version"></a>
-  <img src="https://img.shields.io/badge/tests-1162%20passed-brightgreen" alt="Tests">
-  <img src="https://img.shields.io/badge/health%20checks-76-orange" alt="Health Checks">
+  <a href="https://github.com/alimobrem/OpenshiftPulse/releases/tag/v4.2.0"><img src="https://img.shields.io/badge/version-v4.2.0-blue" alt="Version"></a>
+  <img src="https://img.shields.io/badge/tests-1269%20passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/health%20checks-77-orange" alt="Health Checks">
   <img src="https://img.shields.io/badge/security%20audit-passed-green" alt="Security Audit">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
@@ -57,6 +57,7 @@ Built with React, TypeScript, and real-time Kubernetes APIs. Every view is auto-
 | | **76 Health Checks** | Automated cluster readiness + domain-specific audits with YAML fix examples |
 | | **Daily Briefing** | Risk score ring, control plane status, certificate expiry, attention items with remediation steps |
 | | **HyperShift Support** | Auto-detects hosted control plane clusters, adapts health checks, hides irrelevant Machine API panels |
+| | **Incident Correlation Timeline** | Unified timeline merging alerts, events, rollouts, and config changes with correlation groups |
 | | **Incident Context** | Events, logs (container picker), and metrics inline on detail views |
 | | **Pod/Node Terminal** | Interactive WebSocket terminal with command history, suggestions, copy output |
 | | **Deployment Rollback** | Revision history with container image diffs, one-click rollback with confirmation |
@@ -66,8 +67,12 @@ Built with React, TypeScript, and real-time Kubernetes APIs. Every view is auto-
 | | **RBAC-Aware UI** | Actions hidden/disabled based on SelfSubjectAccessReview |
 | | **User Impersonation** | Test as any user or service account — headers on all API calls |
 | | **Real-time Watches** | WebSocket watches with 60s safety-net polling via TanStack Query |
+| | **Typed K8s Interfaces** | 30+ TypeScript interfaces for K8s resources — 97% reduction in `as any` casts |
+| | **Admin Overview** | Firing alerts, degraded operators, cert warnings, quota hot spots, health score at a glance |
+| | **Helm Chart** | One-command deployment with auto-generated secrets and parameterized values |
+| | **ACS/StackRox Detection** | Security audit detects Advanced Cluster Security installation |
 | | **Security Hardened** | Passed 15-finding security audit — injection, SSRF, TLS, CSP, RBAC |
-| | **1162 Tests** | 63 test files, 100% passing, ~3 seconds |
+| | **1269 Tests** | 71 test files, 100% passing, ~3 seconds |
 
 ## Views
 
@@ -84,7 +89,7 @@ Built with React, TypeScript, and real-time Kubernetes APIs. Every view is auto-
 | **Access Control** | RBAC audit (6 checks), recent RBAC changes (7 days) |
 | **User Management** | Users/groups/SAs, impersonation, identity audit (6 checks), sessions |
 | **CRDs** | Browse by API group, search, filter, instance navigation |
-| **Security** | Security overview (9 checks), policy status, vulnerability context |
+| **Security** | Security overview (10 checks incl. ACS detection), policy status, HyperShift-adapted |
 | **Admin** | 9 tabs: Overview, Readiness (31 checks), Operators, Cluster Config (10 editable sections), Updates, Snapshots, Quotas, Certificates, Timeline |
 
 ## Features
@@ -98,7 +103,7 @@ Each overview view has an expandable audit with score %, per-resource pass/fail,
 - **Compute (6)**: HA control plane, dedicated workers, MachineHealthChecks, node pressure, kubelet version consistency, cluster autoscaling
 - **Access Control (6)**: Default SA privileges, overprivileged bindings, wildcard rules, stale bindings, namespace isolation, automount tokens
 - **Identity (6)**: Identity providers, kubeadmin removal, cluster-admin audit, SA privileges, inactive users, group membership
-- **Security (9)**: TLS profiles, encryption at rest, network policies, secrets management, SCC audit, image registry, container registry, kubeadmin, audit logging
+- **Security (10)**: TLS profiles, encryption at rest, network policies, secrets management, SCC audit, kubeadmin, cluster-admin audit, certificates, ACS/StackRox detection. HyperShift-adapted (skips TLS/encryption checks managed externally)
 
 ### HyperShift / Hosted Control Plane Support
 Automatically detects HyperShift clusters via the Infrastructure resource (`controlPlaneTopology: External`) and adapts the entire UI:
@@ -137,8 +142,13 @@ The Create view offers 5 tabs: Quick Deploy (image + name), Templates (30 resour
 ### Dock Panel
 Resizable bottom panel for terminal and log sessions. Minimize, close, or drag-resize. IDE-like experience for debugging workflows.
 
-### Cluster Timeline
-Event timeline with configurable time ranges (1h/6h/24h), warning/normal severity filters, namespace filtering, and clickable resource links. Available as a tab in Admin view.
+### Incident Correlation Timeline
+Unified timeline merging 4 data sources — Prometheus alerts, K8s events, deployment rollouts, and ClusterVersion/Operator config changes. Features:
+- **Category toggles**: Enable/disable alerts, events, rollouts, config independently
+- **Time ranges**: 15m, 1h, 6h, 24h, 3d, 7d (URL-persisted)
+- **Correlation groups**: Related entries grouped by resource key with severity ranking
+- **Vertical timeline**: Severity-colored dots, grouped by date, clickable resource links
+- Available as a tab in Admin view
 
 ### Workload Health on Detail Views
 Every Deployment, StatefulSet, and DaemonSet detail view shows per-container health checks: resource limits, resource requests, liveness probes, readiness probes, HA replicas, update strategy, and security context (runAsNonRoot, privilege escalation, capabilities). Expandable rows show probe descriptions.
@@ -179,7 +189,8 @@ CodeMirror with K8s autocomplete, YAML linting, Schema panel (from CRD OpenAPI),
 | **State** | Zustand (client) + TanStack Query (server) |
 | **Real-time** | WebSocket watches + 60s polling fallback |
 | **Styling** | Tailwind CSS 3.4 |
-| **Testing** | Vitest + jsdom (1162 tests, 63 files) |
+| **Types** | 30+ typed K8s interfaces (`engine/types/`) |
+| **Testing** | Vitest + jsdom (1269 tests, 71 files) |
 | **Icons** | Lucide React (icon registry, ~50 icons) |
 | **Charts** | Pure SVG sparklines (no chart library) |
 
@@ -250,7 +261,7 @@ oc new-build --binary --name=openshiftpulse --to=openshiftpulse:latest -n opensh
 
 # Build and deploy
 npm run build
-oc start-build openshiftpulse --from-dir=. --follow -n openshiftpulse
+oc start-build openshiftpulse --from-dir=dist --follow -n openshiftpulse
 
 # Update the OAuthClient redirectURI to match your cluster's route
 ROUTE=$(oc get route openshiftpulse -n openshiftpulse -o jsonpath='{.spec.host}')
@@ -261,10 +272,20 @@ oc patch oauthclient openshiftpulse --type merge \
 oc rollout restart deployment/openshiftpulse -n openshiftpulse
 ```
 
+### Deploy with Helm (recommended)
+
+```bash
+npm run build
+helm install openshiftpulse deploy/helm/openshiftpulse/ -n openshiftpulse --create-namespace
+oc start-build openshiftpulse --from-dir=dist --follow -n openshiftpulse
+```
+
+Helm auto-generates OAuth secrets, creates all RBAC/Service/Route resources, and configures the OAuthClient. See `deploy/helm/openshiftpulse/values.yaml` for customization options (replicas, resources, route host).
+
 ### Quick redeploy (one-liner)
 
 ```bash
-npm run build && oc start-build openshiftpulse --from-dir=. --follow -n openshiftpulse && oc rollout restart deployment/openshiftpulse -n openshiftpulse
+npm run build && oc start-build openshiftpulse --from-dir=dist --follow -n openshiftpulse && oc rollout restart deployment/openshiftpulse -n openshiftpulse
 ```
 
 ### Security Model
@@ -337,19 +358,21 @@ npm run type-check    # TypeScript checking
 ### Test Results
 
 ```
- Test Files  63 passed (63)
-      Tests  1162 passed (1162)
-   Duration  3.05s
+ Test Files  71 passed (71)
+      Tests  1269 passed (1269)
+   Duration  ~3s
 ```
 
 ## Architecture
 
 ```
 src/kubeview/
-├── engine/              # Query (with impersonation), discovery, diagnosis, watch, snapshot
-├── views/               # 13 view components + health audits + incident context
-├── components/          # Shared UI (Panel, ClusterConfig, Sparkline, YamlEditor, Terminal, Dock)
-├── hooks/               # useK8sListWatch, useCanI (RBAC), useNavigateTab
+├── engine/              # Query, discovery, diagnosis, watch, snapshot, timeline, types/
+│   └── types/           # 30+ typed K8s interfaces (Pod, Deployment, Node, etc.)
+├── views/               # 14 view components + health audits + admin tabs
+│   └── admin/           # Extracted admin tabs (Overview, Operators, Updates, Snapshots, etc.)
+├── components/          # Shared UI (Panel, Card, InfoCard, MetricGrid, YamlEditor, Terminal, Dock)
+├── hooks/               # useK8sListWatch, useCanI, useNavigateTab, useIncidentTimeline
 ├── store/               # Zustand (uiStore with impersonation, clusterStore with HyperShift detection)
 ├── routes/              # Route modules (resource, domain, redirects)
 │   ├── resourceRoutes.tsx   # GVR wrapper components + resource routes
@@ -383,11 +406,11 @@ Browser → OAuth Proxy (8443) → nginx (8080) → K8s API / Prometheus / Alert
 
 | Metric | Value |
 |--------|-------|
-| Production files | ~100 |
-| Tests | 1162 (100% passing) |
-| Test files | 63 |
+| Production files | ~120 |
+| Tests | 1269 (100% passing) |
+| Test files | 71 |
 | Routes | 35 |
-| Views | 13 |
+| Views | 14 |
 | Health checks | 76 (31 cluster + 45 domain) |
 | YAML templates | 30 + 71 context-aware snippets |
 | Operators in catalog | 500+ |
@@ -404,7 +427,7 @@ Browser → OAuth Proxy (8443) → nginx (8080) → K8s API / Prometheus / Alert
 npm install          # Install dependencies
 cp .env.example .env # Configure cluster URLs
 npm run dev          # Dev server on port 9000
-npm test             # Run 1162 tests
+npm test             # Run 1269 tests
 npm run build        # Production build (~1s)
 ```
 
