@@ -66,10 +66,10 @@ describe('WelcomeView', () => {
 
   it('shows quick nav row with Compute, Workloads, Administration, Alerts', () => {
     renderView();
-    expect(screen.getByText('Compute')).toBeDefined();
-    expect(screen.getByText('Workloads')).toBeDefined();
-    expect(screen.getByText('Administration')).toBeDefined();
-    expect(screen.getByText('Alerts')).toBeDefined();
+    expect(screen.getAllByText('Compute').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Workloads').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Administration').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Alerts').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows Readiness Checklist and Find Anything action cards', () => {
@@ -94,25 +94,24 @@ describe('WelcomeView', () => {
     expect(screen.getByText('Key Capabilities')).toBeDefined();
   });
 
-  it('renders all 10 feature showcase items', () => {
+  it('renders first 6 feature showcase items (collapsed by default)', () => {
     renderView();
     expect(screen.getByText('YAML Editor')).toBeDefined();
-    expect(screen.getByText('Impersonation')).toBeDefined();
-    expect(screen.getByText('Rollback')).toBeDefined();
-    expect(screen.getByText('Dependency Graph')).toBeDefined();
-    expect(screen.getByText('Log Streaming')).toBeDefined();
-    expect(screen.getByText('Cluster Snapshots')).toBeDefined();
-    expect(screen.getByText('Resource Diffing')).toBeDefined();
-    expect(screen.getByText('Workload Audit')).toBeDefined();
+    expect(screen.getByText('GitOps / ArgoCD')).toBeDefined();
+    expect(screen.getByText('Incident Timeline')).toBeDefined();
+    expect(screen.getByText('Health Audits')).toBeDefined();
     expect(screen.getByText('Security Audit')).toBeDefined();
-    expect(screen.getByText('Pod Shell')).toBeDefined();
+    expect(screen.getByText('Rollback')).toBeDefined();
+    // Hidden capabilities not visible until expanded
+    expect(screen.queryByText('Pod Shell')).toBeNull();
+    expect(screen.getByText(/Show all 12/)).toBeDefined();
   });
 
   it('renders feature descriptions', () => {
     renderView();
     expect(screen.getByText(/dry-run validation/)).toBeDefined();
-    expect(screen.getByText(/impersonation headers/)).toBeDefined();
-    expect(screen.getByText(/owner chains/)).toBeDefined();
+    expect(screen.getByText(/auto-PR on save/)).toBeDefined();
+    expect(screen.getByText(/77 automated checks/)).toBeDefined();
   });
 
   it('shows All Views divider', () => {
