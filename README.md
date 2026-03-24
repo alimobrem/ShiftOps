@@ -312,55 +312,11 @@ oc start-build openshiftpulse --from-dir=dist --follow -n openshiftpulse
 oc rollout restart deployment/openshiftpulse -n openshiftpulse
 ```
 
-### Security Model
+### Security
 
-| Layer | Mechanism |
-|-------|-----------|
-| **User authentication** | OAuth proxy sidecar with OAuthClient (`user:full` scope — required for write operations) |
-| **User authorization** | User's OAuth token forwarded via `X-Forwarded-Access-Token` header to K8s API |
-| **Service account** | Minimal ClusterRole (`openshiftpulse-reader`) with read-only access + token review for OAuth proxy |
-| **Secrets** | OAuth client secret and cookie secret mounted from a K8s Secret via files (`--client-secret-file`, `--cookie-secret-file`) |
-| **Container security** | `runAsNonRoot`, `readOnlyRootFilesystem`, drop ALL capabilities, seccomp RuntimeDefault |
-| **TLS verification** | `proxy_ssl_verify on` with `ca.crt` for K8s API, `service-ca.crt` for Prometheus/Alertmanager |
-| **HTTP headers** | CSP (`default-src 'self'`), X-Frame-Options DENY, HSTS, X-Content-Type-Options nosniff, Referrer-Policy |
-| **Input validation** | Helm release names validated (`^[a-z0-9][a-z0-9-]{0,52}$`), PromQL sanitized, CRLF stripped from impersonation headers, regex escaped in log search |
-| **SSRF protection** | Dev proxy validates URL protocol, blocks private/internal IPs |
-| **Resource limits** | ResourceQuota (10 pods, 1 CPU, 1Gi memory) and LimitRange (per-container defaults and maximums) |
+OAuth proxy sidecar with per-user authentication. All user actions use the user's own token (not the SA). Non-root containers, read-only filesystem, CSP headers, TLS verification. All 15 security audit findings resolved. 0 npm CVEs. All images from Red Hat registries.
 
-### Security Audit Results
-
-A comprehensive security audit was performed covering authentication, injection vulnerabilities, sensitive data exposure, API security, deployment security, and client-side security. All 15 findings (1 critical, 4 high, 7 medium, 3 low) have been resolved:
-
-| Severity | Finding | Resolution |
-|----------|---------|------------|
-| Critical | Helm command injection via `sh -c` | Validate release names, use array args with `--repo` flag |
-| High | SSRF in dev proxy | Validate URL protocol, block private/link-local IPs |
-| High | Impersonation CRLF injection | Strip `\r\n` from all impersonation header values |
-| High | Missing nginx security headers | Added CSP, X-Frame-Options, HSTS, nosniff, Referrer-Policy |
-| High | `proxy_ssl_verify off` | Enabled with correct CA certs (`ca.crt` for API, `service-ca.crt` for monitoring) |
-| Medium | Prometheus label path injection | Validate label names against `^[a-zA-Z_][a-zA-Z0-9_]*$` |
-| Medium | Path traversal in `buildApiPathFromResource` | Apply `sanitizePathSegment` to namespace and name |
-| Medium | Node log file path traversal | Validate filenames against `^[a-zA-Z0-9._-]+$` |
-| Medium | RegExp DoS in log search | Escape regex special chars before `new RegExp()` |
-| Medium | Missing `readOnlyRootFilesystem` | Added to both containers with emptyDir for writable paths |
-| Medium | Placeholder secrets in manifest | Documented generation steps, added deployment validation |
-| Medium | Broad `user:full` OAuth scope | Documented requirement (app performs write operations) |
-| Low | Impersonation header format | Fixed to comma-separated `Impersonate-Group`, sanitized CRLF |
-| Low | YAML editor missing impersonation | Added `getImpersonationHeaders()` to GET and PUT requests |
-| Low | Token logging risk in dev | Documented in `.env.example` |
-
-### What the deployment includes
-
-| Component | Details |
-|-----------|---------|
-| **OAuth proxy** | Sidecar with explicit OAuthClient, `user:full` scope, per-user authentication |
-| **nginx** | Reverse proxy forwarding user's `X-Forwarded-Access-Token` to K8s API, Prometheus, Alertmanager |
-| **2 replicas** | PodDisruptionBudget (minAvailable: 1), topology spread across nodes |
-| **Zero-downtime** | RollingUpdate with maxUnavailable: 0 |
-| **Minimal RBAC** | Scoped ClusterRole with read-only access + token review — user actions use the user's own token |
-| **ResourceQuota** | 10 pods, 1 CPU / 1Gi memory requests, 2 CPU / 2Gi limits, 50 configmaps, 20 secrets |
-| **LimitRange** | Default 200m/256Mi per container, max 1 CPU/1Gi |
-| **Security hardening** | readOnlyRootFilesystem, CSP headers, TLS verification, non-root containers |
+See **[SECURITY.md](SECURITY.md)** for the full security model, audit results, RBAC details, container hardening, and deployment checklist.
 
 ### Troubleshooting
 
