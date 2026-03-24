@@ -10,7 +10,7 @@ import { queryInstant } from '../components/metrics/prometheus';
 import { MetricCard } from '../components/metrics/Sparkline';
 import { CHART_COLORS } from '../engine/colors';
 import type { K8sResource } from '../engine/renderers';
-import type { Node, Pod, Machine, MachineSet, Taint } from '../engine/types';
+import type { Node, Pod, Machine, MachineSet, Taint, NodePool, Condition } from '../engine/types';
 import { getNodeStatus } from '../engine/renderers/statusUtils';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
@@ -137,6 +137,14 @@ export default function ComputeView() {
     enabled: !isHyperShift,
   });
 
+  // NodePools (HyperShift only)
+  const { data: nodePools = [] } = useQuery<K8sResource[]>({
+    queryKey: ['compute', 'nodepools'],
+    queryFn: () => k8sList('/apis/hypershift.openshift.io/v1beta1/nodepools').catch(() => []),
+    staleTime: 60000,
+    enabled: isHyperShift,
+  });
+
   // Per-node CPU usage from Prometheus (joined via kube_node_info for reliable node name matching)
   const { data: nodeCpuMetrics = [] } = useQuery({
     queryKey: ['compute', 'node-cpu'],
@@ -244,7 +252,9 @@ export default function ComputeView() {
 
       // Machine ref
       const machineRef = (machines as Machine[]).find((m) => m.status?.nodeRef?.name === nodeName);
-      const instanceType = (machineRef?.spec?.providerSpec?.value?.instanceType as string) || '';
+      const instanceType = (machineRef?.spec?.providerSpec?.value?.instanceType as string)
+        || node.metadata.labels?.['node.kubernetes.io/instance-type']
+        || '';
 
       return {
         node: node as K8sResource, status, nodeInfo, capacity, allocatable, roles, taints, unschedulable,
@@ -315,6 +325,7 @@ export default function ComputeView() {
           clusterAutoscaler={clusterAutoscaler}
           machineAutoscalers={machineAutoscalers}
           nodeDetails={nodeDetails}
+          nodePools={nodePools}
           go={go}
         />
 
@@ -462,14 +473,77 @@ export default function ComputeView() {
 
         {/* Machine Management — hidden on HyperShift where Machine API is managed externally */}
         {isHyperShift ? (
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Info className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-medium text-slate-200">Machine Management</span>
-              <span className="text-xs px-2 py-0.5 bg-blue-900/60 text-blue-300 rounded-full border border-blue-700/50">Hosted Control Plane</span>
+          <div className="space-y-6">
+            {/* HyperShift info banner */}
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-950/30 border border-blue-800/50 rounded-lg">
+              <Info className="w-4 h-4 text-blue-400 shrink-0" />
+              <span className="text-xs text-blue-300">Hosted Control Plane — Machine API managed externally. Worker scaling via NodePools.</span>
             </div>
-            <p className="text-xs text-slate-400">Machine API resources (MachineSets, Machines, MachineHealthChecks, Autoscaling) are managed by the hosting provider on HyperShift clusters. Worker node scaling is handled through the hosted cluster's NodePool resource in the management cluster.</p>
-          </Card>
+
+            {/* NodePools */}
+            <Card>
+              <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                  NodePools ({nodePools.length})
+                  <span className="text-xs px-2 py-0.5 bg-violet-900/50 text-violet-300 rounded-full">HyperShift</span>
+                </h2>
+              </div>
+              {nodePools.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-sm text-slate-500">No NodePools found</p>
+                  <p className="text-xs text-slate-600 mt-1">NodePool resources may not be accessible from the guest cluster, or the hypershift.openshift.io API is not available.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800">
+                  {(nodePools as unknown as NodePool[]).map((np) => {
+                    const desired = np.spec?.replicas ?? 0;
+                    const ready = np.status?.replicas ?? 0;
+                    const autoScale = np.spec?.autoScaling;
+                    const platform = np.spec?.platform;
+                    const instanceType = platform?.aws?.instanceType || platform?.azure?.vmSize || platform?.gcp?.instanceType || '';
+                    const autoRepair = np.spec?.management?.autoRepair;
+                    const version = np.status?.version;
+                    const conditions = np.status?.conditions || [];
+                    const isDegraded = conditions.some((c: Condition) => c.type === 'Ready' && c.status !== 'True');
+                    const isUpdating = conditions.some((c: Condition) => (c.type === 'UpdatingVersion' || c.type === 'UpdatingConfig') && c.status === 'True');
+
+                    return (
+                      <div key={np.metadata.uid || np.metadata.name} className="px-4 py-3 hover:bg-slate-800/30 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className={cn('w-2 h-2 rounded-full shrink-0',
+                              isDegraded ? 'bg-red-500' : isUpdating ? 'bg-blue-500 animate-pulse' : ready === desired ? 'bg-green-500' : 'bg-yellow-500'
+                            )} />
+                            <span className="text-sm font-medium text-slate-200">{np.metadata.name}</span>
+                            {instanceType && <span className="text-xs px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded font-mono">{instanceType}</span>}
+                            {autoScale && (
+                              <span className="text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                                auto {autoScale.min}-{autoScale.max}
+                              </span>
+                            )}
+                            {autoRepair && <span className="text-xs px-1.5 py-0.5 bg-emerald-900/50 text-emerald-300 rounded">auto-repair</span>}
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            {version && <span className="text-xs text-slate-500 font-mono">{version}</span>}
+                            <span className={cn('text-xs font-mono font-semibold',
+                              ready === desired ? 'text-green-400' : 'text-yellow-400'
+                            )}>{ready}/{desired}</span>
+                          </div>
+                        </div>
+                        {isDegraded && (
+                          <div className="mt-1.5 ml-4">
+                            <span className="text-xs text-red-400">
+                              {conditions.find((c: Condition) => c.type === 'Ready' && c.status !== 'True')?.message || 'Not ready'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </div>
         ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* MachineSets */}
@@ -777,6 +851,7 @@ function ComputeHealthAudit({
   clusterAutoscaler,
   machineAutoscalers,
   nodeDetails,
+  nodePools,
   go,
 }: {
   nodes: K8sResource[];
@@ -784,6 +859,7 @@ function ComputeHealthAudit({
   clusterAutoscaler: K8sResource[];
   machineAutoscalers: K8sResource[];
   nodeDetails: NodeDetail[];
+  nodePools: K8sResource[];
   go: (path: string, title: string) => void;
 }) {
   const isHyperShift = useClusterStore((s) => s.isHyperShift);
@@ -976,8 +1052,40 @@ spec:
     });
     }
 
+    // 7. NodePool Health (HyperShift only)
+    if (isHyperShift && nodePools.length > 0) {
+      const nps = nodePools as unknown as NodePool[];
+      const unhealthyPools = nps.filter(np => {
+        const desired = np.spec?.replicas ?? 0;
+        const ready = np.status?.replicas ?? 0;
+        const conditions = np.status?.conditions || [];
+        return (desired > 0 && ready < desired) || conditions.some((c: Condition) => c.type === 'Ready' && c.status !== 'True');
+      });
+      const healthyPools = nps.filter(np => !unhealthyPools.includes(np));
+      allChecks.push({
+        id: 'nodepool-health',
+        title: 'NodePool Health',
+        description: 'All NodePools should have desired replicas ready and no degraded conditions',
+        why: 'NodePools manage worker node lifecycle on HyperShift clusters. Unhealthy NodePools mean nodes are not being provisioned or replaced correctly.',
+        passing: healthyPools.map(np => ({ metadata: np.metadata, node: np as unknown as K8sResource, status: { ready: true } })) as AuditItem[],
+        failing: unhealthyPools.map(np => ({ metadata: np.metadata, node: np as unknown as K8sResource, status: { ready: false } })) as AuditItem[],
+        yamlExample: `apiVersion: hypershift.openshift.io/v1beta1
+kind: NodePool
+metadata:
+  name: my-nodepool
+spec:
+  replicas: 3
+  autoScaling:
+    min: 2
+    max: 10
+  management:
+    autoRepair: true
+    upgradeType: Replace`,
+      });
+    }
+
     return allChecks;
-  }, [nodes, healthChecks, clusterAutoscaler, machineAutoscalers, nodeDetails, isHyperShift]);
+  }, [nodes, healthChecks, clusterAutoscaler, machineAutoscalers, nodeDetails, nodePools, isHyperShift]);
 
   if (nodes.length === 0) return null;
 

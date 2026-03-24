@@ -230,14 +230,14 @@ describe('HyperShift UI - ComputeView health audit', () => {
     expect(screen.getByText('Worker Nodes')).toBeDefined();
   });
 
-  it('hides Machine Management panels on HyperShift and shows info', () => {
+  it('hides Machine Management panels on HyperShift and shows NodePools', () => {
     useClusterStore.setState({ isHyperShift: true, controlPlaneTopology: 'External' });
     qcWrap(<ComputeView />);
-    // The MachineSets table heading should not exist
+    // MachineSets should not exist
     expect(screen.queryByText(/MachineSets \(/)).toBeNull();
-    // But the info block should be visible
-    expect(screen.getByText('Machine Management')).toBeDefined();
-    expect(screen.getByText(/managed by the hosting provider/)).toBeDefined();
+    // NodePools card and HyperShift info should be visible
+    expect(screen.getAllByText(/NodePools/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Hosted Control Plane/)).toBeDefined();
   });
 
   it('shows Machine Management panels on traditional cluster', () => {

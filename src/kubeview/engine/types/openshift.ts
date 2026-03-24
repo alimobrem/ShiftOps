@@ -118,3 +118,33 @@ export interface Machine {
     addresses?: Array<{ type: string; address: string }>;
   };
 }
+
+export interface NodePool {
+  apiVersion: 'hypershift.openshift.io/v1beta1';
+  kind: 'NodePool';
+  metadata: ObjectMeta;
+  spec?: {
+    clusterName?: string;
+    replicas?: number;
+    autoScaling?: { min?: number; max?: number };
+    platform?: {
+      type?: string;
+      aws?: { instanceType?: string; rootVolume?: { size?: number; type?: string } };
+      azure?: { vmSize?: string };
+      gcp?: { instanceType?: string };
+    };
+    release?: { image?: string };
+    management?: {
+      autoRepair?: boolean;
+      upgradeType?: string;
+      replace?: { strategy?: string; rollingUpdate?: { maxUnavailable?: number; maxSurge?: number } };
+    };
+    nodeLabels?: Record<string, string>;
+    nodeTaints?: Array<{ key: string; value?: string; effect: string }>;
+  };
+  status?: {
+    replicas?: number;
+    version?: string;
+    conditions?: Condition[];
+  };
+}

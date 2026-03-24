@@ -40,7 +40,7 @@ export type { PolicyRule, RoleRef, Subject, ClusterRole, ClusterRoleBinding, Rol
 export type { Ingress, NetworkPolicy, Route } from './networking';
 
 // OpenShift
-export type { ClusterVersion, ClusterOperator, BuildConfig, Build, ImageStream, MachineSet, Machine } from './openshift';
+export type { ClusterVersion, ClusterOperator, BuildConfig, Build, ImageStream, MachineSet, Machine, NodePool } from './openshift';
 
 // Storage
 export type { StorageClass, VolumeSnapshot, CSIDriver } from './storage';
