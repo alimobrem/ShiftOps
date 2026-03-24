@@ -99,7 +99,7 @@ export default function AdminView() {
   const queryClient = useQueryClient();
 
   // Cluster version
-  const { data: clusterVersion } = useQuery({
+  const { data: clusterVersion, isLoading: cvLoading, isError: cvError } = useQuery({
     queryKey: ['admin', 'clusterversion'],
     queryFn: () => k8sGet<ClusterVersion>('/apis/config.openshift.io/v1/clusterversions/version').catch(() => null),
     staleTime: 60000,
@@ -112,13 +112,35 @@ export default function AdminView() {
     staleTime: 60000,
   });
 
-  const { data: nodes = [] } = useK8sListWatch<K8sResource>({
+  const { data: nodes = [], isLoading: nodesLoading, isError: nodesError } = useK8sListWatch<K8sResource>({
     apiPath: '/api/v1/nodes',
   });
 
-  const { data: operators = [] } = useK8sListWatch<K8sResource>({
+  const { data: operators = [], isLoading: opsLoading, isError: opsError } = useK8sListWatch<K8sResource>({
     apiPath: '/apis/config.openshift.io/v1/clusteroperators',
   });
+
+  // Firing alerts from Prometheus
+  const { data: firingAlerts = [] } = useQuery<Array<{ labels: Record<string, string>; annotations: Record<string, string>; state: string }>>({
+    queryKey: ['admin', 'firing-alerts'],
+    queryFn: async () => {
+      const res = await fetch('/api/prometheus/api/v1/alerts');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json.data?.alerts || []).filter((a: { state: string }) => a.state === 'firing');
+    },
+    refetchInterval: 30000,
+  });
+
+  // Recent warning events
+  const { data: recentEvents = [] } = useQuery<K8sResource[]>({
+    queryKey: ['admin', 'recent-events'],
+    queryFn: () => k8sList('/api/v1/events?fieldSelector=type=Warning&limit=100').catch(() => []),
+    refetchInterval: 30000,
+  });
+
+  const overviewLoading = cvLoading || nodesLoading || opsLoading;
+  const overviewError = cvError || nodesError || opsError;
 
   const { data: crds = [] } = useQuery<K8sResource[]>({
     queryKey: ['k8s', 'list', '/apis/apiextensions.k8s.io/v1/customresourcedefinitions'],
@@ -210,8 +232,39 @@ export default function AdminView() {
   const availableUpdates = (clusterVersion?.status?.availableUpdates || []) as AvailableUpdate[];
   const isUpdating = (clusterVersion?.status?.conditions || []).some((c: Condition) => c.type === 'Progressing' && c.status === 'True');
 
-  const opDegraded = operators.filter((o) => (o as unknown as ClusterOperator).status?.conditions?.find((c: Condition) => c.type === 'Degraded' && c.status === 'True')).length;
+  const degradedOperators = React.useMemo(() =>
+    operators.filter((o) => (o as unknown as ClusterOperator).status?.conditions?.some((c: Condition) => c.type === 'Degraded' && c.status === 'True'))
+      .map(o => {
+        const op = o as unknown as ClusterOperator;
+        const degradedCond = op.status?.conditions?.find((c: Condition) => c.type === 'Degraded' && c.status === 'True');
+        return { name: o.metadata.name, message: degradedCond?.message || degradedCond?.reason || '' };
+      }),
+  [operators]);
+  const opDegraded = degradedOperators.length;
   const opProgressing = operators.filter((o) => (o as unknown as ClusterOperator).status?.conditions?.find((c: Condition) => c.type === 'Progressing' && c.status === 'True')).length;
+
+  // Alert severity breakdown
+  const alertCounts = React.useMemo(() => {
+    const counts = { critical: 0, warning: 0, info: 0 };
+    for (const a of firingAlerts) {
+      const sev = a.labels?.severity || 'warning';
+      if (sev === 'critical') counts.critical++;
+      else if (sev === 'warning') counts.warning++;
+      else counts.info++;
+    }
+    return counts;
+  }, [firingAlerts]);
+
+  // Recent events sorted by time
+  const latestEvents = React.useMemo(() => {
+    return [...recentEvents]
+      .sort((a, b) => {
+        const aTime = (a as any).lastTimestamp || (a as any).firstTimestamp || a.metadata.creationTimestamp || '';
+        const bTime = (b as any).lastTimestamp || (b as any).firstTimestamp || b.metadata.creationTimestamp || '';
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      })
+      .slice(0, 5);
+  }, [recentEvents]);
 
   const nodeRoles = React.useMemo(() => {
     const roles = new Map<string, number>();
@@ -501,6 +554,75 @@ export default function AdminView() {
         {/* ===== OVERVIEW ===== */}
         {activeTab === 'overview' && (
           <>
+            {/* Loading skeleton */}
+            {overviewLoading && (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-slate-900 rounded-lg border border-slate-800 p-6 animate-pulse">
+                    <div className="h-4 bg-slate-800 rounded w-1/3 mb-3" />
+                    <div className="h-3 bg-slate-800 rounded w-2/3 mb-2" />
+                    <div className="h-3 bg-slate-800 rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Error banner */}
+            {overviewError && !overviewLoading && (
+              <div className="bg-red-950/30 border border-red-800 rounded-lg px-4 py-3 flex items-center gap-3">
+                <XCircle className="w-5 h-5 text-red-400 shrink-0" />
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-red-300">Failed to load cluster data</span>
+                  <p className="text-xs text-red-400 mt-0.5">Check your permissions or cluster connectivity. Some data may be unavailable.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Firing alerts banner */}
+            {firingAlerts.length > 0 && (
+              <div className={cn('border rounded-lg px-4 py-3',
+                alertCounts.critical > 0 ? 'bg-red-950/30 border-red-800' : 'bg-amber-950/30 border-amber-800'
+              )}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className={cn('w-5 h-5', alertCounts.critical > 0 ? 'text-red-400' : 'text-amber-400')} />
+                    <div>
+                      <span className={cn('text-sm font-medium', alertCounts.critical > 0 ? 'text-red-300' : 'text-amber-300')}>
+                        {firingAlerts.length} alert{firingAlerts.length !== 1 ? 's' : ''} firing
+                      </span>
+                      <span className="text-xs ml-2 text-slate-400">
+                        {alertCounts.critical > 0 && <span className="text-red-400 mr-2">{alertCounts.critical} critical</span>}
+                        {alertCounts.warning > 0 && <span className="text-amber-400 mr-2">{alertCounts.warning} warning</span>}
+                        {alertCounts.info > 0 && <span className="text-blue-400">{alertCounts.info} info</span>}
+                      </span>
+                    </div>
+                  </div>
+                  <button onClick={() => go('/alerts', 'Alerts')} className={cn('text-xs flex items-center gap-1', alertCounts.critical > 0 ? 'text-red-400 hover:text-red-300' : 'text-amber-400 hover:text-amber-300')}>
+                    View alerts <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+                {/* Top 3 alert names */}
+                {firingAlerts.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2 ml-8">
+                    {[...new Set(firingAlerts.map(a => a.labels?.alertname).filter(Boolean))].slice(0, 3).map(name => (
+                      <span key={name} className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">{name}</span>
+                    ))}
+                    {new Set(firingAlerts.map(a => a.labels?.alertname)).size > 3 && (
+                      <span className="text-xs text-slate-500">+{new Set(firingAlerts.map(a => a.labels?.alertname)).size - 3} more</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* No alerts — green signal */}
+            {firingAlerts.length === 0 && !overviewLoading && (
+              <div className="bg-emerald-950/20 border border-emerald-800/50 rounded-lg px-4 py-2.5 flex items-center gap-3">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm text-emerald-300">No alerts firing</span>
+              </div>
+            )}
+
             {/* Row 1: Key info cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
               <InfoCard label="Cluster Version" value={cvVersion || '—'} sub={cvChannel} />
@@ -603,6 +725,20 @@ export default function AdminView() {
                         {opProgressing > 0 && <span className="flex items-center gap-1 text-xs text-yellow-400"><RefreshCw className="w-3 h-3" /> {opProgressing}</span>}
                       </div>
                     </div>
+                    {/* Named degraded operators */}
+                    {degradedOperators.length > 0 && (
+                      <div className="mt-2 space-y-1.5">
+                        {degradedOperators.map((op) => (
+                          <div key={op.name} className="flex items-start gap-2 p-2 rounded bg-red-950/20 border border-red-900/30">
+                            <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <span className="text-xs font-medium text-red-300">{op.name}</span>
+                              {op.message && <p className="text-xs text-red-400/70 mt-0.5 line-clamp-2">{op.message}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button onClick={() => go('/r/config.openshift.io~v1~clusteroperators', 'ClusterOperators')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mt-3">View all operators <ArrowRight className="w-3 h-3" /></button>
@@ -687,6 +823,50 @@ export default function AdminView() {
                 </button>
               </Panel>
             </div>
+
+            {/* Recent Warning Events */}
+            {latestEvents.length > 0 && (
+              <Panel title={`Recent Warning Events (${recentEvents.length})`} icon={<AlertCircle className="w-4 h-4 text-amber-500" />}>
+                <div className="space-y-1.5">
+                  {latestEvents.map((event, i) => {
+                    const ev = event as any;
+                    const reason = ev.reason || 'Event';
+                    const message = ev.message || '';
+                    const objectKind = ev.involvedObject?.kind || '';
+                    const objectName = ev.involvedObject?.name || '';
+                    const ns = ev.involvedObject?.namespace || event.metadata.namespace || '';
+                    const timestamp = ev.lastTimestamp || ev.firstTimestamp || event.metadata.creationTimestamp || '';
+                    const timeAgo = timestamp ? (() => {
+                      const ms = Date.now() - new Date(timestamp).getTime();
+                      if (ms < 60000) return `${Math.floor(ms / 1000)}s`;
+                      if (ms < 3600000) return `${Math.floor(ms / 60000)}m`;
+                      if (ms < 86400000) return `${Math.floor(ms / 3600000)}h`;
+                      return `${Math.floor(ms / 86400000)}d`;
+                    })() : '';
+
+                    return (
+                      <button key={i} onClick={() => { if (objectName && objectKind) go(`/r/v1~${objectKind.toLowerCase()}s/${ns}/${objectName}`, objectName); }}
+                        className="w-full flex items-start gap-2.5 p-2 rounded hover:bg-slate-800/50 text-left transition-colors">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-slate-200">{reason}</span>
+                            {objectKind && objectName && (
+                              <span className="text-xs text-slate-500">{objectKind}/{objectName}</span>
+                            )}
+                            {timeAgo && <span className="text-xs text-slate-600 ml-auto shrink-0">{timeAgo} ago</span>}
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{message}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={() => setActiveTab('timeline')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mt-3">
+                  View full timeline <ArrowRight className="w-3 h-3" />
+                </button>
+              </Panel>
+            )}
           </>
         )}
 
