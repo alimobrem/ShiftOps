@@ -24,6 +24,7 @@ import { type ClusterSnapshot, type DiffRow, loadSnapshots, saveSnapshots, captu
 import { QuotasTab } from './admin/QuotasTab';
 import { CertificatesTab } from './admin/CertificatesTab';
 import { Card } from '../components/primitives/Card';
+import { InfoCard } from '../components/primitives/InfoCard';
 
 /** OpenShift Infrastructure resource (config.openshift.io/v1) */
 interface Infrastructure extends K8sResource {
@@ -139,6 +140,35 @@ export default function AdminView() {
     refetchInterval: 30000,
   });
 
+  // Expiring certs (TLS secrets with cert-manager or service-ca annotations)
+  const { data: expiringCerts = [] } = useQuery<Array<{ name: string; namespace: string; daysLeft: number }>>({
+    queryKey: ['admin', 'expiring-certs'],
+    queryFn: async () => {
+      const secrets = await k8sList('/api/v1/secrets?fieldSelector=type=kubernetes.io/tls').catch(() => []);
+      const expiring: Array<{ name: string; namespace: string; daysLeft: number }> = [];
+      for (const s of secrets as K8sResource[]) {
+        const annotations = s.metadata.annotations || {};
+        // Check cert-manager expiry annotation
+        const expiryStr = annotations['cert-manager.io/certificate-expiry'] || '';
+        // Check service-ca annotation (auto-generated, 2-year default)
+        const serviceCA = annotations['service.beta.openshift.io/originating-service-name'];
+        const created = s.metadata.creationTimestamp;
+        let daysLeft = Infinity;
+        if (expiryStr) {
+          daysLeft = Math.floor((new Date(expiryStr).getTime() - Date.now()) / 86400000);
+        } else if (serviceCA && created) {
+          // Service-CA certs default to 26 months
+          daysLeft = Math.floor((new Date(created).getTime() + 26 * 30 * 86400000 - Date.now()) / 86400000);
+        }
+        if (daysLeft <= 30 && daysLeft > -999) {
+          expiring.push({ name: s.metadata.name, namespace: s.metadata.namespace || '', daysLeft });
+        }
+      }
+      return expiring.sort((a, b) => a.daysLeft - b.daysLeft);
+    },
+    staleTime: 300000,
+  });
+
   const overviewLoading = cvLoading || nodesLoading || opsLoading;
   const overviewError = cvError || nodesError || opsError;
 
@@ -159,6 +189,26 @@ export default function AdminView() {
     queryFn: () => k8sList('/api/v1/limitranges'),
     staleTime: 60000,
   });
+
+  // Quota hot spots (>80% usage)
+  const quotaHotSpots = React.useMemo(() => {
+    const spots: Array<{ namespace: string; resource: string; pct: number }> = [];
+    for (const q of quotas as K8sResource[]) {
+      const spec = (q as any).spec?.hard || {};
+      const status = (q as any).status?.used || {};
+      for (const [key, hardVal] of Object.entries(spec)) {
+        const hard = parseFloat(String(hardVal).replace(/[^0-9.]/g, '')) || 0;
+        const used = parseFloat(String(status[key] || '0').replace(/[^0-9.]/g, '')) || 0;
+        if (hard > 0) {
+          const pct = (used / hard) * 100;
+          if (pct >= 80) {
+            spots.push({ namespace: q.metadata.namespace || '', resource: key, pct: Math.round(pct) });
+          }
+        }
+      }
+    }
+    return spots.sort((a, b) => b.pct - a.pct).slice(0, 5);
+  }, [quotas]);
 
   const { data: oauthConfig } = useQuery({
     queryKey: ['admin', 'oauth'],
@@ -624,20 +674,32 @@ export default function AdminView() {
             )}
 
             {/* Row 1: Key info cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {/* Health score */}
+              <InfoCard
+                label="Cluster Health"
+                value={(() => {
+                  const total = operators.length;
+                  if (total === 0) return '—';
+                  const healthy = total - opDegraded - opProgressing;
+                  const score = Math.round((healthy / total) * 100);
+                  return `${score}%`;
+                })()}
+                sub={opDegraded > 0 ? `${opDegraded} degraded` : firingAlerts.length > 0 ? `${firingAlerts.length} alerts` : 'All systems go'}
+                onClick={() => setActiveTab('readiness')}
+                className={cn(
+                  opDegraded > 0 ? 'border-red-800' :
+                  firingAlerts.length > 0 ? 'border-amber-800' :
+                  'border-emerald-800/50'
+                )}
+              />
               <InfoCard label="Cluster Version" value={cvVersion || '—'} sub={cvChannel} />
               <InfoCard label="Platform" value={platform || '—'} sub={(() => { try { return apiUrl ? new URL(apiUrl).hostname : ''; } catch { return ''; } })()} />
               <InfoCard label="Control Plane" value={isHyperShift ? 'Hosted (External)' : controlPlaneTopology ? `Self-managed (${controlPlaneTopology})` : '—'} sub={isHyperShift ? 'Managed externally' : ''} />
               <InfoCard label="Cluster Age" value={clusterAge?.label || '—'} sub={clusterAge?.date ? new Date(clusterAge.date).toLocaleDateString() : ''} />
-              <button onClick={() => go('/compute', 'Compute')} className="text-left">
-                <InfoCard label="Nodes" value={String(nodes.length)} sub={`${nodeRoles.map(([r, c]) => `${c} ${r}`).join(', ')} →`} />
-              </button>
-              <button onClick={() => setActiveTab('quotas')} className="text-left">
-                <InfoCard label="Namespaces" value={String(nsStats.total)} sub={`${nsStats.user} user, ${nsStats.system} system →`} />
-              </button>
-              <button onClick={() => go('/crds', 'Custom Resources')} className="text-left">
-                <InfoCard label="CRDs" value={String(crds.length)} sub={`${crdGroupCount} API groups →`} />
-              </button>
+              <InfoCard label="Nodes" value={String(nodes.length)} sub={`${nodeRoles.map(([r, c]) => `${c} ${r}`).join(', ')} →`} onClick={() => go('/compute', 'Compute')} />
+              <InfoCard label="Namespaces" value={String(nsStats.total)} sub={`${nsStats.user} user, ${nsStats.system} system →`} onClick={() => setActiveTab('quotas')} />
+              <InfoCard label="CRDs" value={String(crds.length)} sub={`${crdGroupCount} API groups →`} onClick={() => go('/crds', 'Custom Resources')} />
             </div>
 
             {/* Update banner */}
@@ -653,6 +715,61 @@ export default function AdminView() {
                 <button onClick={() => setActiveTab('updates')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
                   View updates <ArrowRight className="w-3 h-3" />
                 </button>
+              </div>
+            )}
+
+            {/* Status signals row */}
+            {(expiringCerts.length > 0 || quotaHotSpots.length > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Certificate expiry warnings */}
+                {expiringCerts.length > 0 && (
+                  <Card className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <span className="text-sm font-medium text-amber-300">{expiringCerts.length} cert{expiringCerts.length !== 1 ? 's' : ''} expiring within 30 days</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {expiringCerts.slice(0, 3).map((cert) => (
+                        <div key={`${cert.namespace}/${cert.name}`} className="flex items-center justify-between text-xs">
+                          <span className="text-slate-300 truncate">{cert.namespace}/{cert.name}</span>
+                          <span className={cn('shrink-0 ml-2 px-1.5 py-0.5 rounded',
+                            cert.daysLeft <= 7 ? 'bg-red-900/50 text-red-300' : 'bg-amber-900/50 text-amber-300'
+                          )}>{cert.daysLeft <= 0 ? 'Expired' : `${cert.daysLeft}d left`}</span>
+                        </div>
+                      ))}
+                      {expiringCerts.length > 3 && <div className="text-xs text-slate-500">+{expiringCerts.length - 3} more</div>}
+                    </div>
+                    <button onClick={() => setActiveTab('certificates')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mt-3">
+                      View certificates <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </Card>
+                )}
+
+                {/* Quota hot spots */}
+                {quotaHotSpots.length > 0 && (
+                  <Card className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <span className="text-sm font-medium text-amber-300">{quotaHotSpots.length} quota{quotaHotSpots.length !== 1 ? 's' : ''} above 80%</span>
+                    </div>
+                    <div className="space-y-2">
+                      {quotaHotSpots.map((spot, i) => (
+                        <div key={i}>
+                          <div className="flex items-center justify-between text-xs mb-0.5">
+                            <span className="text-slate-300">{spot.namespace} — {spot.resource}</span>
+                            <span className={cn('font-mono', spot.pct >= 90 ? 'text-red-400' : 'text-amber-400')}>{spot.pct}%</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className={cn('h-full rounded-full', spot.pct >= 90 ? 'bg-red-500' : 'bg-amber-500')} style={{ width: `${Math.min(100, spot.pct)}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={() => setActiveTab('quotas')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mt-3">
+                      View quotas <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </Card>
+                )}
               </div>
             )}
 
@@ -1292,13 +1409,4 @@ export default function AdminView() {
   );
 }
 
-function InfoCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="bg-slate-900 rounded-lg border border-slate-800 p-3">
-      <div className="text-xs text-slate-400 mb-1">{label}</div>
-      <div className="text-lg font-bold text-slate-100 truncate">{value}</div>
-      {sub && <div className="text-xs text-slate-500 mt-0.5 truncate">{sub}</div>}
-    </div>
-  );
-}
 

@@ -378,7 +378,7 @@ export function CertificatesTab({ go }: { go: (path: string, title: string) => v
                         <span className={cn('font-medium', statusColor(cert.status))}>
                           {formatRelative(cert.daysLeft)}
                         </span>
-                        <span className="text-slate-600 text-[10px]">{formatDate(cert.expiresAt)}</span>
+                        <span className="text-slate-600 text-xs">{formatDate(cert.expiresAt)}</span>
                       </div>
                     </td>
                     <td className="py-2 px-2">
@@ -412,7 +412,7 @@ function IssuerBadge({ issuer }: { issuer: string }) {
     'manual': 'bg-slate-800 text-slate-400 border-slate-700',
   };
   return (
-    <span className={cn('inline-block px-1.5 py-0.5 rounded text-[10px] border', styles[issuer] || styles.manual)}>
+    <span className={cn('inline-block px-1.5 py-0.5 rounded text-xs border', styles[issuer] || styles.manual)}>
       {issuer}
     </span>
   );
