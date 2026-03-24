@@ -64,6 +64,16 @@ export default function AlertsView() {
   const queryClient = useQueryClient();
   const addToast = useUIStore((s) => s.addToast);
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
+  const { data: currentUser = 'admin' } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const res = await fetch('/api/kubernetes/apis/user.openshift.io/v1/users/~');
+      if (!res.ok) return 'admin';
+      const data = await res.json();
+      return data.metadata?.name || 'admin';
+    },
+    staleTime: 300000,
+  });
   const urlTab = new URLSearchParams(window.location.search).get('tab') as Tab;
   const [activeTab, setActiveTabState] = useState<Tab>(urlTab || 'firing');
   const setActiveTab = (tab: Tab) => {
@@ -80,7 +90,7 @@ export default function AlertsView() {
     matchers: [{ name: 'alertname', value: '', isRegex: false }],
     startsAt: '',
     endsAt: '',
-    createdBy: 'admin',
+    createdBy: '',
     comment: '',
   });
   const [confirmExpire, setConfirmExpire] = useState<string | null>(null);
@@ -139,7 +149,8 @@ export default function AlertsView() {
             const isSilenced = activeSilences.some(silence =>
               silence.matchers.every(m => {
                 const labelVal = alert.labels[m.name] || '';
-                return m.isRegex ? new RegExp(m.value).test(labelVal) : labelVal === m.value;
+                if (m.isRegex) { try { return new RegExp(m.value).test(labelVal); } catch { return false; } }
+                return labelVal === m.value;
               })
             );
 
@@ -236,7 +247,7 @@ export default function AlertsView() {
       matchers: [{ name: 'alertname', value: '', isRegex: false }],
       startsAt: '',
       endsAt: '',
-      createdBy: 'admin',
+      createdBy: currentUser,
       comment: '',
     });
     setShowSilenceForm(false);
@@ -284,7 +295,7 @@ export default function AlertsView() {
       matchers,
       startsAt: '',
       endsAt: '',
-      createdBy: 'admin',
+      createdBy: currentUser,
       comment: '',
     });
     setShowSilenceForm(true);

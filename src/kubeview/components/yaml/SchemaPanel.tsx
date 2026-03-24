@@ -185,7 +185,7 @@ function FieldTree({ field, selectedPath, onSelect, level = 0, searchQuery = '' 
           isExpanded ? <ChevronDown className="w-3 h-3 text-slate-500 flex-shrink-0" /> : <ChevronRight className="w-3 h-3 text-slate-500 flex-shrink-0" />
         ) : <span className="w-3 flex-shrink-0" />}
         <span className={cn('font-mono', isActive ? 'text-blue-400' : field.required ? 'text-slate-200' : 'text-slate-400')}>{field.name}</span>
-        {field.required && <span className="text-red-400 text-[9px]">*</span>}
+        {field.required && <span className="text-red-400 text-xs">*</span>}
         <span className="text-xs text-slate-600 ml-auto flex-shrink-0">{field.type}</span>
       </div>
       {hasChildren && isExpanded && children.map((child) => (

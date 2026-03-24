@@ -59,7 +59,7 @@ export function StatusBar() {
   const openTabCount = tabs.filter((t) => t.closable).length;
 
   return (
-    <div className="flex h-6 items-center justify-between border-t border-slate-700 bg-slate-800 px-4 text-[11px] text-slate-500">
+    <div className="flex h-6 items-center justify-between border-t border-slate-700 bg-slate-800 px-4 text-xs text-slate-500">
       {/* Left */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5">

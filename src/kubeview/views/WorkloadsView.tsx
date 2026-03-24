@@ -292,7 +292,7 @@ export default function WorkloadsView() {
             <div className="text-center py-6 text-sm text-slate-500">No deployments{nsFilter ? ` in ${nsFilter}` : ''}</div>
           ) : (
             <div className="divide-y divide-slate-800 max-h-80 overflow-auto">
-              {(deployments as any[]).slice(0, 25).map((d) => {
+              {(deployments as any[]).map((d) => {
                 const s = getDeploymentStatus(d);
                 return (
                   <button key={d.metadata.uid} onClick={() => go(`/r/apps~v1~deployments/${d.metadata.namespace}/${d.metadata.name}`, d.metadata.name)}
@@ -313,13 +313,11 @@ export default function WorkloadsView() {
               })}
             </div>
           )}
-          {deployments.length > 25 && (
-            <div className="px-3 py-2 border-t border-slate-800">
-              <button onClick={() => go('/r/apps~v1~deployments', 'Deployments')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
-                View all {deployments.length} <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-          )}
+          <div className="px-3 py-2 border-t border-slate-800">
+            <button onClick={() => go('/r/apps~v1~deployments', 'Deployments')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              Browse all deployments <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
         </Panel>
 
         {/* Failed Jobs */}

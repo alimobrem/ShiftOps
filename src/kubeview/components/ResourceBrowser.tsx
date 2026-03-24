@@ -159,11 +159,11 @@ export function ResourceBrowser() {
           </div>
         </div>
 
-        {/* Pages section */}
+        {/* Views section */}
         <div className="border-b border-slate-700 p-3">
           <div className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
             <Star className="h-3 w-3" />
-            Pages
+            Views
           </div>
           {[
             { label: 'Cluster Pulse', icon: Activity, path: '/pulse', color: 'text-emerald-400' },

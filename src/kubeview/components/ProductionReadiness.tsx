@@ -608,7 +608,7 @@ export default function ProductionReadiness() {
             <Activity className="w-4 h-4 text-blue-400" />
             Domain Health Audits
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">36 additional checks across 6 domain pages — click to view details</p>
+          <p className="text-xs text-slate-500 mt-0.5">36 additional checks across 6 domain views — click to view details</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-4">
           {[

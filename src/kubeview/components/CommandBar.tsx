@@ -114,7 +114,7 @@ export function CommandBar() {
           className="flex h-7 w-48 md:w-72 items-center gap-2 rounded-md border border-slate-600/50 bg-slate-900/50 px-3 text-sm text-slate-500 transition-all hover:border-slate-500 hover:bg-slate-900 hover:text-slate-400"
         >
           <Search className="h-3.5 w-3.5" />
-          <span className="flex-1 text-left text-xs">Search resources, pages...</span>
+          <span className="flex-1 text-left text-xs">Search resources, views...</span>
           <kbd className="rounded bg-slate-700/70 px-1.5 py-0.5 text-xs font-mono text-slate-400">⌘K</kbd>
         </button>
 
@@ -229,7 +229,7 @@ export function CommandBar() {
         >
           <Bell className="w-4 h-4" />
           {issueCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-xs font-bold text-white flex items-center justify-center">
               {issueCount > 9 ? '9+' : issueCount}
             </span>
           )}

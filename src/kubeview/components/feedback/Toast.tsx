@@ -135,9 +135,9 @@ export function ToastContainer() {
   const { toasts, removeToast } = useUIStore();
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2" role="status" aria-live="polite" aria-label="Notifications">
       {toasts.map((toast) => (
-        <div key={toast.id} className="pointer-events-auto">
+        <div key={toast.id} className="pointer-events-auto" role={toast.type === 'error' ? 'alert' : undefined}>
           <Toast
             id={toast.id}
             type={toast.type}
