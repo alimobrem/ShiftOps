@@ -163,8 +163,8 @@ export function OverviewTab({
         </div>
       )}
 
-      {/* Row 1: Key info cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      {/* Info cards — 4 per row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Health score */}
         <InfoCard
           label="Cluster Health"
