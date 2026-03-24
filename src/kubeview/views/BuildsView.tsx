@@ -13,6 +13,7 @@ import { Panel } from '../components/primitives/Panel';
 import { formatDuration, timeAgo } from '../engine/dateUtils';
 import type { Build, BuildConfig, ImageStream } from '../engine/types';
 import { Card } from '../components/primitives/Card';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 
 function getBuildStatus(build: Build): { phase: string; color: string; icon: React.ReactNode } {
   const phase = build.status?.phase || 'Unknown';
@@ -153,7 +154,7 @@ export default function BuildsView() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <button onClick={() => go('/r/build.openshift.io~v1~buildconfigs', 'BuildConfigs')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 text-left hover:border-slate-600 transition-colors">
             <div className="text-xs text-slate-400 mb-1">BuildConfigs</div>
             <div className="text-xl font-bold text-slate-100">{buildConfigs.length}</div>
@@ -173,7 +174,7 @@ export default function BuildsView() {
             <div className="text-xs text-slate-400 mb-1">Image Tags</div>
             <div className="text-xl font-bold text-slate-100">{totalTags}</div>
           </Card>
-        </div>
+        </MetricGrid>
 
         {/* Build Status Breakdown */}
         {builds.length > 0 && (

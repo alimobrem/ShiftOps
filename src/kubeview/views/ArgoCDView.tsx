@@ -7,6 +7,7 @@ import { useNavigateTab } from '../hooks/useNavigateTab';
 import { k8sPatch } from '../engine/query';
 import { useUIStore } from '../store/uiStore';
 import { Card } from '../components/primitives/Card';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 import { ApplicationsTab } from './argocd/ApplicationsTab';
 import { SyncHistoryTab } from './argocd/SyncHistoryTab';
 import { DriftTab } from './argocd/DriftTab';
@@ -91,7 +92,7 @@ export default function ArgoCDView() {
         </div>
 
         {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <Card className="p-3">
             <div className="text-xs text-slate-400 mb-1">Applications</div>
             <div className="text-xl font-bold text-slate-100">{applications.length}</div>
@@ -114,7 +115,7 @@ export default function ArgoCDView() {
               {degradedCount}
             </div>
           </Card>
-        </div>
+        </MetricGrid>
 
         {/* Tabs */}
         <Card className="flex gap-1 p-1">

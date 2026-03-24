@@ -5,6 +5,7 @@ import { ShieldCheck, Search, AlertTriangle, CheckCircle, XCircle, Clock, ArrowU
 import { k8sList } from '../../engine/query';
 import { Panel } from '../../components/primitives/Panel';
 import { Card } from '../../components/primitives/Card';
+import { MetricGrid } from '../../components/primitives/MetricGrid';
 
 // --- Types ---
 
@@ -261,7 +262,7 @@ export function CertificatesTab({ go }: { go: (path: string, title: string) => v
   return (
     <div className="space-y-6">
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <MetricGrid>
         <Card className="p-3">
           <div className="text-xs text-slate-400 mb-1">Total Certificates</div>
           <div className="text-xl font-bold text-slate-100">{counts.total}</div>
@@ -302,7 +303,7 @@ export function CertificatesTab({ go }: { go: (path: string, title: string) => v
           <div className="text-xl font-bold text-green-400">{counts.healthy}</div>
           <div className="text-xs text-slate-500 mt-0.5">valid or unknown expiry</div>
         </button>
-      </div>
+      </MetricGrid>
 
       {/* Search, filters, toggle */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">

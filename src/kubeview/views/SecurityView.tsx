@@ -13,6 +13,7 @@ import { Panel } from '../components/primitives/Panel';
 import type { K8sResource } from '../engine/renderers';
 import type { ClusterRoleBinding, Namespace, Subject } from '../engine/types';
 import { useClusterStore } from '../store/clusterStore';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 import { Card } from '../components/primitives/Card';
 
 interface AuditCheck {
@@ -381,12 +382,12 @@ export default function SecurityView() {
         )}
 
         {/* Quick links */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <QuickLink icon={<Users className="w-5 h-5 text-blue-400" />} label="Access Control" description="RBAC roles and bindings" onClick={() => go('/access-control', 'Access Control')} />
           <QuickLink icon={<Users className="w-5 h-5 text-teal-400" />} label="User Management" description="Users, groups, impersonation" onClick={() => go('/users', 'Users')} />
           <QuickLink icon={<Lock className="w-5 h-5 text-amber-400" />} label="Certificates" description="TLS cert inventory and expiry" onClick={() => go('/admin?tab=certificates', 'Certificates')} />
           <QuickLink icon={<Shield className="w-5 h-5 text-orange-400" />} label="Readiness" description="Production readiness checks" onClick={() => go('/admin?tab=readiness', 'Readiness')} />
-        </div>
+        </MetricGrid>
       </div>
     </div>
   );

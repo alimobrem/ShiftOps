@@ -13,6 +13,7 @@ import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
 import { MetricCard } from '../components/metrics/Sparkline';
 import { CHART_COLORS } from '../engine/colors';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 import { Panel } from '../components/primitives/Panel';
 import { Card } from '../components/primitives/Card';
 
@@ -143,7 +144,7 @@ export default function StorageView() {
         )}
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <button onClick={() => go('/r/v1~persistentvolumeclaims', 'PVCs')} className={cn('bg-slate-900 rounded-lg border p-3 text-left hover:border-slate-600 transition-colors', pvcStatus.Pending > 0 ? 'border-yellow-800' : 'border-slate-800')}>
             <div className="text-xs text-slate-400 mb-1">PVCs</div>
             <div className="text-xl font-bold text-slate-100">{pvcs.length}</div>
@@ -164,10 +165,10 @@ export default function StorageView() {
             <div className="text-xl font-bold text-slate-100">{formatGi(capacityStats.totalCapacityGi)}</div>
             <div className="text-xs text-slate-500 mt-0.5">{formatGi(capacityStats.totalRequestedGi)} requested</div>
           </Card>
-        </div>
+        </MetricGrid>
 
         {/* Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <MetricCard
             title="PVC Usage"
             query="sum(kubelet_volume_stats_used_bytes) / sum(kubelet_volume_stats_capacity_bytes) * 100"
@@ -193,7 +194,7 @@ export default function StorageView() {
             unit=" MB/s"
             color={CHART_COLORS.cyan}
           />
-        </div>
+        </MetricGrid>
 
         {/* Storage Health Audit */}
         <StorageHealthAudit

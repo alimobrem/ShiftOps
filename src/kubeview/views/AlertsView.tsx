@@ -10,6 +10,7 @@ import { Card, CardHeader, CardBody } from '../components/primitives/Card';
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 import { MetricCard } from '../components/metrics/Sparkline';
 import { CHART_COLORS } from '../engine/colors';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 
 interface PrometheusAlert {
   labels: Record<string, string>;
@@ -427,12 +428,12 @@ export default function AlertsView() {
 
         {/* Alert metrics */}
         {allAlerts.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MetricGrid>
             <MetricCard title="Alert Rate" query="sum(ALERTS)" unit="" color={CHART_COLORS.red} />
             <MetricCard title="Critical Alerts" query="sum(ALERTS{severity='critical'})" unit="" color={CHART_COLORS.darkRed} />
             <MetricCard title="Warning Alerts" query="sum(ALERTS{severity='warning'})" unit="" color={CHART_COLORS.amber} />
             <MetricCard title="Alertmanager Notifications" query="sum(rate(alertmanager_notifications_total[5m])) * 300" unit="/5m" color={CHART_COLORS.violet} />
-          </div>
+          </MetricGrid>
         )}
 
         {/* Top firing alerts */}

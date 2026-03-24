@@ -9,6 +9,7 @@ import type { K8sResource } from '../../engine/renderers';
 import type { ClusterVersion, ClusterOperator, Node, Condition } from '../../engine/types';
 import { Panel } from '../../components/primitives/Panel';
 import { Card } from '../../components/primitives/Card';
+import { MetricGrid } from '../../components/primitives/MetricGrid';
 import { InfoCard } from '../../components/primitives/InfoCard';
 import { formatMem } from '../../engine/formatting';
 import { ControlPlaneMetrics } from '../../components/metrics/ControlPlaneMetrics';
@@ -165,7 +166,7 @@ export function OverviewTab({
       )}
 
       {/* Info cards — 4 per row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <MetricGrid>
         {/* Health score */}
         <InfoCard
           label="Cluster Health"
@@ -191,7 +192,7 @@ export function OverviewTab({
         <InfoCard label="Nodes" value={String(nodes.length)} sub={`${nodeRoles.map(([r, c]) => `${c} ${r}`).join(', ')} \u2192`} onClick={() => go('/compute', 'Compute')} />
         <InfoCard label="Namespaces" value={String(nsStats.total)} sub={`${nsStats.user} user, ${nsStats.system} system \u2192`} onClick={() => setActiveTab('quotas')} />
         <InfoCard label="CRDs" value={String(crds.length)} sub={`${crdGroupCount} API groups \u2192`} onClick={() => go('/crds', 'Custom Resources')} />
-      </div>
+      </MetricGrid>
 
       {/* Update banner */}
       {availableUpdates.length > 0 && (

@@ -10,6 +10,7 @@ import { useUIStore } from '../store/uiStore';
 import { Panel } from '../components/primitives/Panel';
 import { timeAgo } from '../engine/dateUtils';
 import { Card } from '../components/primitives/Card';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 
 interface CRDResource {
   metadata: { name: string; uid: string; creationTimestamp: string };
@@ -101,7 +102,7 @@ export default function CRDsView() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <Card className="p-3">
             <div className="text-xs text-slate-400 mb-1">Total CRDs</div>
             <div className="text-xl font-bold text-slate-100">{typedCRDs.length}</div>
@@ -118,7 +119,7 @@ export default function CRDsView() {
             <div className="text-xs text-slate-400 mb-1">Cluster-scoped</div>
             <div className="text-xl font-bold text-slate-100">{clusterCount}</div>
           </button>
-        </div>
+        </MetricGrid>
 
         {/* Search + Filters */}
         <div className="flex items-center gap-3">

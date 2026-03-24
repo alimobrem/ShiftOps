@@ -13,6 +13,7 @@ import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
 import { MetricCard } from '../components/metrics/Sparkline';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 import { CHART_COLORS } from '../engine/colors';
 import { Panel } from '../components/primitives/Panel';
 import { sanitizePromQL } from '../engine/query';
@@ -191,7 +192,7 @@ export default function WorkloadsView() {
         </div>
 
         {/* Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <MetricCard
             title="Pod CPU Usage"
             query={nsFilter
@@ -227,7 +228,7 @@ export default function WorkloadsView() {
             unit=" /hr"
             color={CHART_COLORS.cyan}
           />
-        </div>
+        </MetricGrid>
 
         {/* Workload Health Audit */}
         <WorkloadHealthAudit deployments={deployments} pdbs={pdbs} go={go} />

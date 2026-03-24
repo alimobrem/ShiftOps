@@ -9,6 +9,7 @@ import { k8sList } from '../engine/query';
 import { queryInstant } from '../components/metrics/prometheus';
 import { MetricCard } from '../components/metrics/Sparkline';
 import { CHART_COLORS } from '../engine/colors';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 import type { K8sResource } from '../engine/renderers';
 import type { Node, Pod, Machine, MachineSet, Taint, NodePool, Condition } from '../engine/types';
 import { getNodeStatus } from '../engine/renderers/statusUtils';
@@ -278,7 +279,7 @@ export default function ComputeView() {
         </div>
 
         {/* Metrics sparklines */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <MetricCard
             title="Cluster CPU"
             query="sum(rate(node_cpu_seconds_total{mode!='idle'}[5m])) / sum(machine_cpu_cores) * 100"
@@ -306,7 +307,7 @@ export default function ComputeView() {
             color={CHART_COLORS.cyan}
             thresholds={{ warning: 80, critical: 95 }}
           />
-        </div>
+        </MetricGrid>
 
         {/* Cluster overview cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

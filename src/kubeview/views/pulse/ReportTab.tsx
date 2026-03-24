@@ -13,6 +13,7 @@ import { parseResourceValue } from '../../engine/formatting';
 import { queryInstant } from '../../components/metrics/prometheus';
 import { MetricCard } from '../../components/metrics/Sparkline';
 import { CHART_COLORS } from '../../engine/colors';
+import { MetricGrid } from '../../components/primitives/MetricGrid';
 import { diagnoseResource, type Diagnosis } from '../../engine/diagnosis';
 import { resourceDetailUrl } from '../../engine/gvr';
 import type { K8sResource } from '../../engine/renderers';
@@ -551,7 +552,7 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
         <ZoneHeader number={2} title="Bottleneck" subtitle="Do I need to scale?" icon={<Gauge className="w-4 h-4 text-amber-400" />} />
 
         {/* Vitals row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <MetricCard title="CPU" query="sum(rate(node_cpu_seconds_total{mode!='idle'}[5m])) / sum(machine_cpu_cores) * 100" unit="%" color={CHART_COLORS.blue} thresholds={{ warning: 70, critical: 90 }} onClick={() => go('/compute', 'Compute')} />
           <MetricCard title="Memory" query="(1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100" unit="%" color={CHART_COLORS.violet} thresholds={{ warning: 75, critical: 90 }} onClick={() => go('/compute', 'Compute')} />
           <button onClick={() => go('/compute', 'Compute')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 hover:border-slate-600 transition-colors text-left">
@@ -572,7 +573,7 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
             </div>
             <div className="text-xs text-slate-500 mt-0.5">user namespaces</div>
           </button>
-        </div>
+        </MetricGrid>
 
         {/* Network + Disk */}
         <div className="grid grid-cols-2 gap-3">

@@ -7,6 +7,7 @@ import { K8S_BASE as BASE } from '../../engine/gvr';
 import DeployProgress from '../../components/DeployProgress';
 import { FormField } from './FormField';
 import { Card } from '../../components/primitives/Card';
+import { MetricGrid } from '../../components/primitives/MetricGrid';
 
 interface EnvVar { name: string; value: string }
 
@@ -202,12 +203,12 @@ export function QuickDeployTab() {
             {(cpuRequest || cpuLimit || memRequest || memLimit) && <span className="text-blue-400 ml-1">(configured)</span>}
           </button>
           {showAdvanced && (
-            <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <MetricGrid className="mt-3">
               <FormField label="CPU Request" value={cpuRequest} onChange={setCpuRequest} placeholder="100m" />
               <FormField label="CPU Limit" value={cpuLimit} onChange={setCpuLimit} placeholder="500m" />
               <FormField label="Memory Request" value={memRequest} onChange={setMemRequest} placeholder="128Mi" />
               <FormField label="Memory Limit" value={memLimit} onChange={setMemLimit} placeholder="512Mi" />
-            </div>
+            </MetricGrid>
           )}
         </div>
 

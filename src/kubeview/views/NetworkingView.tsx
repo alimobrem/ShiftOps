@@ -13,6 +13,7 @@ import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
 import { MetricCard } from '../components/metrics/Sparkline';
 import { CHART_COLORS } from '../engine/colors';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 import { Panel } from '../components/primitives/Panel';
 import { Card } from '../components/primitives/Card';
 
@@ -168,7 +169,7 @@ export default function NetworkingView() {
         </div>
 
         {/* Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <MetricCard
             title="Network Receive"
             query="sum(rate(node_network_receive_bytes_total{device!~'lo|veth.*|br.*'}[5m])) / 1024 / 1024"
@@ -194,7 +195,7 @@ export default function NetworkingView() {
             color={CHART_COLORS.red}
             thresholds={{ warning: 1, critical: 10 }}
           />
-        </div>
+        </MetricGrid>
 
         {/* Networking Health Audit */}
         <NetworkingHealthAudit

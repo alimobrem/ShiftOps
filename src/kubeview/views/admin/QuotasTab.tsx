@@ -8,6 +8,7 @@ import { Panel } from '../../components/primitives/Panel';
 import type { K8sResource } from '../../engine/renderers';
 import type { Namespace } from '../../engine/types';
 import { Card } from '../../components/primitives/Card';
+import { MetricGrid } from '../../components/primitives/MetricGrid';
 
 /** ResourceQuota resource */
 interface ResourceQuota extends K8sResource {
@@ -65,7 +66,7 @@ export function QuotasTab({ quotas, limitRanges, go }: { quotas: K8sResource[]; 
   return (
     <div className="space-y-6">
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <MetricGrid>
         <Card className="p-3">
           <div className="text-xs text-slate-400 mb-1">Resource Quotas</div>
           <div className="text-xl font-bold text-slate-100">{quotas.length}</div>
@@ -88,7 +89,7 @@ export function QuotasTab({ quotas, limitRanges, go }: { quotas: K8sResource[]; 
           <div className={cn('text-xl font-bold', unprotectedNs.length > 0 ? 'text-yellow-400' : 'text-green-400')}>{unprotectedNs.length}</div>
           <div className="text-xs text-slate-500 mt-0.5">no quota or limit range</div>
         </div>
-      </div>
+      </MetricGrid>
 
       {/* Cluster-wide resource usage */}
       {Object.keys(totalResources).length > 0 && (

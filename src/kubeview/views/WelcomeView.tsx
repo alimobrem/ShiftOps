@@ -8,6 +8,7 @@ import {
   Diff, Monitor, Terminal,
 } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
 import type { K8sResource } from '../engine/renderers';
@@ -61,12 +62,12 @@ export default function WelcomeView() {
         </button>
 
         {/* ── Quick Nav Row ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <ViewTile icon={<Server className="w-4 h-4 text-blue-400" />}   title="Compute"        onClick={() => go('/compute', 'Compute')} />
           <ViewTile icon={<Package className="w-4 h-4 text-blue-400" />}  title="Workloads"      onClick={() => go('/workloads', 'Workloads')} />
           <ViewTile icon={<Settings className="w-4 h-4 text-slate-400" />} title="Administration" onClick={() => go('/admin', 'Administration')} />
           <ViewTile icon={<Bell className="w-4 h-4 text-red-400" />}      title="Alerts"         onClick={() => go('/alerts', 'Alerts')} />
-        </div>
+        </MetricGrid>
 
         {/* ── Start Here ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

@@ -7,6 +7,7 @@ import {
 import type { K8sResource } from '../../engine/renderers';
 import type { Deployment, Pod, Container, ContainerPort, ContainerStatus } from '../../engine/types';
 import { Card } from '../../components/primitives/Card';
+import { MetricGrid } from '../../components/primitives/MetricGrid';
 
 interface DeploymentSummaryProps {
   resource: K8sResource;
@@ -61,7 +62,7 @@ export function DeploymentSummary({ resource, managedPods, go }: DeploymentSumma
   return (
     <div className="space-y-4">
       {/* Status cards row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <MetricGrid>
         {/* Replicas */}
         <div className={cn(
           'bg-slate-900 rounded-lg border p-3',
@@ -110,7 +111,7 @@ export function DeploymentSummary({ resource, managedPods, go }: DeploymentSumma
             Gen {generation}{observedGeneration !== generation ? ` (observed: ${observedGeneration})` : ''}
           </div>
         </Card>
-      </div>
+      </MetricGrid>
 
       {/* Container images row */}
       <Card>

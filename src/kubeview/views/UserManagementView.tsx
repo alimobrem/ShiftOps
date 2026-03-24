@@ -13,6 +13,7 @@ import { formatAge } from '../engine/dateUtils';
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { Card } from '../components/primitives/Card';
+import { MetricGrid } from '../components/primitives/MetricGrid';
 
 export default function UserManagementView() {
   const go = useNavigateTab();
@@ -144,7 +145,7 @@ export default function UserManagementView() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricGrid>
           <button onClick={() => setActiveTab('users')} className="bg-slate-900 rounded-lg border border-slate-800 p-3 text-left hover:border-slate-600 transition-colors">
             <div className="text-xs text-slate-400 mb-1">Users</div>
             <div className="text-xl font-bold text-slate-100">{users.length}</div>
@@ -161,7 +162,7 @@ export default function UserManagementView() {
             <div className="text-xs text-slate-400 mb-1">Cluster Role Bindings</div>
             <div className="text-xl font-bold text-slate-100">{clusterRoleBindings.length}</div>
           </button>
-        </div>
+        </MetricGrid>
 
         {/* Tabs + Search */}
         <div className="flex items-center gap-3">
