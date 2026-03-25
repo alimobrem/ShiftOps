@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import { k8sList, k8sGet } from '../engine/query';
+import { k8sList, k8sGet, getImpersonationHeaders } from '../engine/query';
 import type { K8sResource } from '../engine/renderers';
 import {
   type ClusterConnection,
@@ -72,10 +72,18 @@ export const useFleetStore = create<FleetState>((set, get) => ({
     try {
       // Check if ACM/MCE ManagedCluster CRD exists
       const res = await fetch(`${getClusterBase()}/apis/cluster.open-cluster-management.io/v1/managedclusters`, {
-        headers: { Accept: 'application/json' },
+        headers: { ...getImpersonationHeaders(), Accept: 'application/json' },
       });
 
       if (!res.ok) {
+        // Import addToast to show feedback
+        const { useUIStore } = await import('./uiStore');
+        const detail = res.status === 404
+          ? 'ACM/MCE not installed on this cluster. Install Advanced Cluster Management to enable fleet management.'
+          : res.status === 403
+            ? 'Permission denied. You need cluster-admin or managedcluster read access.'
+            : `Failed to detect ACM (${res.status} ${res.statusText})`;
+        useUIStore.getState().addToast({ type: 'warning', title: 'ACM Detection', detail, duration: 8000 });
         set({ acmAvailable: false, acmDetecting: false });
         return;
       }
@@ -118,7 +126,13 @@ export const useFleetStore = create<FleetState>((set, get) => ({
       if (allConns.length > 1) {
         get().startHealthPolling();
       }
-    } catch {
+    } catch (e) {
+      const { useUIStore } = await import('./uiStore');
+      useUIStore.getState().addToast({
+        type: 'error',
+        title: 'ACM Detection Failed',
+        detail: e instanceof Error ? e.message : 'Network error — is the cluster reachable?',
+      });
       set({ acmAvailable: false, acmDetecting: false });
     }
   },
