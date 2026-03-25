@@ -1,13 +1,13 @@
 import React from 'react';
 import {
   Hammer, CheckCircle, XCircle, Clock, Loader2, ArrowRight,
-  AlertTriangle, Play, Box, Layers, Timer,
+  AlertTriangle, Play, Box, Layers, Timer, Square,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
-import { k8sCreate, k8sGet } from '../engine/query';
+import { k8sCreate, k8sGet, k8sPatch } from '../engine/query';
 import { useQuery } from '@tanstack/react-query';
 import { Panel } from '../components/primitives/Panel';
 import { MetricCard } from '../components/metrics/Sparkline';
@@ -47,6 +47,18 @@ export default function BuildsView() {
   const { data: builds = [] } = useK8sListWatch({ apiPath: '/apis/build.openshift.io/v1/builds', namespace: nsFilter });
   const { data: buildConfigs = [] } = useK8sListWatch({ apiPath: '/apis/build.openshift.io/v1/buildconfigs', namespace: nsFilter });
   const { data: imageStreams = [] } = useK8sListWatch({ apiPath: '/apis/image.openshift.io/v1/imagestreams', namespace: nsFilter });
+
+  async function cancelBuild(namespace: string, name: string) {
+    try {
+      await k8sPatch(
+        `/apis/build.openshift.io/v1/namespaces/${namespace}/builds/${name}`,
+        { status: { cancelled: true } },
+      );
+      addToast({ type: 'success', title: `Build ${name} cancelled` });
+    } catch (e) {
+      addToast({ type: 'error', title: 'Cancel failed', detail: e instanceof Error ? e.message : String(e) });
+    }
+  }
 
   // Build stats
   const buildStats = React.useMemo(() => {
@@ -327,6 +339,12 @@ export default function BuildsView() {
                       onClick={(e) => { e.stopPropagation(); go(`/logs/${ns}/${name}?container=&kind=Build`, `${name} (Logs)`); }}
                       className="text-slate-500 hover:text-blue-400 transition-colors" title="View Build Logs"
                     ><ScrollText className="w-3.5 h-3.5" /></button>
+                    {(phase === 'Running' || phase === 'Pending' || phase === 'New') && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); cancelBuild(ns, name); }}
+                        className="text-slate-500 hover:text-red-400 transition-colors" title="Cancel Build"
+                      ><Square className="w-3.5 h-3.5" /></button>
+                    )}
                     <span className={cn('text-xs', color)}>{phase}</span>
                   </div>
                 );
