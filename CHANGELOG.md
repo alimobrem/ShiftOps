@@ -1,5 +1,52 @@
 # Changelog
 
+## [5.1.0] - 2026-03-24
+
+### Added
+- **AI Agent Integration** — Claude-powered SRE diagnostics and security scanning embedded in the Pulse UI:
+  - Chat interface at `/agent` with SRE and Security modes
+  - WebSocket streaming with thinking indicators, tool execution badges
+  - Confirmation gates for write operations with plain English descriptions, risk levels, keyboard shortcuts (Y/N)
+  - Context-aware "Ask Agent" action on every resource detail page
+  - Namespace-aware quick prompts that adapt to selected namespace
+  - Chat persistence across navigation (localStorage via zustand persist)
+  - Copy button and timestamps on all messages
+  - Full ARIA accessibility (role="log", role="article", role="alertdialog", aria-live)
+- **Pulse Agent backend** ([pulse-agent](https://github.com/alimobrem/pulse-agent)) — 54 tools:
+  - 39 read diagnostics: pods, nodes, deployments, StatefulSets, DaemonSets, Jobs, CronJobs, Ingresses, Routes, HPAs, PDBs, LimitRanges, ReplicaSets, services (with endpoints), TLS certificates, operator subscriptions
+  - Prometheus/PromQL queries via Thanos, Alertmanager alert triage
+  - `top_pods_by_restarts`, `get_recent_changes` convenience tools
+  - 9 write operations: scale, restart, cordon, uncordon, delete pod, rollback deployment, drain node, apply YAML (server-side apply with dry-run), create network policy (with dry-run)
+  - Cluster ConfigMap audit trail with retry-on-409
+  - 10 built-in runbooks (CrashLoopBackOff, ImagePullBackOff, OOMKilled, Node NotReady, PVC Pending, DNS failures, etc.)
+
+### Security (from architecture + sysadmin review)
+- Replaced wildcard RBAC `patch */*` with scoped rules (apps, batch, autoscaling only)
+- Fixed event loop threading in WebSocket API (captured loop before thread)
+- Added context field sanitization to prevent prompt injection
+- Added 1MB message size limit on WebSocket receive
+- Removed `force:true` from server-side apply
+- Added dry-run validation to network policy creation
+- Fixed NetworkPolicy to allow ingress on port 8080
+- Added audit retry-on-409 with microsecond key precision
+- Sanitized error messages (no internal details to client)
+- Added reconnect jitter to prevent thundering herd
+- Fixed handler memory leak in agentStore
+
+### Changed
+- Production nginx config proxies `/api/agent/` to pulse-agent service
+- rspack dev server proxies `/api/agent` to `PULSE_AGENT_URL` (default localhost:8080)
+- CommandPalette and WelcomeView include Agent entry
+- README updated with AI Agent comparison row, 17 views, 54 tools
+
+### Stats
+- **1472 tests** across 97 test files
+- **17 views**, 45+ routes
+- **54 agent tools** (39 read + 9 write + 6 audit)
+- **0 npm CVEs**, all Red Hat UBI images
+
+---
+
 ## [5.0.0] - 2026-03-24
 
 ### Added
