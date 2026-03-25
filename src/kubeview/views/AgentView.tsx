@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bot, Shield, Send, Trash2, Loader2, Wrench, Brain, AlertTriangle, CheckCircle, XCircle, Wifi, WifiOff, Copy, Check, Clock } from 'lucide-react';
+import { Bot, Shield, Send, Trash2, Loader2, Wrench, Brain, AlertTriangle, CheckCircle, XCircle, Wifi, WifiOff, Copy, Check, Clock, Square } from 'lucide-react';
 import { useAgentStore } from '../store/agentStore';
 import { useUIStore } from '../store/uiStore';
 import type { AgentMode, AgentMessage, ResourceContext } from '../engine/agentClient';
@@ -65,6 +65,7 @@ export default function AgentView() {
     connected, mode, messages, streaming, streamingText, thinkingText,
     activeTools, streamingComponents, pendingConfirm, error,
     connect, disconnect, sendMessage, switchMode, clearChat, confirmAction,
+    cancelQuery, editLastMessage,
   } = useAgentStore();
 
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
@@ -123,6 +124,16 @@ export default function AgentView() {
   // Focus input after streaming
   useEffect(() => {
     if (!streaming) inputRef.current?.focus();
+  }, [streaming]);
+
+  // Escape to cancel streaming
+  useEffect(() => {
+    if (!streaming) return;
+    function handleEsc(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.preventDefault(); cancelQuery(); }
+    }
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
   }, [streaming]);
 
   // Global keyboard shortcuts for confirmation
@@ -330,7 +341,24 @@ export default function AgentView() {
 
       {/* Input area */}
       <div className="border-t border-slate-700 px-6 py-3">
-        <div className="flex items-end gap-3">
+        <div className="flex items-end gap-2">
+          {/* Edit last message button */}
+          {!streaming && messages.length > 0 && (
+            <button
+              onClick={() => {
+                const lastContent = editLastMessage();
+                if (lastContent) setInput(lastContent);
+              }}
+              className="p-2.5 text-slate-500 hover:text-slate-300 rounded-lg transition-colors shrink-0"
+              aria-label="Edit last message"
+              title="Edit last message"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                <path d="m15 5 4 4" />
+              </svg>
+            </button>
+          )}
           <textarea
             ref={inputRef}
             value={input}
@@ -343,19 +371,30 @@ export default function AgentView() {
             className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 resize-none min-h-[40px] max-h-[120px]"
             style={{ height: input.includes('\n') ? 'auto' : '40px' }}
           />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || streaming || !connected}
-            aria-label="Send message"
-            className={cn(
-              'p-2.5 rounded-lg transition-colors shrink-0',
-              input.trim() && !streaming && connected
-                ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed',
-            )}
-          >
-            <Send className="h-4 w-4" aria-hidden="true" />
-          </button>
+          {streaming ? (
+            <button
+              onClick={cancelQuery}
+              aria-label="Stop generation"
+              title="Stop (Esc)"
+              className="p-2.5 rounded-lg bg-red-700 hover:bg-red-600 text-white transition-colors shrink-0"
+            >
+              <Square className="h-4 w-4" aria-hidden="true" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || !connected}
+              aria-label="Send message"
+              className={cn(
+                'p-2.5 rounded-lg transition-colors shrink-0',
+                input.trim() && connected
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed',
+              )}
+            >
+              <Send className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
       </div>
     </div>

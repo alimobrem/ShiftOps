@@ -44,6 +44,8 @@ interface AgentState {
   switchMode: (mode: AgentMode) => void;
   clearChat: () => void;
   confirmAction: (approved: boolean) => void;
+  cancelQuery: () => void;
+  editLastMessage: () => string;
 }
 
 let client: AgentClient | null = null;
@@ -178,6 +180,62 @@ export const useAgentStore = create<AgentState>()(
       confirmAction: (approved) => {
         set({ pendingConfirm: null });
         if (client) client.confirm(approved);
+      },
+
+      cancelQuery: () => {
+        // Disconnect and immediately reconnect to abort the running query
+        if (client) {
+          client.disconnect();
+          client = new AgentClient(get().mode);
+          if (unsubscribe) unsubscribe();
+          // Re-register the event handler (connect will be called by the component)
+        }
+        // Save any partial streaming text as the assistant response
+        const partial = get().streamingText;
+        if (partial) {
+          const msg: AgentMessage = {
+            id: makeId(),
+            role: 'assistant',
+            content: partial + '\n\n*(cancelled)*',
+            timestamp: Date.now(),
+            components: get().streamingComponents.length > 0 ? get().streamingComponents : undefined,
+          };
+          set((s) => ({
+            messages: [...s.messages, msg],
+            streaming: false,
+            streamingText: '',
+            thinkingText: '',
+            activeTools: [],
+            streamingComponents: [],
+            pendingConfirm: null,
+          }));
+        } else {
+          set({
+            streaming: false,
+            streamingText: '',
+            thinkingText: '',
+            activeTools: [],
+            streamingComponents: [],
+            pendingConfirm: null,
+          });
+        }
+        // Reconnect
+        get().connect();
+      },
+
+      editLastMessage: () => {
+        const messages = get().messages;
+        // Find the last user message
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].role === 'user') {
+            const content = messages[i].content;
+            // Remove the last user message and any assistant response after it
+            set({ messages: messages.slice(0, i) });
+            if (client) client.clear();
+            return content;
+          }
+        }
+        return '';
       },
     }),
     {
