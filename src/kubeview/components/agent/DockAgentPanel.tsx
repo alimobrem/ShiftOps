@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Square, Bot, Loader2, Wrench, Brain, AlertTriangle } from 'lucide-react';
+import { Send, Square, Bot, Loader2, Wrench, Brain, AlertTriangle, Trash2 } from 'lucide-react';
 import { useAgentStore } from '../../store/agentStore';
 import { useTrustStore, TRUST_LABELS } from '../../store/trustStore';
 import { MessageBubble } from './MessageBubble';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { AgentComponentRenderer } from './AgentComponentRenderer';
 import { ConfirmationCard } from './ConfirmationCard';
-import { TrustUpgradeNudge } from './TrustUpgradeNudge';
 import { cn } from '@/lib/utils';
 
 /**
@@ -17,7 +16,7 @@ export function DockAgentPanel() {
   const {
     connected, mode, messages, streaming, streamingText, thinkingText,
     activeTools, streamingComponents, pendingConfirm, error,
-    connect, sendMessage, confirmAction, cancelQuery,
+    connect, sendMessage, confirmAction, cancelQuery, clearChat,
   } = useAgentStore();
 
   const trustLevel = useTrustStore((s) => s.trustLevel);
@@ -120,11 +119,21 @@ export function DockAgentPanel() {
       {/* Input */}
       <div className="border-t border-slate-700 px-3 py-2 flex items-end gap-2">
         <div className={cn(
-          'flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded',
+          'flex items-center gap-1 text-xs px-1.5 py-0.5 rounded',
           connected ? 'text-green-400 bg-green-950/30' : 'text-red-400 bg-red-950/30',
         )}>
           {mode.toUpperCase()} · L{trustLevel}
         </div>
+        {messages.length > 0 && !streaming && (
+          <button
+            onClick={clearChat}
+            className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+            title="Clear chat"
+            aria-label="Clear agent chat"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
         <textarea
           ref={inputRef}
           value={input}

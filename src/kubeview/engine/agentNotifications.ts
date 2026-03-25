@@ -6,6 +6,7 @@
 import { AgentClient } from './agentClient';
 import type { AgentEvent } from './agentClient';
 import { useUIStore } from '../store/uiStore';
+import { useAgentStore } from '../store/agentStore';
 
 const DEFAULT_INTERVAL = 300_000; // 5 minutes
 const PROMPT = 'Briefly check for critical issues or anomalies. For each issue, name the affected resource and give a one-line fix. 3 sentences max. If nothing notable, respond with just "OK".';
@@ -63,7 +64,14 @@ async function poll() {
         duration: 15000,
         action: {
           label: 'Investigate',
-          onClick: () => store.openDock('agent'),
+          onClick: () => {
+            store.openDock('agent');
+            // Send the insight to the agent so it continues the thread
+            const agentStore = useAgentStore.getState();
+            if (agentStore.connected) {
+              agentStore.sendMessage(`The background health check found this issue:\n\n"${trimmed}"\n\nInvestigate this further. What is the root cause and what should I do to fix it?`);
+            }
+          },
         },
       });
     }
