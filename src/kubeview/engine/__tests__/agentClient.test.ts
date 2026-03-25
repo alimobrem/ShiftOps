@@ -31,6 +31,12 @@ class MockWebSocket {
 
 vi.stubGlobal('WebSocket', MockWebSocket);
 
+// Mock fetch for version check
+vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+  ok: true,
+  json: () => Promise.resolve({ protocol: '1', agent: '0.3.0', tools: 54, features: [] }),
+}));
+
 describe('AgentClient', () => {
   let client: AgentClient;
 

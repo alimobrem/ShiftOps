@@ -47,6 +47,7 @@ export type AgentEvent =
 type EventHandler = (event: AgentEvent) => void;
 
 const AGENT_BASE = '/api/agent';
+const EXPECTED_PROTOCOL = '1';
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
@@ -82,9 +83,31 @@ export class AgentClient {
     }
   }
 
+  /** Check agent version compatibility before connecting. */
+  async checkVersion(): Promise<{ compatible: boolean; error?: string }> {
+    try {
+      const res = await fetch(`${AGENT_BASE}/version`);
+      if (!res.ok) return { compatible: true }; // Old agent without /version — allow
+      const data = await res.json();
+      if (data.protocol !== EXPECTED_PROTOCOL) {
+        return { compatible: false, error: `Agent protocol v${data.protocol} does not match UI (expected v${EXPECTED_PROTOCOL}). Redeploy the agent.` };
+      }
+      return { compatible: true };
+    } catch {
+      return { compatible: false, error: 'Cannot reach agent API. Is the pulse-agent pod running?' };
+    }
+  }
+
   /** Connect to the agent WebSocket. */
   connect() {
     if (this.ws) this.disconnect();
+
+    // Check version first (non-blocking — connects anyway but warns)
+    this.checkVersion().then(({ compatible, error }) => {
+      if (!compatible && error) {
+        this.emit({ type: 'error', message: error });
+      }
+    });
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${protocol}//${window.location.host}${AGENT_BASE}/ws/${this.mode}`;
