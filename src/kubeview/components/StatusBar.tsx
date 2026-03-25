@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Bot } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { useFleetStore } from '../store/fleetStore';
 import { isMultiCluster } from '../engine/clusterConnection';
@@ -19,6 +20,9 @@ export function StatusBar() {
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
   const activeOperation = useUIStore((s) => s.activeOperation);
   const tabs = useUIStore((s) => s.tabs);
+  const dockPanel = useUIStore((s) => s.dockPanel);
+  const openDock = useUIStore((s) => s.openDock);
+  const closeDock = useUIStore((s) => s.closeDock);
   const location = useLocation();
   const activeCluster = useFleetStore((s) => s.clusters.find(c => c.id === s.activeClusterId));
 
@@ -77,9 +81,20 @@ export function StatusBar() {
 
       {/* Right */}
       <div className="flex items-center gap-3">
+        <button
+          onClick={() => dockPanel === 'agent' ? closeDock() : openDock('agent')}
+          className={cn(
+            'flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors',
+            dockPanel === 'agent' ? 'bg-blue-600/30 text-blue-400' : 'text-slate-500 hover:text-slate-300'
+          )}
+          title="Toggle Agent (Cmd+Shift+A)"
+        >
+          <Bot className="h-3 w-3" />
+          Agent
+        </button>
         {openTabCount > 0 && <span>{openTabCount} tab{openTabCount !== 1 ? 's' : ''}</span>}
         <span>{selectedNamespace === '*' ? 'all namespaces' : selectedNamespace}</span>
-        <span>{isMultiCluster() ? '⌘K search · ⌘B browse · ⌘⇧C switch cluster' : '⌘K search · ⌘B browse'}</span>
+        <span>⌘K search · ⌘B browse</span>
       </div>
     </div>
   );

@@ -8,7 +8,8 @@ import { useUIStore } from '../store/uiStore';
  * - Cmd+K / Ctrl+K: Open command palette
  * - Cmd+B / Ctrl+B: Toggle resource browser
  * - Cmd+. / Ctrl+.: Open action panel
- * - Cmd+J / Ctrl+J: Toggle dock
+ * - Cmd+J / Ctrl+J: Toggle dock (may be intercepted by Chrome for Downloads)
+ * - Cmd+Shift+A / Ctrl+Shift+A: Toggle agent dock panel
  * - Escape: Close open overlays (command palette, browser, action panel, dock)
  */
 export function useKeyboardShortcuts() {
@@ -40,9 +41,21 @@ export function useKeyboardShortcuts() {
       }
 
       // Cmd+J - Toggle dock (opens agent panel if closed)
+      // Note: Chrome intercepts Cmd+J for Downloads — Cmd+Shift+A is the reliable alternative
       if (meta && e.key === 'j') {
         e.preventDefault();
         if (state.dockPanel) {
+          state.closeDock();
+        } else {
+          state.openDock('agent');
+        }
+        return;
+      }
+
+      // Cmd+Shift+A - Toggle agent dock (reliable, no browser conflict)
+      if (meta && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        if (state.dockPanel === 'agent') {
           state.closeDock();
         } else {
           state.openDock('agent');
