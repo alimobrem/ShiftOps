@@ -24,6 +24,7 @@ function resetMockState(overrides: Record<string, any> = {}) {
     activeTools: [],
     pendingConfirm: null,
     error: null,
+    streamingComponents: [],
     connect: mockConnect,
     disconnect: mockDisconnect,
     sendMessage: mockSendMessage,

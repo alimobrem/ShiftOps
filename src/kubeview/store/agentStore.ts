@@ -1,6 +1,7 @@
 /**
  * Agent Store — manages chat state for the Pulse Agent integration.
  * Messages persist to localStorage so conversation survives navigation.
+ * Component specs from tools are accumulated during streaming and merged into messages.
  */
 
 import { create } from 'zustand';
@@ -13,6 +14,7 @@ import {
   type ConfirmRequest,
   type ResourceContext,
 } from '../engine/agentClient';
+import { type ComponentSpec, truncateForPersistence } from '../engine/agentComponents';
 
 interface AgentState {
   // Connection
@@ -27,6 +29,7 @@ interface AgentState {
   streamingText: string;
   thinkingText: string;
   activeTools: string[];
+  streamingComponents: ComponentSpec[];
 
   // Confirmation
   pendingConfirm: ConfirmRequest | null;
@@ -61,6 +64,7 @@ export const useAgentStore = create<AgentState>()(
       streamingText: '',
       thinkingText: '',
       activeTools: [],
+      streamingComponents: [],
       pendingConfirm: null,
       error: null,
 
@@ -86,15 +90,20 @@ export const useAgentStore = create<AgentState>()(
             case 'tool_use':
               set((s) => ({ activeTools: [...s.activeTools, event.tool] }));
               break;
+            case 'component':
+              set((s) => ({ streamingComponents: [...s.streamingComponents, event.spec] }));
+              break;
             case 'confirm_request':
               set({ pendingConfirm: { tool: event.tool, input: event.input } });
               break;
             case 'done': {
+              const components = get().streamingComponents.map(truncateForPersistence);
               const msg: AgentMessage = {
                 id: makeId(),
                 role: 'assistant',
                 content: event.full_response,
                 timestamp: Date.now(),
+                components: components.length > 0 ? components : undefined,
               };
               set((s) => ({
                 messages: [...s.messages, msg],
@@ -102,6 +111,7 @@ export const useAgentStore = create<AgentState>()(
                 streamingText: '',
                 thinkingText: '',
                 activeTools: [],
+                streamingComponents: [],
                 pendingConfirm: null,
               }));
               break;
@@ -113,10 +123,11 @@ export const useAgentStore = create<AgentState>()(
                 streamingText: '',
                 thinkingText: '',
                 activeTools: [],
+                streamingComponents: [],
               });
               break;
             case 'cleared':
-              set({ messages: [], streamingText: '', thinkingText: '', activeTools: [] });
+              set({ messages: [], streamingText: '', thinkingText: '', activeTools: [], streamingComponents: [] });
               break;
           }
         });
@@ -147,6 +158,7 @@ export const useAgentStore = create<AgentState>()(
           streamingText: '',
           thinkingText: '',
           activeTools: [],
+          streamingComponents: [],
           error: null,
         }));
 
@@ -154,12 +166,12 @@ export const useAgentStore = create<AgentState>()(
       },
 
       switchMode: (mode) => {
-        set({ mode, messages: [], streamingText: '', thinkingText: '', activeTools: [] });
+        set({ mode, messages: [], streamingText: '', thinkingText: '', activeTools: [], streamingComponents: [] });
         if (client) client.switchMode(mode);
       },
 
       clearChat: () => {
-        set({ messages: [], streamingText: '', thinkingText: '', activeTools: [], error: null });
+        set({ messages: [], streamingText: '', thinkingText: '', activeTools: [], streamingComponents: [], error: null });
         if (client) client.clear();
       },
 
@@ -170,7 +182,6 @@ export const useAgentStore = create<AgentState>()(
     }),
     {
       name: 'openshiftpulse-agent',
-      // Only persist messages and mode — not transient streaming state
       partialize: (state) => ({
         messages: state.messages,
         mode: state.mode,

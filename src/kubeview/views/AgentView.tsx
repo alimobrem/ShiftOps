@@ -5,6 +5,8 @@ import { useAgentStore } from '../store/agentStore';
 import { useUIStore } from '../store/uiStore';
 import type { AgentMode, AgentMessage, ResourceContext } from '../engine/agentClient';
 import { Panel } from '../components/primitives/Panel';
+import { MarkdownRenderer } from '../components/agent/MarkdownRenderer';
+import { AgentComponentRenderer } from '../components/agent/AgentComponentRenderer';
 import { cn } from '@/lib/utils';
 
 const MODE_CONFIG: Record<AgentMode, { label: string; icon: typeof Bot; color: string; description: string }> = {
@@ -61,7 +63,7 @@ function riskLevel(tool: string, input: Record<string, unknown>): { level: strin
 export default function AgentView() {
   const {
     connected, mode, messages, streaming, streamingText, thinkingText,
-    activeTools, pendingConfirm, error,
+    activeTools, streamingComponents, pendingConfirm, error,
     connect, disconnect, sendMessage, switchMode, clearChat, confirmAction,
   } = useAgentStore();
 
@@ -247,16 +249,23 @@ export default function AgentView() {
               </div>
             )}
 
-            {streamingText && (
-              <div className="flex gap-3 items-start">
-                <Icon className={cn('h-5 w-5 mt-0.5 shrink-0', mode === 'sre' ? 'text-blue-400' : 'text-red-400')} aria-hidden="true" />
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-slate-200">{streamingText}</pre>
-                </div>
+            {/* Streaming components from tools */}
+            {streamingComponents.length > 0 && (
+              <div className="max-w-3xl">
+                {streamingComponents.map((spec, i) => (
+                  <AgentComponentRenderer key={i} spec={spec} />
+                ))}
               </div>
             )}
 
-            {!streamingText && !thinkingText && activeTools.length === 0 && (
+            {streamingText && (
+              <div className="flex gap-3 items-start">
+                <Icon className={cn('h-5 w-5 mt-0.5 shrink-0', mode === 'sre' ? 'text-blue-400' : 'text-red-400')} aria-hidden="true" />
+                <MarkdownRenderer content={streamingText} className="max-w-3xl" />
+              </div>
+            )}
+
+            {!streamingText && !thinkingText && activeTools.length === 0 && streamingComponents.length === 0 && (
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 Thinking...
@@ -387,7 +396,19 @@ function MessageBubble({ message, mode }: { message: AgentMessage; mode: AgentMo
             Context: {message.context.kind} {message.context.namespace}/{message.context.name}
           </div>
         )}
-        <pre className="whitespace-pre-wrap font-sans">{message.content}</pre>
+        {isUser ? (
+          <pre className="whitespace-pre-wrap font-sans">{message.content}</pre>
+        ) : (
+          <MarkdownRenderer content={message.content} />
+        )}
+        {/* Render inline components from tools */}
+        {message.components && message.components.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {message.components.map((spec, i) => (
+              <AgentComponentRenderer key={i} spec={spec} />
+            ))}
+          </div>
+        )}
         <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-700/50">
           <span className="text-[10px] text-slate-500 flex items-center gap-1">
             <Clock className="h-2.5 w-2.5" aria-hidden="true" />

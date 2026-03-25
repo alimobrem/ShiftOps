@@ -5,6 +5,8 @@
  * requests over a persistent WebSocket connection.
  */
 
+import type { ComponentSpec } from './agentComponents';
+
 export type AgentMode = 'sre' | 'security';
 
 export interface AgentMessage {
@@ -14,6 +16,8 @@ export interface AgentMessage {
   timestamp: number;
   /** Resource context passed from Pulse UI */
   context?: ResourceContext;
+  /** Structured UI components from tool results */
+  components?: ComponentSpec[];
 }
 
 export interface ResourceContext {
@@ -32,6 +36,7 @@ export type AgentEvent =
   | { type: 'text_delta'; text: string }
   | { type: 'thinking_delta'; thinking: string }
   | { type: 'tool_use'; tool: string }
+  | { type: 'component'; spec: ComponentSpec; tool: string }
   | { type: 'confirm_request'; tool: string; input: Record<string, unknown> }
   | { type: 'done'; full_response: string }
   | { type: 'error'; message: string }
