@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bot, Shield, Send, Trash2, Loader2, Wrench, Brain, AlertTriangle, CheckCircle, XCircle, Wifi, WifiOff, Copy, Check, Clock, Square } from 'lucide-react';
+import { Bot, Shield, Send, Trash2, Loader2, Wrench, Brain, AlertTriangle, CheckCircle, XCircle, Wifi, WifiOff, Copy, Check, Clock, Square, Maximize2, Minimize2 } from 'lucide-react';
 import { useAgentStore } from '../store/agentStore';
 import { useUIStore } from '../store/uiStore';
 import type { AgentMode, AgentMessage, ResourceContext } from '../engine/agentClient';
@@ -401,6 +401,65 @@ export default function AgentView() {
   );
 }
 
+/** Detect HTML documents in content and render them in a sandboxed iframe */
+function RichContent({ content, components }: { content: string; components?: import('../engine/agentComponents').ComponentSpec[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Extract HTML document from content (may be wrapped in ```html blocks or standalone)
+  const htmlMatch = content.match(/<!DOCTYPE html[\s\S]*<\/html>/i)
+    || content.match(/```html\s*\n(<!DOCTYPE html[\s\S]*?<\/html>)\s*\n```/i);
+
+  if (htmlMatch) {
+    const htmlContent = htmlMatch[1] || htmlMatch[0];
+    // Text before/after the HTML block
+    const fullMatch = htmlMatch[0];
+    const beforeHtml = content.slice(0, content.indexOf(fullMatch)).trim();
+    const afterHtml = content.slice(content.indexOf(fullMatch) + fullMatch.length).trim();
+
+    return (
+      <>
+        {beforeHtml && <MarkdownRenderer content={beforeHtml} />}
+        <div className={cn(
+          'my-2 border border-slate-600 rounded-lg overflow-hidden transition-all',
+          expanded ? 'fixed inset-4 z-50 bg-slate-900' : 'relative',
+        )}>
+          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-800 border-b border-slate-700">
+            <span className="text-xs text-slate-400">Generated Dashboard</span>
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-slate-400 hover:text-white p-0.5"
+              aria-label={expanded ? 'Minimize' : 'Maximize'}
+            >
+              {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+          <iframe
+            srcDoc={htmlContent}
+            sandbox="allow-scripts"
+            className={cn('w-full border-0', expanded ? 'h-[calc(100%-32px)]' : 'h-[500px]')}
+            title="Agent generated view"
+          />
+        </div>
+        {afterHtml && <MarkdownRenderer content={afterHtml} />}
+      </>
+    );
+  }
+
+  // No HTML — render markdown + components
+  return (
+    <>
+      <MarkdownRenderer content={content} />
+      {components && components.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {components.map((spec, i) => (
+            <AgentComponentRenderer key={i} spec={spec} />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 const MessageBubble = memo(function MessageBubble({ message, mode }: { message: AgentMessage; mode: AgentMode }) {
   const isUser = message.role === 'user';
   const Icon = isUser ? undefined : MODE_CONFIG[mode].icon;
@@ -438,15 +497,7 @@ const MessageBubble = memo(function MessageBubble({ message, mode }: { message: 
         {isUser ? (
           <pre className="whitespace-pre-wrap font-sans">{message.content}</pre>
         ) : (
-          <MarkdownRenderer content={message.content} />
-        )}
-        {/* Render inline components from tools */}
-        {message.components && message.components.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {message.components.map((spec, i) => (
-              <AgentComponentRenderer key={i} spec={spec} />
-            ))}
-          </div>
+          <RichContent content={message.content} components={message.components} />
         )}
         <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-700/50">
           <span className="text-[10px] text-slate-500 flex items-center gap-1">
