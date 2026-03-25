@@ -139,6 +139,7 @@ export default function WelcomeView() {
             <ViewTile icon={<Shield className="w-4 h-4 text-violet-400" />}   title="Access Control" onClick={() => go('/access-control', 'Access Control')} />
             <ViewTile icon={<Puzzle className="w-4 h-4 text-violet-400" />}   title="CRDs"           onClick={() => go('/crds', 'CRDs')} />
             <ViewTile icon={<GitBranch className="w-4 h-4 text-violet-400" />} title="GitOps"        onClick={() => go('/gitops', 'GitOps')} />
+            <ViewTile icon={<Globe className="w-4 h-4 text-blue-400" />} title="Fleet"          onClick={() => go('/fleet', 'Fleet')} />
             <ViewTile icon={<Settings className="w-4 h-4 text-slate-400" />}  title="Administration" onClick={() => go('/admin', 'Administration')} />
             <ViewTile icon={<Package className="w-4 h-4 text-blue-400" />}    title="Software"       onClick={() => go('/create/v1~pods', 'Software')} />
             <ViewTile icon={<Clock className="w-4 h-4 text-blue-400" />}      title="Timeline"       onClick={() => go('/admin?tab=timeline', 'Timeline')} />

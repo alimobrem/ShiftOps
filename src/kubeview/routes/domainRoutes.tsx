@@ -13,6 +13,7 @@ const BuildsView = lazy(() => import('../views/BuildsView'));
 const CRDsView = lazy(() => import('../views/CRDsView'));
 const SecurityView = lazy(() => import('../views/SecurityView'));
 const ArgoCDView = lazy(() => import('../views/ArgoCDView'));
+const FleetView = lazy(() => import('../views/FleetView'));
 
 function LoadingFallback() {
   return (
@@ -41,6 +42,7 @@ export function domainRoutes() {
       <Route path="admin" element={<Lazy><AdminView /></Lazy>} />
       <Route path="alerts" element={<Lazy><AlertsView /></Lazy>} />
       <Route path="gitops" element={<Lazy><ArgoCDView /></Lazy>} />
+      <Route path="fleet" element={<Lazy><FleetView /></Lazy>} />
     </>
   );
 }
