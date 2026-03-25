@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Send, Square, Bot, Loader2, Wrench, Brain, AlertTriangle } from 'lucide-react';
 import { useAgentStore } from '../../store/agentStore';
+import { useTrustStore, TRUST_LABELS } from '../../store/trustStore';
 import { MessageBubble } from './MessageBubble';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { AgentComponentRenderer } from './AgentComponentRenderer';
 import { ConfirmationCard } from './ConfirmationCard';
+import { TrustUpgradeNudge } from './TrustUpgradeNudge';
 import { cn } from '@/lib/utils';
 
 /**
@@ -18,6 +20,7 @@ export function DockAgentPanel() {
     connect, sendMessage, confirmAction, cancelQuery,
   } = useAgentStore();
 
+  const trustLevel = useTrustStore((s) => s.trustLevel);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -111,6 +114,7 @@ export function DockAgentPanel() {
           <ConfirmationCard confirm={pendingConfirm} onConfirm={confirmAction} />
         )}
 
+        <TrustUpgradeNudge />
         <div ref={messagesEndRef} />
       </div>
 
@@ -120,7 +124,7 @@ export function DockAgentPanel() {
           'flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded',
           connected ? 'text-green-400 bg-green-950/30' : 'text-red-400 bg-red-950/30',
         )}>
-          {mode.toUpperCase()}
+          {mode.toUpperCase()} · L{trustLevel}
         </div>
         <textarea
           ref={inputRef}

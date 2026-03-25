@@ -2,8 +2,9 @@
  * Renders agent ComponentSpec objects as interactive UI primitives.
  */
 
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type {
   ComponentSpec,
   DataTableSpec,
@@ -12,6 +13,9 @@ import type {
   StatusListSpec,
   KeyValueSpec,
   ChartSpec,
+  TabsSpec,
+  GridSpec,
+  SectionSpec,
 } from '../../engine/agentComponents';
 import { Badge } from '../primitives/Badge';
 import { InfoCard } from '../primitives/InfoCard';
@@ -34,6 +38,12 @@ export function AgentComponentRenderer({ spec }: Props) {
       return <AgentKeyValue spec={spec} />;
     case 'chart':
       return <AgentChart spec={spec} />;
+    case 'tabs':
+      return <AgentTabs spec={spec} />;
+    case 'grid':
+      return <AgentGrid spec={spec} />;
+    case 'section':
+      return <AgentSection spec={spec} />;
     default:
       return null;
   }
@@ -250,6 +260,90 @@ function AgentChart({ spec }: { spec: ChartSpec }) {
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color || colors[i % colors.length] }} />
               {s.label}
             </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Tabbed container that renders child components per tab */
+function AgentTabs({ spec }: { spec: TabsSpec }) {
+  const [activeTab, setActiveTab] = useState(0);
+
+  if (!spec.tabs.length) return null;
+
+  return (
+    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden">
+      <div className="flex border-b border-slate-700 bg-slate-800/50 overflow-x-auto">
+        {spec.tabs.map((tab, i) => (
+          <button
+            key={i}
+            onClick={() => setActiveTab(i)}
+            className={cn(
+              'px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors',
+              i === activeTab
+                ? 'text-blue-400 border-b-2 border-blue-400 bg-slate-800/80'
+                : 'text-slate-400 hover:text-slate-300',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="p-2">
+        {spec.tabs[activeTab].components.map((child, i) => (
+          <AgentComponentRenderer key={i} spec={child} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Grid layout that arranges child components in columns */
+function AgentGrid({ spec }: { spec: GridSpec }) {
+  const columns = spec.columns ?? 2;
+
+  return (
+    <div
+      className="my-2 grid gap-4"
+      style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+    >
+      {spec.items.map((item, i) => (
+        <AgentComponentRenderer key={i} spec={item} />
+      ))}
+    </div>
+  );
+}
+
+/** Collapsible section with title and optional description */
+function AgentSection({ spec }: { spec: SectionSpec }) {
+  const [open, setOpen] = useState(spec.defaultOpen ?? true);
+  const Toggle = open ? ChevronUp : ChevronDown;
+
+  return (
+    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden">
+      <button
+        onClick={() => spec.collapsible !== false && setOpen(!open)}
+        className={cn(
+          'w-full flex items-center gap-2 px-3 py-2 bg-slate-800/50 text-left',
+          spec.collapsible !== false && 'cursor-pointer hover:bg-slate-800/80',
+        )}
+      >
+        <span className="text-sm font-medium text-slate-200 flex-1">{spec.title}</span>
+        {spec.collapsible !== false && (
+          <Toggle className="h-4 w-4 text-slate-400 shrink-0" />
+        )}
+      </button>
+      {spec.description && (
+        <div className="px-3 pb-1 text-xs text-slate-400 bg-slate-800/50">
+          {spec.description}
+        </div>
+      )}
+      {open && (
+        <div className="p-2">
+          {spec.components.map((child, i) => (
+            <AgentComponentRenderer key={i} spec={child} />
           ))}
         </div>
       )}

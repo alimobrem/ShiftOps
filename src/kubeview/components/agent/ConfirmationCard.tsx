@@ -1,7 +1,11 @@
-import { useEffect } from 'react';
-import { AlertTriangle, CheckCircle, XCircle, ShieldAlert, ShieldCheck, Shield } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, CheckCircle, XCircle, ShieldAlert, ShieldCheck, Shield, FlaskConical, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { ConfirmRequest } from '../../engine/agentClient';
 import { describeToolAction, riskLevel } from './MessageBubble';
+import { MarkdownRenderer } from './MarkdownRenderer';
+import { useTrustStore, TRUST_LABELS } from '../../store/trustStore';
+import { useAgentSession } from '../../hooks/useAgentSession';
+import { useUIStore } from '../../store/uiStore';
 import { cn } from '@/lib/utils';
 
 /** Tools that can be easily rolled back */
@@ -48,19 +52,72 @@ export function ConfirmationCard({ confirm, onConfirm }: ConfirmationCardProps) 
   const impact = impactDescription(confirm.tool, confirm.input);
   const rollback = ROLLBACK_INFO[confirm.tool];
 
+  const trustLevel = useTrustStore((s) => s.trustLevel);
+  const shouldAutoApprove = useTrustStore((s) => s.shouldAutoApprove);
+  const recordConfirmation = useTrustStore((s) => s.recordConfirmation);
+  const addToast = useUIStore((s) => s.addToast);
+
+  // "What If" simulation state
+  const [showSimulation, setShowSimulation] = useState(false);
+  const [simulationResult, setSimulationResult] = useState<string | null>(null);
+  const simulation = useAgentSession({ autoConnect: false });
+
   const RiskIcon = risk.level === 'HIGH' ? ShieldAlert : risk.level === 'MEDIUM' ? Shield : ShieldCheck;
   const riskBg = risk.level === 'HIGH' ? 'bg-red-950/40' : risk.level === 'MEDIUM' ? 'bg-amber-950/30' : 'bg-slate-800';
   const riskBorder = risk.level === 'HIGH' ? 'border-red-700' : risk.level === 'MEDIUM' ? 'border-amber-700' : 'border-slate-700';
 
+  // Auto-approve based on trust level
+  useEffect(() => {
+    if (shouldAutoApprove(confirm.tool, risk.level)) {
+      recordConfirmation({ tool: confirm.tool, approved: true, timestamp: Date.now(), riskLevel: risk.level as 'LOW' | 'MEDIUM' | 'HIGH' });
+      addToast({
+        type: 'success',
+        title: `Auto-approved (Trust Level ${trustLevel})`,
+        detail: description,
+        duration: 3000,
+      });
+      onConfirm(true);
+    }
+  }, [confirm.tool]);
+
   // Keyboard shortcuts
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); onConfirm(true); }
-      if (e.key === 'n' || e.key === 'N' || e.key === 'Escape') { e.preventDefault(); onConfirm(false); }
+      if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); handleApprove(); }
+      if (e.key === 'n' || e.key === 'N' || e.key === 'Escape') { e.preventDefault(); handleDeny(); }
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [onConfirm]);
+
+  // Watch simulation responses
+  useEffect(() => {
+    if (simulation.messages.length > 0) {
+      const lastMsg = simulation.messages[simulation.messages.length - 1];
+      if (lastMsg.role === 'assistant') {
+        setSimulationResult(lastMsg.content);
+      }
+    }
+  }, [simulation.messages]);
+
+  const handleApprove = () => {
+    recordConfirmation({ tool: confirm.tool, approved: true, timestamp: Date.now(), riskLevel: risk.level as 'LOW' | 'MEDIUM' | 'HIGH' });
+    onConfirm(true);
+  };
+
+  const handleDeny = () => {
+    recordConfirmation({ tool: confirm.tool, approved: false, timestamp: Date.now(), riskLevel: risk.level as 'LOW' | 'MEDIUM' | 'HIGH' });
+    onConfirm(false);
+  };
+
+  const handleSimulate = () => {
+    setShowSimulation(true);
+    setSimulationResult(null);
+    simulation.send(`What would happen if I ${description}? Don't execute — just predict the impact on the cluster. Be specific about affected resources and risks.`);
+  };
+
+  // Don't render if auto-approved
+  if (shouldAutoApprove(confirm.tool, risk.level)) return null;
 
   return (
     <div className={cn('rounded-lg border p-4', riskBorder, riskBg, risk.level === 'HIGH' && 'animate-pulse-subtle')}>
@@ -73,7 +130,7 @@ export function ConfirmationCard({ confirm, onConfirm }: ConfirmationCardProps) 
             <p className="text-sm text-slate-200">{description}</p>
           </div>
 
-          {/* Risk badge */}
+          {/* Risk badge + trust level */}
           <div className="flex items-center gap-2">
             <span className={cn(
               'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium',
@@ -83,6 +140,9 @@ export function ConfirmationCard({ confirm, onConfirm }: ConfirmationCardProps) 
             )}>
               <RiskIcon className="h-3 w-3" aria-hidden="true" />
               {risk.level} RISK
+            </span>
+            <span className="text-[10px] text-slate-500">
+              Trust: {TRUST_LABELS[trustLevel]} (L{trustLevel})
             </span>
           </div>
 
@@ -102,6 +162,31 @@ export function ConfirmationCard({ confirm, onConfirm }: ConfirmationCardProps) 
             </div>
           )}
 
+          {/* "What If" Simulation */}
+          {showSimulation && (
+            <div className="rounded bg-slate-900/50 border border-blue-800 px-3 py-2">
+              <button
+                onClick={() => setShowSimulation(!showSimulation)}
+                className="flex items-center gap-1.5 text-xs font-medium text-blue-300 mb-1 w-full"
+              >
+                <FlaskConical className="h-3 w-3" />
+                Predicted Impact
+                {simulationResult ? <ChevronUp className="h-3 w-3 ml-auto" /> : <ChevronDown className="h-3 w-3 ml-auto" />}
+              </button>
+              {simulation.streaming && !simulationResult && (
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Simulating...
+                </div>
+              )}
+              {simulationResult && (
+                <div className="text-xs text-slate-300 mt-1">
+                  <MarkdownRenderer content={simulationResult} />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Raw parameters */}
           <details>
             <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300">Show raw parameters</summary>
@@ -113,15 +198,25 @@ export function ConfirmationCard({ confirm, onConfirm }: ConfirmationCardProps) 
           {/* Action buttons */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => onConfirm(true)}
+              onClick={handleApprove}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-green-700 hover:bg-green-600 text-white rounded transition-colors"
               aria-label="Approve operation (Y)"
             >
               <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" />
               Approve <kbd className="ml-1 text-[10px] opacity-60 bg-green-900 px-1 rounded">Y</kbd>
             </button>
+            {!showSimulation && (
+              <button
+                onClick={handleSimulate}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-700 hover:bg-blue-600 text-white rounded transition-colors"
+                aria-label="Simulate impact"
+              >
+                <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
+                What If?
+              </button>
+            )}
             <button
-              onClick={() => onConfirm(false)}
+              onClick={handleDeny}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-red-700 hover:bg-red-600 text-white rounded transition-colors"
               aria-label="Deny operation (N)"
             >

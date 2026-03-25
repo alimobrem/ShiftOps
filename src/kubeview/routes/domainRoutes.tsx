@@ -20,6 +20,8 @@ const FleetResourceView = lazy(() => import('../views/fleet/FleetResourceView'))
 const FleetWorkloadsView = lazy(() => import('../views/fleet/FleetWorkloadsView'));
 const FleetAlertsView = lazy(() => import('../views/fleet/FleetAlertsView'));
 const AgentView = lazy(() => import('../views/AgentView'));
+const DriftDetectorView = lazy(() => import('../views/fleet/DriftDetectorView').then(m => ({ default: m.DriftDetectorView })));
+const DynamicView = lazy(() => import('../views/DynamicView').then(m => ({ default: m.DynamicView })));
 
 function LoadingFallback() {
   return (
@@ -37,6 +39,11 @@ function FleetResourceRoute() {
   const { gvr } = useParams<{ gvr: string }>();
   const gvrKey = (gvr || '').replace(/~/g, '/');
   return <FleetResourceView gvrKey={gvrKey} />;
+}
+
+function DynamicViewRoute() {
+  const { id } = useParams<{ id: string }>();
+  return <DynamicView viewId={id} />;
 }
 
 export function domainRoutes() {
@@ -60,7 +67,9 @@ export function domainRoutes() {
       <Route path="fleet/workloads" element={<Lazy><FleetWorkloadsView /></Lazy>} />
       <Route path="fleet/alerts" element={<Lazy><FleetAlertsView /></Lazy>} />
       <Route path="fleet/r/:gvr" element={<Lazy><FleetResourceRoute /></Lazy>} />
+      <Route path="fleet/drift" element={<Lazy><DriftDetectorView /></Lazy>} />
       <Route path="agent" element={<Lazy><AgentView /></Lazy>} />
+      <Route path="dynamic/:id" element={<Lazy><DynamicViewRoute /></Lazy>} />
     </>
   );
 }

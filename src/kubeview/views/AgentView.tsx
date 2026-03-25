@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Bot, Shield, Send, Trash2, Loader2, Wrench, Brain, AlertTriangle, Wifi, WifiOff, Square } from 'lucide-react';
+import { Bot, Shield, Send, Trash2, Loader2, Wrench, Brain, AlertTriangle, Wifi, WifiOff, Square, Globe } from 'lucide-react';
 import { useAgentStore } from '../store/agentStore';
 import { useUIStore } from '../store/uiStore';
+import { useFleetStore } from '../store/fleetStore';
 import type { AgentMode, ResourceContext } from '../engine/agentClient';
 import { AgentComponentRenderer } from '../components/agent/AgentComponentRenderer';
 import { MarkdownRenderer } from '../components/agent/MarkdownRenderer';
 import { MessageBubble } from '../components/agent/MessageBubble';
 import { ConfirmationCard } from '../components/agent/ConfirmationCard';
+import { TrustUpgradeNudge } from '../components/agent/TrustUpgradeNudge';
+import { useTrustStore, TRUST_LABELS } from '../store/trustStore';
 import { cn } from '@/lib/utils';
 
 const MODE_CONFIG: Record<AgentMode, { label: string; icon: typeof Bot; color: string; description: string }> = {
@@ -34,6 +37,9 @@ export default function AgentView() {
   } = useAgentStore();
 
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
+  const fleetMode = useFleetStore((s) => s.fleetMode);
+  const clusters = useFleetStore((s) => s.clusters);
+  const [fleetQueryMode, setFleetQueryMode] = useState(false);
   const [input, setInput] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -58,6 +64,8 @@ export default function AgentView() {
       'Audit SCC usage',
     ],
   };
+
+  const trustLevel = useTrustStore((s) => s.trustLevel);
 
   // Connect on mount
   useEffect(() => {
@@ -105,7 +113,8 @@ export default function AgentView() {
   const handleSend = () => {
     const text = input.trim();
     if (!text || streaming || !connected) return;
-    sendMessage(text);
+    const fleetPrefix = fleetQueryMode ? `[FLEET: ${clusters.map(c => c.name).join(', ')}] ` : '';
+    sendMessage(fleetPrefix + text, undefined, fleetQueryMode);
     setInput('');
   };
 
@@ -136,6 +145,29 @@ export default function AgentView() {
               {connected ? <Wifi className="h-3.5 w-3.5" aria-hidden="true" /> : <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />}
               {connected ? 'Connected' : 'Disconnected'}
             </div>
+
+            <span className={cn(
+              'text-[10px] px-1.5 py-0.5 rounded border',
+              trustLevel >= 3 ? 'border-green-700 text-green-400' :
+              trustLevel >= 2 ? 'border-amber-700 text-amber-400' :
+              'border-slate-700 text-slate-400'
+            )} title={`Trust Level ${trustLevel}: ${TRUST_LABELS[trustLevel]}`}>
+              L{trustLevel}
+            </span>
+
+            {fleetMode === 'multi' && (
+              <button
+                onClick={() => setFleetQueryMode(!fleetQueryMode)}
+                className={cn(
+                  'flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors',
+                  fleetQueryMode ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                )}
+                title={fleetQueryMode ? 'Fleet queries ON — querying all clusters' : 'Enable fleet-wide queries'}
+              >
+                <Globe className="h-3.5 w-3.5" />
+                Fleet
+              </button>
+            )}
 
             <div className="flex rounded-lg border border-slate-700 overflow-hidden" role="radiogroup" aria-label="Agent mode">
               {(['sre', 'security'] as AgentMode[]).map((m) => (
@@ -251,6 +283,8 @@ export default function AgentView() {
         {pendingConfirm && (
           <ConfirmationCard confirm={pendingConfirm} onConfirm={confirmAction} />
         )}
+
+        <TrustUpgradeNudge />
 
         <div ref={messagesEndRef} />
       </div>

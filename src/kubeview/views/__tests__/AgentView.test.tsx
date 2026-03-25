@@ -42,6 +42,25 @@ vi.mock('../../store/agentStore', () => ({
   },
 }));
 
+vi.mock('../../store/trustStore', () => ({
+  useTrustStore: (selector?: (s: any) => any) => {
+    const state = { trustLevel: 1, history: [], shouldAutoApprove: () => false, recordConfirmation: vi.fn(), getUpgradeEligibility: () => ({ eligible: false, currentLevel: 1, nextLevel: 2, consecutiveApprovals: 0, approvalsNeeded: 10 }), setTrustLevel: vi.fn(), clearHistory: vi.fn() };
+    return typeof selector === 'function' ? selector(state) : state;
+  },
+  TRUST_LABELS: { 0: 'Observe', 1: 'Confirm', 2: 'Batch', 3: 'Bounded' },
+}));
+
+vi.mock('../../components/agent/TrustUpgradeNudge', () => ({
+  TrustUpgradeNudge: () => null,
+}));
+
+vi.mock('../../store/fleetStore', () => ({
+  useFleetStore: (selector?: (s: any) => any) => {
+    const state = { fleetMode: 'single', clusters: [], refreshAllHealth: vi.fn() };
+    return typeof selector === 'function' ? selector(state) : state;
+  },
+}));
+
 vi.mock('../../components/primitives/Panel', () => ({
   Panel: ({ children, className }: any) => <div className={className}>{children}</div>,
 }));
@@ -86,7 +105,7 @@ describe('AgentView', () => {
     const inputs = screen.getAllByLabelText('Message to agent');
     fireEvent.change(inputs[0], { target: { value: 'Check health' } });
     fireEvent.keyDown(inputs[0], { key: 'Enter' });
-    expect(mockSendMessage).toHaveBeenCalledWith('Check health');
+    expect(mockSendMessage).toHaveBeenCalledWith('Check health', undefined, false);
   });
 
   it('shows mode toggle buttons', () => {

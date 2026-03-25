@@ -33,7 +33,7 @@ interface AgentState {
 
   connect: () => void;
   disconnect: () => void;
-  sendMessage: (content: string, context?: ResourceContext) => void;
+  sendMessage: (content: string, context?: ResourceContext, fleetMode?: boolean) => void;
   switchMode: (mode: AgentMode) => void;
   clearChat: () => void;
   confirmAction: (approved: boolean) => void;
@@ -173,7 +173,7 @@ export const useAgentStore = create<AgentState>()(
         set({ connected: false });
       },
 
-      sendMessage: (content, context) => {
+      sendMessage: (content, context, fleetMode) => {
         if (!client) return;
         pendingTextDelta = '';
         pendingThinkingDelta = '';
@@ -196,7 +196,7 @@ export const useAgentStore = create<AgentState>()(
           error: null,
         }));
 
-        client.send(content, context);
+        client.send(content, context, fleetMode);
       },
 
       switchMode: (mode) => {
