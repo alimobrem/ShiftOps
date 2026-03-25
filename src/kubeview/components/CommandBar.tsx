@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronDown, Layers, Bell, User, Server, Plus, LogOut } from 'lucide-react';
+import { Search, ChevronDown, Layers, Bell, User, Server, Plus, LogOut, Check } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useUIStore } from '../store/uiStore';
 import { useClusterStore } from '../store/clusterStore';
+import { useFleetStore } from '../store/fleetStore';
+import { isMultiCluster } from '../engine/clusterConnection';
 import { k8sList } from '../engine/query';
 import { getPodStatus } from '../engine/renderers/statusUtils';
 import { cn } from '@/lib/utils';
@@ -18,6 +20,37 @@ export function CommandBar() {
   const [impersonateInput, setImpersonateInput] = useState('');
   const impersonateUser = useUIStore((s) => s.impersonateUser);
   const isHyperShift = useClusterStore((s) => s.isHyperShift);
+
+  const [showClusterDropdown, setShowClusterDropdown] = useState(false);
+  const clusterDropdownRef = useRef<HTMLDivElement>(null);
+  const clusters = useFleetStore((s) => s.clusters);
+  const activeClusterId = useFleetStore((s) => s.activeClusterId);
+  const setActiveCluster = useFleetStore((s) => s.setActiveCluster);
+
+  // Close cluster dropdown on click outside
+  useEffect(() => {
+    if (!showClusterDropdown) return;
+    function handleClick(e: MouseEvent) {
+      if (clusterDropdownRef.current && !clusterDropdownRef.current.contains(e.target as Node)) {
+        setShowClusterDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showClusterDropdown]);
+
+  // Cmd+Shift+C / Ctrl+Shift+C to toggle cluster switcher
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+        if (!isMultiCluster()) return;
+        e.preventDefault();
+        setShowClusterDropdown((prev) => !prev);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
   const setSelectedNamespace = useUIStore((s) => s.setSelectedNamespace);
@@ -132,18 +165,70 @@ export function CommandBar() {
 
       {/* Right section: Context + Actions */}
       <div className="flex items-center gap-2">
-        {/* Cluster indicator */}
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-900/50 border border-slate-700/50">
-          <Server className="w-3 h-3 text-slate-500" />
-          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          <span className="text-xs text-slate-300 font-medium max-w-[140px] truncate">
-            {clusterInfo?.name || 'cluster'}
-          </span>
-          {clusterInfo?.platform && (
-            <span className="text-xs text-slate-500 hidden xl:inline">{clusterInfo.platform}</span>
+        {/* Cluster indicator / switcher */}
+        <div className="relative" ref={clusterDropdownRef}>
+          {isMultiCluster() ? (
+            <button
+              onClick={() => setShowClusterDropdown(!showClusterDropdown)}
+              className={cn(
+                'flex items-center gap-2 px-2.5 py-1 rounded-md border transition-colors h-7',
+                showClusterDropdown
+                  ? 'border-blue-600/50 bg-blue-950/40 text-blue-300'
+                  : 'border-slate-700/50 bg-slate-900/50 text-slate-300 hover:border-slate-600'
+              )}
+              title="Switch cluster (⌘⇧C)"
+            >
+              <Server className="w-3 h-3 text-slate-500" />
+              <div className={cn('h-1.5 w-1.5 rounded-full', clusters.find(c => c.id === activeClusterId)?.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500')} />
+              <span className="text-xs font-medium max-w-[140px] truncate">
+                {clusters.find(c => c.id === activeClusterId)?.name || clusterInfo?.name || 'cluster'}
+              </span>
+              <ChevronDown className="h-2.5 w-2.5 opacity-50" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-900/50 border border-slate-700/50">
+              <Server className="w-3 h-3 text-slate-500" />
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span className="text-xs text-slate-300 font-medium max-w-[140px] truncate">
+                {clusterInfo?.name || 'cluster'}
+              </span>
+              {clusterInfo?.platform && (
+                <span className="text-xs text-slate-500 hidden xl:inline">{clusterInfo.platform}</span>
+              )}
+              {isHyperShift && (
+                <span className="text-xs px-1.5 py-0.5 bg-blue-900/60 text-blue-300 rounded border border-blue-700/50 hidden lg:inline" title="Control plane managed externally. etcd, API server, and scheduler run in a management cluster.">Hosted</span>
+              )}
+            </div>
           )}
-          {isHyperShift && (
-            <span className="text-xs px-1.5 py-0.5 bg-blue-900/60 text-blue-300 rounded border border-blue-700/50 hidden lg:inline" title="Control plane managed externally. etcd, API server, and scheduler run in a management cluster.">Hosted</span>
+
+          {showClusterDropdown && isMultiCluster() && (
+            <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-lg border border-slate-600 bg-slate-800 shadow-2xl py-1">
+              <div className="px-3 py-2 border-b border-slate-700">
+                <div className="text-xs font-medium text-slate-400 uppercase tracking-wide">Switch Cluster</div>
+              </div>
+              <div className="overflow-auto max-h-[320px] py-1">
+                {clusters.map((cluster) => (
+                  <button
+                    key={cluster.id}
+                    onClick={() => {
+                      setActiveCluster(cluster.id);
+                      setShowClusterDropdown(false);
+                    }}
+                    className={cn(
+                      'w-full px-3 py-2 text-left text-sm transition-colors hover:bg-slate-700 flex items-center gap-2',
+                      cluster.id === activeClusterId ? 'text-blue-400 bg-blue-950/30' : 'text-slate-300'
+                    )}
+                  >
+                    <div className={cn('h-1.5 w-1.5 rounded-full shrink-0', cluster.status === 'connected' ? 'bg-emerald-500' : 'bg-red-500')} />
+                    <span className="flex-1 truncate">{cluster.name}</span>
+                    {cluster.environment && (
+                      <span className="text-xs px-1.5 py-0.5 bg-slate-700 text-slate-400 rounded">{cluster.environment}</span>
+                    )}
+                    {cluster.id === activeClusterId && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 

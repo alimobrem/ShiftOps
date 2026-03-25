@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../store/uiStore';
+import { useFleetStore } from '../store/fleetStore';
+import { isMultiCluster } from '../engine/clusterConnection';
 import { cn } from '@/lib/utils';
 
 function formatRelativeTime(timestamp: number): string {
@@ -18,6 +20,7 @@ export function StatusBar() {
   const activeOperation = useUIStore((s) => s.activeOperation);
   const tabs = useUIStore((s) => s.tabs);
   const location = useLocation();
+  const activeCluster = useFleetStore((s) => s.clusters.find(c => c.id === s.activeClusterId));
 
   const [relativeTime, setRelativeTime] = useState(formatRelativeTime(lastSyncTime));
 
@@ -68,6 +71,7 @@ export function StatusBar() {
         </div>
         <span>synced {relativeTime} ago</span>
         {activeOperation && <span className="text-emerald-400">{activeOperation}</span>}
+        {isMultiCluster() && activeCluster && <span className="text-blue-400">· {activeCluster.name}</span>}
         {pageInfo && <span className="text-slate-400">· {pageInfo}</span>}
       </div>
 
@@ -75,7 +79,7 @@ export function StatusBar() {
       <div className="flex items-center gap-3">
         {openTabCount > 0 && <span>{openTabCount} tab{openTabCount !== 1 ? 's' : ''}</span>}
         <span>{selectedNamespace === '*' ? 'all namespaces' : selectedNamespace}</span>
-        <span>⌘K search · ⌘B browse</span>
+        <span>{isMultiCluster() ? '⌘K search · ⌘B browse · ⌘⇧C switch cluster' : '⌘K search · ⌘B browse'}</span>
       </div>
     </div>
   );
