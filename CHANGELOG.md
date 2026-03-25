@@ -1,5 +1,33 @@
 # Changelog
 
+## [5.2.0] - 2026-03-24
+
+### Added
+- **Dynamic UI Generation** — Agent tools render rich interactive components inline in chat:
+  - `ComponentSpec` protocol: data_table, info_card_grid, badge_list, status_list, key_value, chart
+  - `AgentComponentRenderer` maps specs to existing primitives (DataTable, InfoCard, Badge, MetricsChart)
+  - `MarkdownRenderer` for text responses (headers, bold, code blocks, lists) — no npm dependency
+  - 4 tools enhanced: `list_pods`, `list_deployments`, `get_events`, `top_pods_by_restarts` return structured tables
+  - Auto-colored status/severity columns in rendered tables
+  - New WebSocket event type: `component` with tool-emitted specs
+- **Cancel/Stop button** — Red square button (or Escape key) aborts running agent queries, saves partial response
+- **Edit last message** — Pencil button loads last user message back into input for re-submission
+- **Build logs** — Uses OpenShift Build API (`/apis/build.openshift.io/v1/.../builds/{name}/log`) instead of Pod API
+
+### Fixed
+- **Browser memory/performance** — Streaming deltas batched via `requestAnimationFrame` instead of per-token re-renders; `MessageBubble` wrapped in `React.memo`; message history capped at 100 in memory / 50 persisted
+- **SSRF IPv6 bypass** — Dev proxy helmrepo endpoint now blocks IPv6 loopback, IPv4-mapped, unique local, and link-local addresses
+- **Helm values** — Added `agent.serviceName` default to prevent template rendering error
+- **Build log 404s** — Build view was fetching pod logs for build names; now uses correct Build API endpoint
+
+### Stats
+- **1472 tests** across 97 test files
+- **17 views**, 45+ routes
+- **54 agent tools** with 4 returning rich UI component specs
+- **0 npm CVEs**, all Red Hat UBI images
+
+---
+
 ## [5.1.0] - 2026-03-24
 
 ### Added
