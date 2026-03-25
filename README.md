@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/alimobrem/OpenshiftPulse/releases/tag/v5.0.0"><img src="https://img.shields.io/badge/release-v5.0.0-2563eb?style=for-the-badge" alt="Version"></a>
-  <img src="https://img.shields.io/badge/tests-1438%20passed-10b981?style=for-the-badge" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-1472%20passed-10b981?style=for-the-badge" alt="Tests">
   <img src="https://img.shields.io/badge/health%20checks-77-f59e0b?style=for-the-badge" alt="Health Checks">
   <img src="https://img.shields.io/badge/CVEs-0-10b981?style=for-the-badge" alt="CVEs">
   <img src="https://img.shields.io/badge/license-MIT-6366f1?style=for-the-badge" alt="License">
@@ -34,6 +34,7 @@ Real-time Kubernetes dashboard built with React, TypeScript, and WebSocket watch
 
 | | OpenShift Console | Lens | Rancher | **Pulse** |
 |---|:---:|:---:|:---:|:---:|
+| AI-powered SRE agent (Claude) | | | | **Yes** |
 | Multi-cluster fleet dashboard | | | Yes | **Yes** |
 | Cross-cluster search & comparison | | | Partial | **Yes** |
 | Fleet compliance matrix | | | | **Yes** |
@@ -84,6 +85,7 @@ npm run dev    # http://localhost:9000
 
 | Category | What You Get |
 |----------|-------------|
+| **AI Agent** | Claude-powered SRE diagnostics and security scanning. 35 tools, 10 runbooks, Prometheus/PromQL, Alertmanager, confirmation gates for write ops. [pulse-agent](https://github.com/alimobrem/pulse-agent) |
 | **Multi-Cluster Fleet** | Fleet dashboard with health scores, cluster switcher (`Cmd+Shift+C`), cross-cluster search, compliance matrix, certificate heat map, RBAC comparison, config drift detection. Auto-detects ACM/MCE managed clusters. |
 | **Cluster Health** | 77 automated checks (31 cluster + 46 domain) with YAML fix examples and "Why it matters" explanations |
 | **Daily Briefing** | Risk score ring, control plane status, certificate expiry, attention items with remediation steps |
@@ -99,6 +101,7 @@ npm run dev    # http://localhost:9000
 
 | Feature | Details |
 |---------|---------|
+| **AI Agent** | Chat with Claude-powered SRE/Security agent. "Ask Agent" from any resource. Streaming, tool execution indicators, confirmation gates. |
 | **Deployment Rollback** | Revision history with container image diffs, one-click rollback |
 | **Pod/Node Terminal** | WebSocket exec with command history, copy output, GitHub-dark theme |
 | **Cluster Snapshots** | Capture state, compare field-by-field to find what changed |
@@ -117,7 +120,7 @@ npm run dev    # http://localhost:9000
 | **Smart Diagnosis** | 10 error patterns from pod logs with specific fix suggestions |
 | **Auto-Generated Tables** | Sortable, searchable, j/k navigation, CSV/JSON export |
 
-### Views (15)
+### Views (16)
 
 | View | Highlights |
 |------|-----------|
@@ -135,6 +138,7 @@ npm run dev    # http://localhost:9000
 | **Security** | 10 checks, SCC audit, ACS detection |
 | **GitOps** | ArgoCD Applications, sync history, drift, Rollouts (canary/blue-green), Projects |
 | **Fleet** | Multi-cluster dashboard, cross-cluster search, comparison, compliance, cert heat map |
+| **Agent** | AI-powered SRE diagnostics and security scanning with 35 cluster tools |
 | **Admin** | 10 tabs: Overview, Readiness, Operators, Config, Updates, Snapshots, Quotas, Certificates, GitOps, Timeline |
 
 ---
@@ -148,7 +152,7 @@ npm run dev    # http://localhost:9000
 | **State** | Zustand + TanStack Query | Client + server state separation |
 | **Real-time** | WebSocket watches | Instant updates, 60s polling fallback |
 | **Styling** | Tailwind CSS 3.4 | Utility-first, dark-mode only |
-| **Testing** | Vitest + jsdom | 1438 tests in ~4s |
+| **Testing** | Vitest + jsdom | 1472 tests in ~4s |
 | **Charts** | Pure SVG sparklines | Zero chart library dependency |
 | **Security** | Red Hat UBI images | 0 CVEs, all images from Red Hat registries |
 
@@ -243,7 +247,7 @@ npm install          # Install dependencies
 cp .env.example .env # Configure cluster URLs (optional)
 oc proxy --port=8001 & # Start API proxy
 npm run dev          # Dev server on port 9000
-npm test             # 1438 tests in ~3s
+npm test             # 1472 tests in ~3s
 npm run build        # Production build (~1s)
 npm run type-check   # TypeScript checking
 ```
@@ -253,6 +257,7 @@ npm run type-check   # TypeScript checking
 | `K8S_API_URL` | `http://localhost:8001` | K8s API proxy target |
 | `THANOS_URL` | *(disabled)* | Thanos Querier for Prometheus metrics |
 | `ALERTMANAGER_URL` | *(disabled)* | Alertmanager for alert management |
+| `PULSE_AGENT_URL` | `http://localhost:8080` | Pulse Agent API server for AI diagnostics |
 
 ---
 
@@ -262,18 +267,18 @@ npm run type-check   # TypeScript checking
 src/kubeview/
 ├── engine/              # Query, discovery, watch, snapshot, timeline
 │   └── types/           # 50+ typed K8s interfaces
-├── views/               # 16 views + admin tabs
+├── views/               # 17 views + admin tabs (incl. AgentView)
 │   └── admin/           # Overview, Operators, Updates, Snapshots, Quotas, Certificates
 ├── components/          # Panel, Card, InfoCard, MetricGrid, YamlEditor, Terminal, Dock
 ├── hooks/               # useK8sListWatch, useCanI, useIncidentTimeline
-├── store/               # Zustand (UI state, cluster state, HyperShift detection)
+├── store/               # Zustand (UI, cluster, fleet, agent state)
 └── App.tsx              # Shell + routes (~45 lines)
 ```
 
 ```
 Browser --> OAuth Proxy (8443/TLS) --> nginx (8080) --> K8s API / Prometheus / Alertmanager
-                  |
-          User's OAuth token forwarded (SA token NOT used for API calls)
+                  |                                  \
+          User's OAuth token forwarded               --> Pulse Agent (8080/WS) --> Claude API + K8s API
 ```
 
 ## Keyboard Shortcuts
@@ -290,7 +295,7 @@ Browser --> OAuth Proxy (8443/TLS) --> nginx (8080) --> K8s API / Prometheus / A
 ---
 
 <p align="center">
-  <strong>1438 tests</strong> &bull; <strong>77 health checks</strong> &bull; <strong>~1s builds</strong> &bull; <strong>0 CVEs</strong> &bull; <strong>16 views</strong> &bull; <strong>500+ operators</strong>
+  <strong>1472 tests</strong> &bull; <strong>77 health checks</strong> &bull; <strong>~1s builds</strong> &bull; <strong>0 CVEs</strong> &bull; <strong>17 views</strong> &bull; <strong>35 AI tools</strong> &bull; <strong>500+ operators</strong>
 </p>
 
 <p align="center">
