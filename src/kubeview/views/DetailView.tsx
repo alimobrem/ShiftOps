@@ -42,7 +42,6 @@ import DataEditor from '../components/DataEditor';
 import DeployProgress from '../components/DeployProgress';
 import { toggleFavorite, isFavorite } from '../engine/favorites';
 import { showErrorToast } from '../engine/errorToast';
-import { copyToClipboard } from '../engine/clipboard';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { StatusBadge } from '../components/primitives/StatusBadge';
 import { ActionMenu, type ActionMenuItem } from '../components/primitives/ActionMenu';
@@ -57,6 +56,7 @@ import { GitOpsInfoCard } from '../components/GitOpsInfoCard';
 import { ResourceHistoryPanel } from './argocd/ResourceHistoryPanel';
 import { useArgoSyncInfo } from '../hooks/useArgoCD';
 import { useCanI } from '../hooks/useCanI';
+import { LabelsSection, AnnotationsSection, DetailSection } from './detail/MetadataSections';
 
 interface DetailViewProps {
   gvrKey: string;
@@ -358,15 +358,11 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   const [labelKey, setLabelKey] = React.useState('');
   const [labelValue, setLabelValue] = React.useState('');
 
-  const addLabelButton = (
-    <button
-      disabled={!!actionLoading}
-      onClick={() => { setLabelKey(''); setLabelValue(''); setShowLabelDialog(true); }}
-      className="mt-2 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
-    >
-      {actionLoading === 'label' ? 'Adding...' : '+ Add label'}
-    </button>
-  );
+  const handleOpenLabelDialog = React.useCallback(() => {
+    setLabelKey('');
+    setLabelValue('');
+    setShowLabelDialog(true);
+  }, []);
 
   if (error) {
     const isNotFound = (error as Error).message?.includes('not found') || (error as Error).message?.includes('404');
@@ -693,41 +689,8 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
               </div>
               <div className="space-y-6">
                 <WorkloadAudit resource={resource} go={go} />
-                {/* Labels */}
-                {resource.metadata.labels && Object.keys(resource.metadata.labels).length > 0 && (
-                  <DetailSection title="Labels">
-                    <div className="space-y-1.5">
-                      {Object.entries(resource.metadata.labels).map(([key, value]) => (
-                        <div key={key} className="flex items-center gap-2 group">
-                          <span className="text-xs text-slate-400 font-mono flex-shrink-0 w-48 truncate" title={key}>{key}</span>
-                          <span className="text-xs text-slate-200 font-mono flex-1">{value}</span>
-                          <button onClick={() => { navigator.clipboard.writeText(`${key}=${value}`); addToast({ type: 'success', title: 'Label copied' }); }}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-500 hover:text-slate-300 transition-opacity" title="Copy label">
-                            <Copy className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    {addLabelButton}
-                  </DetailSection>
-                )}
-                {/* Annotations */}
-                {resource.metadata.annotations && Object.keys(resource.metadata.annotations).length > 0 && (
-                  <DetailSection title="Annotations" collapsible>
-                    <div className="space-y-2">
-                      {Object.entries(resource.metadata.annotations)
-                        .filter(([key]) => !key.includes('last-applied-configuration') && !key.includes('managedFields'))
-                        .map(([key, value]) => (
-                          <div key={key} className="flex items-start gap-2 group">
-                            <span className="text-xs text-slate-400 font-mono flex-shrink-0 w-48 truncate" title={key}>{key}</span>
-                            <span className="text-xs text-slate-200 font-mono break-all flex-1">
-                              {String(value).length > 200 ? String(value).slice(0, 200) + '...' : value}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </DetailSection>
-                )}
+                <LabelsSection resource={resource} onAddLabel={handleOpenLabelDialog} actionLoading={actionLoading} />
+                <AnnotationsSection resource={resource} />
               </div>
             </div>
           </div>
@@ -743,41 +706,8 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
                 <IncidentContext resource={resource} managedPods={[]} events={sortedEvents} namespace={namespace} go={go} />
               </div>
               <div className="space-y-6">
-                {/* Labels */}
-                {resource.metadata.labels && Object.keys(resource.metadata.labels).length > 0 && (
-                  <DetailSection title="Labels">
-                    <div className="space-y-1.5">
-                      {Object.entries(resource.metadata.labels).map(([key, value]) => (
-                        <div key={key} className="flex items-center gap-2 group">
-                          <span className="text-xs text-slate-400 font-mono flex-shrink-0 w-48 truncate" title={key}>{key}</span>
-                          <span className="text-xs text-slate-200 font-mono flex-1">{value}</span>
-                          <button onClick={() => { navigator.clipboard.writeText(`${key}=${value}`); addToast({ type: 'success', title: 'Label copied' }); }}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-500 hover:text-slate-300 transition-opacity" title="Copy label">
-                            <Copy className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    {addLabelButton}
-                  </DetailSection>
-                )}
-                {/* Annotations */}
-                {resource.metadata.annotations && Object.keys(resource.metadata.annotations).length > 0 && (
-                  <DetailSection title="Annotations" collapsible>
-                    <div className="space-y-2">
-                      {Object.entries(resource.metadata.annotations)
-                        .filter(([key]) => !key.includes('last-applied-configuration') && !key.includes('managedFields'))
-                        .map(([key, value]) => (
-                          <div key={key} className="flex items-start gap-2 group">
-                            <span className="text-xs text-slate-400 font-mono flex-shrink-0 w-48 truncate" title={key}>{key}</span>
-                            <span className="text-xs text-slate-200 font-mono break-all flex-1">
-                              {String(value).length > 200 ? String(value).slice(0, 200) + '...' : value}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </DetailSection>
-                )}
+                <LabelsSection resource={resource} onAddLabel={handleOpenLabelDialog} actionLoading={actionLoading} />
+                <AnnotationsSection resource={resource} />
                 {/* Owner */}
                 {relatedResources.length > 0 && (
                   <DetailSection title="Owner">
@@ -875,56 +805,8 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
               />
             )}
 
-            {/* Labels */}
-            {resource.metadata.labels && Object.keys(resource.metadata.labels).length > 0 && (
-              <DetailSection title="Labels">
-                <div className="space-y-1.5">
-                  {Object.entries(resource.metadata.labels).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-2 group">
-                      <span className="text-xs text-slate-400 font-mono flex-shrink-0 w-48 truncate" title={key}>
-                        {key}
-                      </span>
-                      <span className="text-xs text-slate-200 font-mono flex-1">{value}</span>
-                      <button
-                        onClick={() => copyToClipboard(`${key}=${value}`, 'Label copied')}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-500 hover:text-slate-300 transition-opacity"
-                        title="Copy label"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                {addLabelButton}
-              </DetailSection>
-            )}
-
-            {/* Annotations */}
-            {resource.metadata.annotations &&
-              Object.keys(resource.metadata.annotations).length > 0 && (
-                <DetailSection title="Annotations" collapsible>
-                  <div className="space-y-2">
-                    {Object.entries(resource.metadata.annotations)
-                      .filter(([key]) => !key.includes('last-applied-configuration') && !key.includes('managedFields'))
-                      .map(([key, value]) => (
-                        <div key={key} className="flex items-start gap-2 group">
-                          <span className="text-xs text-slate-400 font-mono flex-shrink-0 w-48 truncate" title={key}>
-                            {key}
-                          </span>
-                          <span className="text-xs text-slate-200 font-mono break-all flex-1">
-                            {String(value).length > 200 ? String(value).slice(0, 200) + '...' : value}
-                          </span>
-                          <button
-                            onClick={() => { navigator.clipboard.writeText(`${key}: ${value}`); addToast({ type: 'success', title: 'Annotation copied' }); }}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-500 hover:text-slate-300 transition-opacity flex-shrink-0"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                </DetailSection>
-              )}
+            <LabelsSection resource={resource} onAddLabel={handleOpenLabelDialog} actionLoading={actionLoading} />
+            <AnnotationsSection resource={resource} />
 
             {/* Spec (simplified) */}
             {spec && Object.keys(spec).length > 0 && (
@@ -1205,32 +1087,6 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   );
 }
 
-function DetailSection({
-  title,
-  children,
-  collapsible = false,
-}: {
-  title: string;
-  children: React.ReactNode;
-  collapsible?: boolean;
-}) {
-  const [isOpen, setIsOpen] = React.useState(true);
-
-  return (
-    <Card>
-      <div
-        className={cn(
-          'px-4 py-3 border-b border-slate-800',
-          collapsible && 'cursor-pointer hover:bg-slate-800/50'
-        )}
-        onClick={() => collapsible && setIsOpen(!isOpen)}
-      >
-        <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
-      </div>
-      {isOpen && <div className="px-4 py-3">{children}</div>}
-    </Card>
-  );
-}
 
 function DetailField({
   label,
