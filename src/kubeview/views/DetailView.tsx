@@ -125,28 +125,48 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
     return () => setDockContext(null);
   }, [resource?.kind, namespace, name, isWorkload, managedPods.length > 0 ? managedPods[0]?.metadata?.name : null]);
 
-  // Fetch related events using field selector
+  // Fetch related events — for workloads, fetch all namespace events and filter client-side
+  // because Deployments don't emit events directly (events are on ReplicaSets/Pods)
   const eventsApiPath = React.useMemo(() => {
     if (!resource) return '';
+    if (isWorkload && namespace) {
+      // Fetch all events in namespace, filter client-side to include managed pod/RS events
+      return `/api/v1/namespaces/${namespace}/events`;
+    }
     const fieldSelector = `involvedObject.name=${name},involvedObject.kind=${resource.kind}`;
     return namespace
       ? `/api/v1/namespaces/${namespace}/events?fieldSelector=${encodeURIComponent(fieldSelector)}`
       : `/api/v1/events?fieldSelector=${encodeURIComponent(fieldSelector)}`;
-  }, [resource, name, namespace]);
+  }, [resource, name, namespace, isWorkload]);
 
-  const { data: events = [] } = useK8sListWatch<K8sResource>({
+  const { data: rawEvents = [] } = useK8sListWatch<K8sResource>({
     apiPath: eventsApiPath,
     enabled: !!resource && !!eventsApiPath,
   });
 
-  // Sort events by timestamp
+  // Filter and sort events — for workloads include events from managed pods/ReplicaSets
   const sortedEvents = React.useMemo(() => {
-    return [...events].sort((a, b) => {
+    const managedPodNames = new Set(managedPods.map(p => p.metadata.name));
+    const filtered = isWorkload
+      ? rawEvents.filter((e) => {
+          const ev = e as unknown as Event;
+          const objName = ev.involvedObject?.name || '';
+          const objKind = ev.involvedObject?.kind || '';
+          // Direct events on this resource
+          if (objName === name) return true;
+          // Events on managed pods
+          if (objKind === 'Pod' && managedPodNames.has(objName)) return true;
+          // Events on owned ReplicaSets (name starts with deployment name)
+          if (objKind === 'ReplicaSet' && objName.startsWith(`${name}-`)) return true;
+          return false;
+        })
+      : rawEvents;
+    return filtered.sort((a, b) => {
       const aTime = (a as unknown as Event).lastTimestamp || (a as unknown as Event).firstTimestamp || '';
       const bTime = (b as unknown as Event).lastTimestamp || (b as unknown as Event).firstTimestamp || '';
       return new Date(bTime).getTime() - new Date(aTime).getTime();
     });
-  }, [events]);
+  }, [rawEvents, name, isWorkload, managedPods]);
 
   // Find related resources
   const relatedResources = React.useMemo(() => {
