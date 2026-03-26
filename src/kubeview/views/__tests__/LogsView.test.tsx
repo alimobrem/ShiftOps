@@ -1,16 +1,18 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
+const mockNavigate = vi.fn();
+let mockSearchParams = new URLSearchParams();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useNavigate: () => vi.fn(),
-    useSearchParams: () => [new URLSearchParams()],
+    useNavigate: () => mockNavigate,
+    useSearchParams: () => [mockSearchParams],
   };
 });
 
@@ -59,6 +61,8 @@ describe('LogsView', () => {
   afterEach(() => {
     cleanup();
     mockPodQueryResult = { data: undefined, isLoading: false, error: null };
+    mockSearchParams = new URLSearchParams();
+    mockNavigate.mockReset();
   });
 
   it('renders heading with pod name and namespace', () => {
@@ -114,5 +118,22 @@ describe('LogsView', () => {
     mockPodQueryResult = { data: undefined, isLoading: true, error: null };
     const { container } = renderView({ namespace: 'default', podName: 'my-pod' });
     expect(container.querySelector('.kv-skeleton')).toBeDefined();
+  });
+
+  it('shows EmptyState with guidance when workload has no pods', () => {
+    mockSearchParams = new URLSearchParams({ selector: 'app=nginx', kind: 'Deployment' });
+    renderView({ namespace: 'default', podName: 'nginx' });
+    expect(screen.getByText('No pods found')).toBeDefined();
+    expect(screen.getByText(/scaled to zero/)).toBeDefined();
+    expect(screen.getByText(/label selector/)).toBeDefined();
+  });
+
+  it('shows Back to workload button that navigates back', () => {
+    mockSearchParams = new URLSearchParams({ selector: 'app=nginx', kind: 'Deployment' });
+    renderView({ namespace: 'default', podName: 'nginx' });
+    const backButton = screen.getByText('Back to workload');
+    expect(backButton).toBeDefined();
+    fireEvent.click(backButton);
+    expect(mockNavigate).toHaveBeenCalledWith(-1);
   });
 });

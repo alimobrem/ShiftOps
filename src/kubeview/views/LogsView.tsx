@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { FileX } from 'lucide-react';
 import LogStream from '../components/logs/LogStream';
 import MultiContainerLogs from '../components/logs/MultiContainerLogs';
 import MultiPodLogs from '../components/logs/MultiPodLogs';
+import { EmptyState } from '../components/primitives/EmptyState';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
 
 interface LogsViewProps {
@@ -70,6 +72,7 @@ function BuildLogsView({ namespace, buildName }: { namespace: string; buildName:
 function WorkloadLogsView({ namespace, name, selector, kind }: {
   namespace: string; name: string; selector: string; kind: string;
 }) {
+  const navigate = useNavigate();
   const [selectedPod, setSelectedPod] = useState<string | null>(null);
 
   // Watch pods by label selector
@@ -127,7 +130,13 @@ function WorkloadLogsView({ namespace, name, selector, kind }: {
         ) : podNames.length > 0 ? (
           <MultiPodLogs namespace={namespace} podNames={podNames} />
         ) : (
-          <div className="flex items-center justify-center h-full text-slate-500 text-sm">No pods found</div>
+          <EmptyState
+            icon={<FileX className="w-8 h-8" />}
+            title="No pods found"
+            description="No pods match the label selector for this workload. The workload may be scaled to zero, or the label selector may not match any running pods. Check the replica count and selector labels."
+            action={{ label: 'Back to workload', onClick: () => navigate(-1) }}
+            className="h-full"
+          />
         )}
       </div>
     </div>
