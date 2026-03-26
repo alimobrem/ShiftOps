@@ -16,6 +16,7 @@ import { getNodeStatus } from '../engine/renderers/statusUtils';
 import { parseResourceValue, formatBytes, formatCpu } from '../engine/formatting';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
+import { LastUpdated, earliestDataUpdatedAt } from '../components/primitives/LastUpdated';
 import { useClusterStore } from '../store/clusterStore';
 import { Card } from '../components/primitives/Card';
 import { CapacityTab } from './compute/CapacityTab';
@@ -74,8 +75,12 @@ export default function ComputeView() {
   const [computeTab, setComputeTab] = React.useState<'overview' | 'capacity'>(urlTab === 'capacity' ? 'capacity' : 'overview');
   const isHyperShift = useClusterStore((s) => s.isHyperShift);
 
-  const { data: nodes = [] } = useK8sListWatch({ apiPath: '/api/v1/nodes' });
-  const { data: pods = [] } = useK8sListWatch({ apiPath: '/api/v1/pods' });
+  const nodesQuery = useK8sListWatch({ apiPath: '/api/v1/nodes' });
+  const podsQuery = useK8sListWatch({ apiPath: '/api/v1/pods' });
+  const nodes = nodesQuery.data ?? [];
+  const pods = podsQuery.data ?? [];
+
+  const dataUpdatedAt = earliestDataUpdatedAt([nodesQuery, podsQuery]);
 
   const { data: machines = [] } = useQuery<K8sResource[]>({
     queryKey: ['k8s', 'list', '/apis/machine.openshift.io/v1beta1/machines'],
@@ -249,7 +254,10 @@ export default function ComputeView() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2"><Server className="w-6 h-6 text-blue-500" /> Compute</h1>
-          <p className="text-sm text-slate-400 mt-1">Cluster capacity, node health, and resource utilization</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-sm text-slate-400">Cluster capacity, node health, and resource utilization</p>
+            <LastUpdated timestamp={dataUpdatedAt} />
+          </div>
         </div>
 
         {/* Tabs */}

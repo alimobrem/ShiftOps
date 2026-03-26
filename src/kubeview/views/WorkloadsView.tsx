@@ -12,6 +12,7 @@ import { getDeploymentStatus, getPodStatus } from '../engine/renderers/statusUti
 import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
+import { LastUpdated, earliestDataUpdatedAt } from '../components/primitives/LastUpdated';
 import { MetricCard } from '../components/metrics/Sparkline';
 import { MetricGrid } from '../components/primitives/MetricGrid';
 import { CHART_COLORS } from '../engine/colors';
@@ -44,14 +45,25 @@ export default function WorkloadsView() {
   const nsFilter = selectedNamespace !== '*' ? selectedNamespace : undefined;
   const safeNs = nsFilter ? sanitizePromQL(nsFilter) : '';
 
-  const { data: deployments = [] } = useK8sListWatch<Deployment>({ apiPath: '/apis/apps/v1/deployments', namespace: nsFilter });
-  const { data: statefulsets = [] } = useK8sListWatch<StatefulSet>({ apiPath: '/apis/apps/v1/statefulsets', namespace: nsFilter });
-  const { data: daemonsets = [] } = useK8sListWatch<DaemonSet>({ apiPath: '/apis/apps/v1/daemonsets', namespace: nsFilter });
-  const { data: pods = [] } = useK8sListWatch<Pod>({ apiPath: '/api/v1/pods', namespace: nsFilter });
-  const { data: jobs = [] } = useK8sListWatch<Job>({ apiPath: '/apis/batch/v1/jobs', namespace: nsFilter });
-  const { data: cronjobs = [] } = useK8sListWatch<CronJob>({ apiPath: '/apis/batch/v1/cronjobs', namespace: nsFilter });
-  const { data: replicasets = [] } = useK8sListWatch<ReplicaSet>({ apiPath: '/apis/apps/v1/replicasets', namespace: nsFilter });
-  const { data: pdbs = [] } = useK8sListWatch<PodDisruptionBudget>({ apiPath: '/apis/policy/v1/poddisruptionbudgets', namespace: nsFilter });
+  const deploymentsQuery = useK8sListWatch<Deployment>({ apiPath: '/apis/apps/v1/deployments', namespace: nsFilter });
+  const statefulsetsQuery = useK8sListWatch<StatefulSet>({ apiPath: '/apis/apps/v1/statefulsets', namespace: nsFilter });
+  const daemonsetsQuery = useK8sListWatch<DaemonSet>({ apiPath: '/apis/apps/v1/daemonsets', namespace: nsFilter });
+  const podsQuery = useK8sListWatch<Pod>({ apiPath: '/api/v1/pods', namespace: nsFilter });
+  const jobsQuery = useK8sListWatch<Job>({ apiPath: '/apis/batch/v1/jobs', namespace: nsFilter });
+  const cronjobsQuery = useK8sListWatch<CronJob>({ apiPath: '/apis/batch/v1/cronjobs', namespace: nsFilter });
+  const replicasetsQuery = useK8sListWatch<ReplicaSet>({ apiPath: '/apis/apps/v1/replicasets', namespace: nsFilter });
+  const pdbsQuery = useK8sListWatch<PodDisruptionBudget>({ apiPath: '/apis/policy/v1/poddisruptionbudgets', namespace: nsFilter });
+
+  const deployments = deploymentsQuery.data ?? [];
+  const statefulsets = statefulsetsQuery.data ?? [];
+  const daemonsets = daemonsetsQuery.data ?? [];
+  const pods = podsQuery.data ?? [];
+  const jobs = jobsQuery.data ?? [];
+  const cronjobs = cronjobsQuery.data ?? [];
+  const replicasets = replicasetsQuery.data ?? [];
+  const pdbs = pdbsQuery.data ?? [];
+
+  const dataUpdatedAt = earliestDataUpdatedAt([deploymentsQuery, podsQuery, statefulsetsQuery, daemonsetsQuery, jobsQuery, cronjobsQuery]);
 
   // Pod status breakdown
   const podStats = React.useMemo(() => {
@@ -129,10 +141,13 @@ export default function WorkloadsView() {
             <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
               <Package className="w-6 h-6 text-blue-500" /> Workloads
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Deployments, StatefulSets, DaemonSets, Jobs, and Pods
-              {nsFilter && <span className="text-blue-400 ml-1">in {nsFilter}</span>}
-            </p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-sm text-slate-400">
+                Deployments, StatefulSets, DaemonSets, Jobs, and Pods
+                {nsFilter && <span className="text-blue-400 ml-1">in {nsFilter}</span>}
+              </p>
+              <LastUpdated timestamp={dataUpdatedAt} />
+            </div>
           </div>
         </div>
 

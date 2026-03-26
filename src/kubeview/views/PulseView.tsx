@@ -5,6 +5,7 @@ import { useUIStore } from '../store/uiStore';
 import { useFleetStore } from '../store/fleetStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
+import { LastUpdated, earliestDataUpdatedAt } from '../components/primitives/LastUpdated';
 import { ReportTab } from './pulse/ReportTab';
 import { FleetReportTab } from './pulse/FleetReportTab';
 import { AIOnboarding } from '../components/agent/AIOnboarding';
@@ -15,11 +16,22 @@ export default function PulseView() {
   const fleetMode = useFleetStore((s) => s.fleetMode);
 
   const nsFilter = selectedNamespace !== '*' ? selectedNamespace : undefined;
-  const { data: nodes = [], isLoading: nodesLoading } = useK8sListWatch({ apiPath: '/api/v1/nodes' });
-  const { data: pods = [], isLoading: podsLoading } = useK8sListWatch({ apiPath: '/api/v1/pods', namespace: nsFilter });
-  const { data: deployments = [], isLoading: deploysLoading } = useK8sListWatch({ apiPath: '/apis/apps/v1/deployments', namespace: nsFilter });
-  const { data: pvcs = [] } = useK8sListWatch({ apiPath: '/api/v1/persistentvolumeclaims', namespace: nsFilter });
-  const { data: operators = [] } = useK8sListWatch({ apiPath: '/apis/config.openshift.io/v1/clusteroperators' });
+  const nodesQuery = useK8sListWatch({ apiPath: '/api/v1/nodes' });
+  const podsQuery = useK8sListWatch({ apiPath: '/api/v1/pods', namespace: nsFilter });
+  const deploysQuery = useK8sListWatch({ apiPath: '/apis/apps/v1/deployments', namespace: nsFilter });
+  const pvcsQuery = useK8sListWatch({ apiPath: '/api/v1/persistentvolumeclaims', namespace: nsFilter });
+  const operatorsQuery = useK8sListWatch({ apiPath: '/apis/config.openshift.io/v1/clusteroperators' });
+
+  const nodes = nodesQuery.data ?? [];
+  const pods = podsQuery.data ?? [];
+  const deployments = deploysQuery.data ?? [];
+  const pvcs = pvcsQuery.data ?? [];
+  const operators = operatorsQuery.data ?? [];
+  const nodesLoading = nodesQuery.isLoading;
+  const podsLoading = podsQuery.isLoading;
+  const deploysLoading = deploysQuery.isLoading;
+
+  const dataUpdatedAt = earliestDataUpdatedAt([nodesQuery, podsQuery, deploysQuery, pvcsQuery, operatorsQuery]);
 
   const isLoading = nodesLoading || podsLoading || deploysLoading;
 
@@ -31,10 +43,13 @@ export default function PulseView() {
             <HeartPulse className="w-6 h-6 text-blue-500" />
             Cluster Pulse
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Daily briefing — control plane, capacity, workload health, and next steps
-            {selectedNamespace !== '*' && <span className="text-blue-400 ml-1">· {selectedNamespace}</span>}
-          </p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-sm text-slate-400">
+              Daily briefing — control plane, capacity, workload health, and next steps
+              {selectedNamespace !== '*' && <span className="text-blue-400 ml-1">· {selectedNamespace}</span>}
+            </p>
+            <LastUpdated timestamp={dataUpdatedAt} />
+          </div>
         </div>
 
         <AIOnboarding compact className="mb-2" />
