@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alimobrem/OpenshiftPulse/releases/tag/v5.4.0"><img src="https://img.shields.io/badge/release-v5.4.0-2563eb?style=for-the-badge" alt="Version"></a>
-  <img src="https://img.shields.io/badge/tests-1565%20passed-10b981?style=for-the-badge" alt="Tests">
+  <a href="https://github.com/alimobrem/OpenshiftPulse/releases/tag/v5.5.0"><img src="https://img.shields.io/badge/release-v5.5.0-2563eb?style=for-the-badge" alt="Version"></a>
+  <img src="https://img.shields.io/badge/tests-1606%20passed-10b981?style=for-the-badge" alt="Tests">
   <img src="https://img.shields.io/badge/health%20checks-77-f59e0b?style=for-the-badge" alt="Health Checks">
   <img src="https://img.shields.io/badge/CVEs-0-10b981?style=for-the-badge" alt="CVEs">
   <img src="https://img.shields.io/badge/license-MIT-6366f1?style=for-the-badge" alt="License">
@@ -88,6 +88,7 @@ npm run dev    # http://localhost:9000
 | **AI Agent** | Claude-powered SRE diagnostics and security scanning. 68 tools, 10 runbooks, dynamic UI rendering (tables, charts, cards), dashboard generation, prompt caching, dynamic tool selection, cluster context injection. [pulse-agent](https://github.com/alimobrem/pulse-agent) |
 | **Native AI Layer** | Unified intelligence layer across all surfaces: smart prompts adapt to cluster state, AI query mode in Command Palette (`?`), violet-branded AI surfaces, auto-expanding InlineAgent for unhealthy resources, "Ask AI" buttons on PulseView attention items, first-run onboarding, dock notification dot for background insights |
 | **Ambient AI** | AI insights on every resource detail view, inline "Ask about this" agent, natural language table filters, dock agent panel, proactive background notifications, fleet-wide AI analysis |
+| **Error Intelligence** | Structured PulseError classification (7 categories), actionable suggestions on every error toast, "Ask AI" button for agent-assisted diagnosis, Admin > Errors tab for ops visibility, error tracking store with persistence |
 | **Multi-Cluster Fleet** | Fleet dashboard with health scores, cluster switcher (`Cmd+Shift+C`), cross-cluster search, compliance matrix, certificate heat map, RBAC comparison, config drift detection. Auto-detects ACM/MCE managed clusters. |
 | **Cluster Health** | 77 automated checks (31 cluster + 46 domain) with YAML fix examples and "Why it matters" explanations |
 | **Daily Briefing** | Risk score ring, control plane status, certificate expiry, attention items with remediation steps |
@@ -144,7 +145,7 @@ npm run dev    # http://localhost:9000
 | **GitOps** | ArgoCD Applications, sync history, drift, Rollouts (canary/blue-green), Projects |
 | **Fleet** | Multi-cluster dashboard, cross-cluster search, comparison, compliance, cert heat map |
 | **Agent** | AI-powered SRE diagnostics and security scanning with 35 cluster tools |
-| **Admin** | 10 tabs: Overview, Readiness, Operators, Config, Updates, Snapshots, Quotas, Certificates, GitOps, Timeline |
+| **Admin** | 11 tabs: Overview, Readiness, Operators, Config, Updates, Snapshots, Quotas, Certificates, GitOps, Errors, Timeline |
 
 ---
 
@@ -157,7 +158,7 @@ npm run dev    # http://localhost:9000
 | **State** | Zustand + TanStack Query | Client + server state separation |
 | **Real-time** | WebSocket watches | Instant updates, 60s polling fallback |
 | **Styling** | Tailwind CSS 3.4 | Utility-first, dark-mode only |
-| **Testing** | Vitest + jsdom | 1565 tests in ~4s |
+| **Testing** | Vitest + jsdom | 1606 tests in ~4s |
 | **Charts** | Pure SVG sparklines | Zero chart library dependency |
 | **Security** | Red Hat UBI images | 0 CVEs, all images from Red Hat registries |
 
@@ -259,7 +260,7 @@ npm install          # Install dependencies
 cp .env.example .env # Configure cluster URLs (optional)
 oc proxy --port=8001 & # Start API proxy
 npm run dev          # Dev server on port 9000
-npm test             # 1565 tests in ~4s
+npm test             # 1606 tests in ~4s
 npm run build        # Production build (~1s)
 npm run type-check   # TypeScript checking
 ```
@@ -280,7 +281,7 @@ src/kubeview/
 ├── engine/              # Query, discovery, watch, snapshot, timeline
 │   └── types/           # 50+ typed K8s interfaces
 ├── views/               # 17 views + admin tabs (incl. AgentView)
-│   └── admin/           # Overview, Operators, Updates, Snapshots, Quotas, Certificates
+│   └── admin/           # Overview, Operators, Updates, Snapshots, Quotas, Certificates, Errors
 ├── components/          # Panel, Card, InfoCard, MetricGrid, YamlEditor, Terminal, Dock
 │   └── agent/           # MessageBubble, InlineAgent, AmbientInsight, ConfirmationCard, NLFilterBar, DockAgentPanel
 ├── hooks/               # useK8sListWatch, useCanI, useIncidentTimeline
@@ -308,7 +309,7 @@ Browser --> OAuth Proxy (8443/TLS) --> nginx (8080) --> K8s API / Prometheus / A
 ---
 
 <p align="center">
-  <strong>1565 tests</strong> &bull; <strong>77 health checks</strong> &bull; <strong>~1s builds</strong> &bull; <strong>0 CVEs</strong> &bull; <strong>17 views</strong> &bull; <strong>68 AI tools</strong> &bull; <strong>500+ operators</strong>
+  <strong>1606 tests</strong> &bull; <strong>77 health checks</strong> &bull; <strong>~1s builds</strong> &bull; <strong>0 CVEs</strong> &bull; <strong>17 views</strong> &bull; <strong>68 AI tools</strong> &bull; <strong>500+ operators</strong>
 </p>
 
 <p align="center">
