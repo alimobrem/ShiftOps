@@ -45,4 +45,22 @@ describe('YamlEditorView', () => {
   it('invalidates cache after successful save', () => {
     expect(source).toContain("invalidateQueries");
   });
+
+  it('uses useUnsavedChanges hook for navigation warning', () => {
+    expect(source).toContain('useUnsavedChanges');
+    expect(source).toContain('useUnsavedChanges(hasChanges)');
+  });
+
+  it('renders ConfirmDialog for unsaved changes warning', () => {
+    expect(source).toContain('ConfirmDialog');
+    expect(source).toContain('showConfirm');
+    expect(source).toContain('cancelNavigation');
+    expect(source).toContain('confirmNavigation');
+  });
+
+  it('shows warning variant ConfirmDialog with discard label', () => {
+    expect(source).toContain('variant="warning"');
+    expect(source).toContain('confirmLabel="Discard changes"');
+    expect(source).toContain('Unsaved changes');
+  });
 });

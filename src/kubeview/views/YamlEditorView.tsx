@@ -13,6 +13,8 @@ import { showErrorToast } from '../engine/errorToast';
 import { useArgoSyncInfo } from '../hooks/useArgoCD';
 import { useArgoCDStore } from '../store/argoCDStore';
 import { GitOpsActionDialog } from '../components/GitOpsActionDialog';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
+import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 
 interface YamlEditorViewProps {
   gvrKey: string;
@@ -44,6 +46,8 @@ export default function YamlEditorView({ gvrKey, namespace, name }: YamlEditorVi
   const [showDryRun, setShowDryRun] = useState(false);
   const [showGitOpsDialog, setShowGitOpsDialog] = useState(false);
   const hasChanges = currentYaml !== originalYaml;
+
+  const { showConfirm, confirmNavigation, cancelNavigation } = useUnsavedChanges(hasChanges);
 
   // ArgoCD awareness
   const argoCDAvailable = useArgoCDStore((s) => s.available);
@@ -199,6 +203,15 @@ export default function YamlEditorView({ gvrKey, namespace, name }: YamlEditorVi
           onClose={() => setShowGitOpsDialog(false)}
         />
       )}
+      <ConfirmDialog
+        open={showConfirm}
+        onClose={cancelNavigation}
+        onConfirm={confirmNavigation}
+        title="Unsaved changes"
+        description="You have unsaved changes in the YAML editor. If you leave now, your changes will be lost."
+        confirmLabel="Discard changes"
+        variant="warning"
+      />
     </div>
   );
 }

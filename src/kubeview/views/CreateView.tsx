@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft, Plus, Package, FileText,
@@ -13,6 +13,8 @@ import { DryRunPanel } from '../components/yaml/DryRunPanel';
 import { resolveSnippet, getSnippetSuggestions, type Snippet } from '../components/yaml/SnippetEngine';
 import { K8S_BASE as BASE } from '../engine/gvr';
 import { showErrorToast } from '../engine/errorToast';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
+import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 import { InstalledTab } from './create/InstalledTab';
 import { QuickDeployTab } from './create/QuickDeployTab';
 import { HelmTab } from './create/HelmTab';
@@ -90,6 +92,10 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
   const [error, setError] = useState<string | null>(null);
   const [showDryRun, setShowDryRun] = useState(false);
 
+  const initialYamlRef = useRef('');
+  const hasYamlChanges = editMode && yaml !== '' && yaml !== initialYamlRef.current;
+  const { showConfirm, confirmNavigation, cancelNavigation } = useUnsavedChanges(hasYamlChanges);
+
   const gvrParts = activeGvr.split('/');
   const resourcePlural = gvrParts[gvrParts.length - 1];
   const resourceType = registry?.get(activeGvr) ?? (activeGvr.split('/').length === 2 ? registry?.get(`core/${activeGvr}`) : undefined);
@@ -103,7 +109,9 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
       if (snips.length > 0) {
         const resolved = resolveSnippet(snips[0]);
         const ns = selectedNamespace !== '*' ? selectedNamespace : 'default';
-        setYaml(resolved.replace(/namespace: default/, `namespace: ${ns}`));
+        const content = resolved.replace(/namespace: default/, `namespace: ${ns}`);
+        setYaml(content);
+        initialYamlRef.current = content;
       } else {
         selectBlankYaml(gvrKey);
       }
@@ -115,7 +123,9 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
   function selectTemplate(snippet: Snippet, gvr: string) {
     const resolved = resolveSnippet(snippet);
     const ns = selectedNamespace !== '*' ? selectedNamespace : 'default';
-    setYaml(resolved.replace(/namespace: default/, `namespace: ${ns}`));
+    const content = resolved.replace(/namespace: default/, `namespace: ${ns}`);
+    setYaml(content);
+    initialYamlRef.current = content;
     setActiveGvr(gvr);
     setEditMode(true);
     setError(null);
@@ -146,14 +156,16 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
       } catch (err) { console.warn('Failed to fetch CRD schema:', err); }
     }
 
-    setYaml([
+    const content = [
       `apiVersion: ${apiVersion}`,
       `kind: ${kindName}`,
       'metadata:',
       `  name: my-${kindName.toLowerCase()}`,
       rt?.namespaced !== false ? `  namespace: ${ns}` : null,
       schemaYaml ? `spec:\n${schemaYaml}` : 'spec: {}',
-    ].filter(Boolean).join('\n'));
+    ].filter(Boolean).join('\n');
+    setYaml(content);
+    initialYamlRef.current = content;
     setActiveGvr(gvr);
     setEditMode(true);
     setError(null);
@@ -236,6 +248,15 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
           const dryRunPath = buildApiPath(activeGvr, ns);
           return <DryRunPanel yaml={yaml} apiPath={dryRunPath} method="POST" onClose={() => setShowDryRun(false)} />;
         })()}
+        <ConfirmDialog
+          open={showConfirm}
+          onClose={cancelNavigation}
+          onConfirm={confirmNavigation}
+          title="Unsaved changes"
+          description="You have unsaved changes in the YAML editor. If you leave now, your changes will be lost."
+          confirmLabel="Discard changes"
+          variant="warning"
+        />
       </div>
     );
   }
@@ -286,7 +307,7 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
         )}
         {activeTab === 'yaml' && (
           <ImportYamlTab
-            onImport={(text) => { setYaml(text); setActiveGvr('v1/pods'); setEditMode(true); }}
+            onImport={(text) => { setYaml(text); initialYamlRef.current = text; setActiveGvr('v1/pods'); setEditMode(true); }}
           />
         )}
       </div>
