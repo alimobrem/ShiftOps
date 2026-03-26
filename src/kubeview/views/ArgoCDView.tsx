@@ -232,7 +232,7 @@ export default function ArgoCDView() {
             {activeTab === 'projects' && (
               <ProjectsTab />
             )}
-            {activeTab === 'rollouts' && <RolloutsTab />}
+            {activeTab === 'rollouts' && <RolloutsTab rollouts={useArgoCDStore.getState().rollouts || []} go={go} />}
           </>
         )}
       </div>
