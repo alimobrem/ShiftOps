@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Box,
   Bug,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sGet, k8sList, k8sDelete, k8sPatch, k8sCreate, k8sLogs } from '../engine/query';
@@ -386,14 +387,38 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-3 mb-2">
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-1.5 text-sm mb-1" aria-label="Breadcrumb">
               <button
                 onClick={() => navigate(-1)}
                 className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200"
                 title="Go back"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4" />
               </button>
+              <button
+                onClick={() => go(`/r/${gvrUrl}`, resourcePlural)}
+                className="text-blue-400 hover:text-blue-300 capitalize"
+                data-testid="breadcrumb-kind"
+              >
+                {resourcePlural}
+              </button>
+              {namespace && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                  <button
+                    onClick={() => go(`/r/${gvrUrl}?ns=${namespace}`, `${resourcePlural} (${namespace})`)}
+                    className="text-blue-400 hover:text-blue-300"
+                    data-testid="breadcrumb-namespace"
+                  >
+                    {namespace}
+                  </button>
+                </>
+              )}
+              <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+              <span className="text-slate-400" data-testid="breadcrumb-name">{name}</span>
+            </nav>
+            <div className="flex items-center gap-3 mb-2">
               <h1 className="text-2xl font-bold text-slate-100">{resource.metadata.name}</h1>
               <button
                 onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(resource.metadata.name); addToast({ type: 'success', title: 'Name copied' }); }}

@@ -417,4 +417,91 @@ describe('DetailView', () => {
       expect(screen.getAllByText('nginx:latest').length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  describe('breadcrumb navigation', () => {
+    it('renders breadcrumb with kind, namespace, and name for namespaced resource', async () => {
+      mockK8sGet.mockResolvedValue(makeDeployment());
+
+      renderDetailView({ gvrKey: 'apps/v1/deployments', namespace: 'default', name: 'my-deployment' });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('breadcrumb-kind')).toBeDefined();
+      });
+
+      // Kind segment links to list view
+      const kindLink = screen.getByTestId('breadcrumb-kind');
+      expect(kindLink.textContent).toBe('deployments');
+
+      // Namespace segment present
+      const nsLink = screen.getByTestId('breadcrumb-namespace');
+      expect(nsLink.textContent).toBe('default');
+
+      // Name segment is plain text
+      const nameSpan = screen.getByTestId('breadcrumb-name');
+      expect(nameSpan.textContent).toBe('my-deployment');
+      expect(nameSpan.tagName).toBe('SPAN');
+    });
+
+    it('renders breadcrumb without namespace segment for cluster-scoped resource', async () => {
+      const node = {
+        apiVersion: 'v1',
+        kind: 'Node',
+        metadata: {
+          name: 'worker-1',
+          uid: 'node-uid-1',
+          creationTimestamp: '2025-01-01T00:00:00Z',
+          resourceVersion: '55555',
+          labels: { 'node-role.kubernetes.io/worker': '' },
+          annotations: {},
+        },
+        spec: {},
+        status: {
+          conditions: [{ type: 'Ready', status: 'True', lastTransitionTime: '2025-01-01T00:00:00Z' }],
+          nodeInfo: { kubeletVersion: 'v1.30.0', operatingSystem: 'linux', architecture: 'amd64', containerRuntimeVersion: 'cri-o://1.30.0' },
+        },
+      };
+      mockK8sGet.mockResolvedValue(node);
+
+      renderDetailView({ gvrKey: 'v1/nodes', name: 'worker-1' });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('breadcrumb-kind')).toBeDefined();
+      });
+
+      // Kind segment present
+      expect(screen.getByTestId('breadcrumb-kind').textContent).toBe('nodes');
+
+      // No namespace segment
+      expect(screen.queryByTestId('breadcrumb-namespace')).toBeNull();
+
+      // Name segment present
+      expect(screen.getByTestId('breadcrumb-name').textContent).toBe('worker-1');
+    });
+
+    it('kind breadcrumb navigates to list view on click', async () => {
+      mockK8sGet.mockResolvedValue(makePod());
+
+      renderDetailView({ gvrKey: 'v1/pods', namespace: 'default', name: 'my-pod' });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('breadcrumb-kind')).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByTestId('breadcrumb-kind'));
+      expect(addTabMock).toHaveBeenCalledWith(expect.objectContaining({ path: '/r/v1~pods' }));
+    });
+
+    it('namespace breadcrumb navigates to namespace-filtered list on click', async () => {
+      mockK8sGet.mockResolvedValue(makePod());
+
+      renderDetailView({ gvrKey: 'v1/pods', namespace: 'default', name: 'my-pod' });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('breadcrumb-namespace')).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByTestId('breadcrumb-namespace'));
+      expect(addTabMock).toHaveBeenCalledWith(expect.objectContaining({ path: '/r/v1~pods?ns=default' }));
+    });
+  });
 });
