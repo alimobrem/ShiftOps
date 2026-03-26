@@ -9,6 +9,7 @@ import { k8sGet, k8sPatch } from '../engine/query';
 import { useUIStore } from '../store/uiStore';
 import { ConfirmDialog } from './feedback/ConfirmDialog';
 import { Card } from './primitives/Card';
+import { showErrorToast } from '../engine/errorToast';
 
 const CONFIG_BASE = '/apis/config.openshift.io/v1';
 // CRDs use merge-patch, not strategic-merge-patch
@@ -135,7 +136,7 @@ function OAuthEditor({ data, apiPath }: { data: any; apiPath: string }) {
       addToast({ type: 'success', title: 'Identity provider removed', detail: name });
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'oauth'] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update OAuth', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update OAuth');
     }
     setSaving(false);
   };
@@ -169,7 +170,7 @@ function OAuthEditor({ data, apiPath }: { data: any; apiPath: string }) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'oauth'] });
       resetForm();
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to add provider', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to add provider');
     }
     setSaving(false);
   };
@@ -280,7 +281,7 @@ function ProxyEditor({ data, apiPath }: { data: any; apiPath: string }) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'proxy'] });
       setDirty(false);
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update proxy', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update proxy');
     }
     setSaving(false);
   };
@@ -325,7 +326,7 @@ function ImageEditor({ data, apiPath }: { data: any; apiPath: string }) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'image'] });
       setNewReg('');
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update image config', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update image config');
     }
     setSaving(false);
   };
@@ -340,7 +341,7 @@ function ImageEditor({ data, apiPath }: { data: any; apiPath: string }) {
       addToast({ type: 'success', title: `Registry removed from ${type} list` });
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'image'] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update image config', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update image config');
     }
     setSaving(false);
   };
@@ -418,7 +419,7 @@ function IngressEditor({ data, apiPath }: { data: any; apiPath: string }) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'ingress'] });
       setDirty(false);
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update ingress', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update ingress');
     }
     setSaving(false);
   };
@@ -466,7 +467,7 @@ function SchedulerEditor({ data, apiPath }: { data: any; apiPath: string }) {
       addToast({ type: 'success', title: 'Scheduler profile updated', detail: selectedProfile });
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'scheduler'] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update scheduler', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update scheduler');
     }
     setSaving(false);
   };
@@ -516,7 +517,7 @@ function APIServerEditor({ data, apiPath }: { data: any; apiPath: string }) {
       addToast({ type: 'success', title: 'TLS profile updated', detail: selectedTls });
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'apiserver'] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update API server', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update API server');
     }
     setSaving(false);
   };
@@ -582,7 +583,7 @@ function DNSEditor({ data, apiPath }: { data: any; apiPath: string }) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'dns'] });
       setDirty(false);
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update DNS', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update DNS');
     }
     setSaving(false);
   };
@@ -622,7 +623,7 @@ function NetworkEditor({ data, apiPath }: { data: any; apiPath: string }) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'network'] });
       setDirty(false);
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update network', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update network');
     }
     setSaving(false);
   };
@@ -689,7 +690,7 @@ function FeatureGateEditor({ data, apiPath }: { data: any; apiPath: string }) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'featuregate'] });
       setDirty(false);
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update feature gate', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update feature gate');
     }
     setSaving(false);
   };
@@ -785,7 +786,7 @@ function ConsoleEditor({ data, apiPath }: { data: any; apiPath: string }) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'console'] });
       setDirty(false);
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to update console', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to update console');
     }
     setSaving(false);
   };

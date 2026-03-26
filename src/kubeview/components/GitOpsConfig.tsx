@@ -13,6 +13,7 @@ import { useNavigateTab } from '../hooks/useNavigateTab';
 import type { GitOpsConfig as GitOpsConfigType } from '../engine/gitProvider';
 import { Card } from './primitives/Card';
 import { Panel } from './primitives/Panel';
+import { showErrorToast } from '../engine/errorToast';
 
 export function GitOpsConfig() {
   const { config, isLoading, isConfigured, save, testConnection } = useGitOpsConfig();
@@ -63,7 +64,7 @@ export function GitOpsConfig() {
       await save(form);
       addToast({ type: 'success', title: 'GitOps config saved' });
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to save', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to save');
     }
     setSaving(false);
   };

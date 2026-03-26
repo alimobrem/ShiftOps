@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { X, CheckCircle2, XCircle, AlertTriangle, Undo2 } from 'lucide-react';
+import { X, CheckCircle2, XCircle, AlertTriangle, Undo2, ShieldX, WifiOff, ServerCrash, Bot } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
+import { useAgentStore } from '../../store/agentStore';
 import { cn } from '@/lib/utils';
 
 interface ToastProps {
@@ -13,10 +14,12 @@ interface ToastProps {
     label: string;
     onClick: () => void;
   };
+  category?: string;
+  suggestions?: string[];
   onClose: () => void;
 }
 
-function Toast({ id, type, title, detail, duration, action, onClose }: ToastProps) {
+function Toast({ id, type, title, detail, duration, action, category, suggestions, onClose }: ToastProps) {
   const [progress, setProgress] = useState(100);
   const [isExiting, setIsExiting] = useState(false);
 
@@ -47,12 +50,28 @@ function Toast({ id, type, title, detail, duration, action, onClose }: ToastProp
     navigator.clipboard.writeText(errorText);
   };
 
+  const errorIcon = category === 'permission'
+    ? <ShieldX className="h-5 w-5 text-red-500" />
+    : category === 'network'
+    ? <WifiOff className="h-5 w-5 text-red-500" />
+    : category === 'server'
+    ? <ServerCrash className="h-5 w-5 text-red-500" />
+    : <XCircle className="h-5 w-5 text-red-500" />;
+
   const icon = {
     success: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
-    error: <XCircle className="h-5 w-5 text-red-500" />,
+    error: errorIcon,
     warning: <AlertTriangle className="h-5 w-5 text-amber-500" />,
     undo: <Undo2 className="h-5 w-5 text-blue-500" />,
   }[type];
+
+  const handleAskAI = () => {
+    useUIStore.getState().openDock('agent');
+    useAgentStore.getState().connectAndSend(
+      `I got this error: "${title}". ${detail || ''}. What does this mean and how can I fix it?`
+    );
+    handleClose();
+  };
 
   const borderColor = {
     success: 'border-emerald-500',
@@ -98,6 +117,17 @@ function Toast({ id, type, title, detail, duration, action, onClose }: ToastProp
         </button>
       </div>
 
+      {/* Suggestions */}
+      {suggestions && suggestions.length > 0 && (
+        <ul className="pl-8 space-y-0.5">
+          {suggestions.slice(0, 3).map((s, i) => (
+            <li key={i} className="text-xs text-slate-400">
+              &bull; {s}
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* Action buttons */}
       {(type === 'error' || action) && (
         <div className="flex gap-2 pl-8">
@@ -107,6 +137,15 @@ function Toast({ id, type, title, detail, duration, action, onClose }: ToastProp
               className="rounded px-3 py-1 text-sm text-slate-300 transition-colors hover:bg-slate-700 hover:text-slate-100"
             >
               Copy Error
+            </button>
+          )}
+          {type === 'error' && (
+            <button
+              onClick={handleAskAI}
+              className="flex items-center gap-1 rounded px-3 py-1 text-sm text-violet-300 transition-colors hover:bg-violet-900/40 hover:text-violet-200"
+            >
+              <Bot className="h-3.5 w-3.5" />
+              Ask AI
             </button>
           )}
           {action && (
@@ -145,6 +184,8 @@ export function ToastContainer() {
             detail={toast.detail}
             duration={toast.duration}
             action={toast.action}
+            category={toast.category}
+            suggestions={toast.suggestions}
             onClose={() => removeToast(toast.id)}
           />
         </div>

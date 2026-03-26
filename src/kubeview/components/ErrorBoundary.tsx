@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, RefreshCw, Home } from 'lucide-react';
+import { AlertCircle, RefreshCw, Home, Bot } from 'lucide-react';
 
 // Detect if CSS failed to load by checking if Tailwind classes work
 function checkCssLoaded(): boolean {
@@ -95,6 +95,21 @@ export class ErrorBoundary extends React.Component<Props, State> {
               >
                 <RefreshCw className="w-4 h-4" />
                 Try Again
+              </button>
+              <button
+                onClick={() => {
+                  const { useUIStore } = require('../store/uiStore');
+                  const { useAgentStore } = require('../store/agentStore');
+                  useUIStore.getState().openDock('agent');
+                  useAgentStore.getState().connectAndSend(
+                    `The UI crashed with this error: "${this.state.error?.message}". What could cause this and how do I fix it?`
+                  );
+                  this.setState({ hasError: false, error: null });
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-violet-700 hover:bg-violet-600 text-white rounded-md transition-colors"
+              >
+                <Bot className="w-4 h-4" />
+                Ask AI
               </button>
               <button
                 onClick={() => { window.location.href = '/welcome'; }}

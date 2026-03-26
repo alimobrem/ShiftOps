@@ -20,6 +20,9 @@ export interface ToastData {
     label: string;
     onClick: () => void;
   };
+  errorId?: string;
+  category?: string;
+  suggestions?: string[];
 }
 
 export type DockPanel = 'logs' | 'terminal' | 'events' | 'agent' | null;

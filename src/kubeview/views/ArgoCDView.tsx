@@ -8,6 +8,7 @@ import { k8sPatch } from '../engine/query';
 import { useUIStore } from '../store/uiStore';
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 import { Card } from '../components/primitives/Card';
+import { showErrorToast } from '../engine/errorToast';
 import { MetricGrid } from '../components/primitives/MetricGrid';
 import { useGitOpsConfig } from '../hooks/useGitOpsConfig';
 import { ApplicationsTab } from './argocd/ApplicationsTab';
@@ -50,7 +51,7 @@ export default function ArgoCDView() {
       addToast({ type: 'success', title: 'Sync triggered', detail: `Application ${appName} is syncing` });
       setTimeout(() => refresh(), 3000);
     } catch (err) {
-      addToast({ type: 'error', title: 'Sync failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Sync failed');
     } finally {
       setSyncing(null);
     }

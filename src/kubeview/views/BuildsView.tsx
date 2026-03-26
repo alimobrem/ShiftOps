@@ -15,6 +15,7 @@ import { CHART_COLORS } from '../engine/colors';
 import { formatDuration, timeAgo } from '../engine/dateUtils';
 import type { Build, BuildConfig, ImageStream } from '../engine/types';
 import { Card } from '../components/primitives/Card';
+import { showErrorToast } from '../engine/errorToast';
 import { MetricGrid } from '../components/primitives/MetricGrid';
 import { ScrollText } from 'lucide-react';
 
@@ -56,7 +57,7 @@ export default function BuildsView() {
       );
       addToast({ type: 'success', title: `Build ${name} cancelled` });
     } catch (e) {
-      addToast({ type: 'error', title: 'Cancel failed', detail: e instanceof Error ? e.message : String(e) });
+      showErrorToast(e, 'Cancel failed');
     }
   }
 
@@ -135,7 +136,7 @@ export default function BuildsView() {
       });
       addToast({ type: 'success', title: `Build triggered for ${name}` });
     } catch (err) {
-      addToast({ type: 'error', title: 'Build trigger failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Build trigger failed');
     }
   };
 

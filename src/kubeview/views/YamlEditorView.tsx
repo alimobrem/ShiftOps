@@ -9,6 +9,7 @@ import YamlEditor from '../components/yaml/YamlEditor';
 import { DryRunPanel } from '../components/yaml/DryRunPanel';
 import { resourceToYaml } from '../engine/yamlUtils';
 import { ArrowLeft, Save, RotateCcw, AlertCircle, ShieldCheck, GitBranch } from 'lucide-react';
+import { showErrorToast } from '../engine/errorToast';
 import { useArgoSyncInfo } from '../hooks/useArgoCD';
 import { useArgoCDStore } from '../store/argoCDStore';
 import { GitOpsActionDialog } from '../components/GitOpsActionDialog';
@@ -82,7 +83,7 @@ export default function YamlEditorView({ gvrKey, namespace, name }: YamlEditorVi
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setSaveError(msg);
-      addToast({ type: 'error', title: 'Save failed', detail: msg });
+      showErrorToast(err, 'Save failed');
     } finally {
       setSaving(false);
     }

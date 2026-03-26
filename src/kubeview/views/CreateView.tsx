@@ -12,6 +12,7 @@ import YamlEditor from '../components/yaml/YamlEditor';
 import { DryRunPanel } from '../components/yaml/DryRunPanel';
 import { resolveSnippet, getSnippetSuggestions, type Snippet } from '../components/yaml/SnippetEngine';
 import { K8S_BASE as BASE } from '../engine/gvr';
+import { showErrorToast } from '../engine/errorToast';
 import { InstalledTab } from './create/InstalledTab';
 import { QuickDeployTab } from './create/QuickDeployTab';
 import { HelmTab } from './create/HelmTab';
@@ -190,7 +191,7 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
-      addToast({ type: 'error', title: 'Failed to create resource', detail: msg });
+      showErrorToast(err, 'Failed to create resource');
     } finally {
       setCreating(false);
     }

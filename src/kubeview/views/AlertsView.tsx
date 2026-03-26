@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 import { MetricCard } from '../components/metrics/Sparkline';
 import { CHART_COLORS } from '../engine/colors';
 import { MetricGrid } from '../components/primitives/MetricGrid';
+import { showErrorToast } from '../engine/errorToast';
 
 interface PrometheusAlert {
   labels: Record<string, string>;
@@ -343,7 +344,7 @@ export default function AlertsView() {
       queryClient.invalidateQueries({ queryKey: ['alerts', 'silences'] });
       resetSilenceForm();
     } catch (err: any) {
-      addToast({ type: 'error', title: 'Failed to create silence', detail: err.message });
+      showErrorToast(err, 'Failed to create silence');
     } finally {
       setIsSubmitting(false);
     }
@@ -363,7 +364,7 @@ export default function AlertsView() {
       addToast({ type: 'success', title: 'Silence expired', detail: `Silence ${id} has been removed` });
       queryClient.invalidateQueries({ queryKey: ['alerts', 'silences'] });
     } catch (err: any) {
-      addToast({ type: 'error', title: 'Failed to expire silence', detail: err.message });
+      showErrorToast(err, 'Failed to expire silence');
     }
     setConfirmExpire(null);
   };

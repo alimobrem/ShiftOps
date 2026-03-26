@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../../components/feedback/ConfirmDialog';
 import { Panel } from '../../components/primitives/Panel';
 import { Card } from '../../components/primitives/Card';
 import { type ClusterSnapshot, type DiffRow, loadSnapshots, saveSnapshots, captureSnapshot, compareSnapshots } from '../../engine/snapshot';
+import { showErrorToast } from '../../engine/errorToast';
 
 export function SnapshotsTab() {
   const addToast = useUIStore((s) => s.addToast);
@@ -35,7 +36,7 @@ export function SnapshotsTab() {
       saveSnapshots(updated);
       addToast({ type: 'success', title: 'Snapshot captured', detail: `v${snap.clusterVersion} \u00b7 ${snap.nodes.count} nodes \u00b7 ${snap.crds.length} CRDs` });
     } catch (err) {
-      addToast({ type: 'error', title: 'Capture failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Capture failed');
     }
     setCapturing(false);
   };

@@ -11,6 +11,7 @@ import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 import { Card } from '../components/primitives/Card';
+import { showErrorToast } from '../engine/errorToast';
 
 interface PackageManifest {
   metadata: { name: string; namespace?: string };
@@ -172,7 +173,7 @@ export default function OperatorCatalogView() {
       setInstallingOp({ name: pkg.metadata.name, ns, displayName });
       setSelectedOp(null);
     } catch (err) {
-      addToast({ type: 'error', title: 'Install failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Install failed');
     }
     setInstalling(false);
   };
@@ -209,7 +210,7 @@ export default function OperatorCatalogView() {
       queryClient.invalidateQueries({ queryKey: ['operator-sub', selectedOp.metadata.name] });
       setSelectedOp(null);
     } catch (err) {
-      addToast({ type: 'error', title: 'Uninstall failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Uninstall failed');
     }
 
     setUninstalling(false);

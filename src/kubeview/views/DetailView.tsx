@@ -39,6 +39,7 @@ import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 import DataEditor from '../components/DataEditor';
 import DeployProgress from '../components/DeployProgress';
 import { toggleFavorite, isFavorite } from '../engine/favorites';
+import { showErrorToast } from '../engine/errorToast';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { StatusBadge } from '../components/primitives/StatusBadge';
 import { ActionMenu, type ActionMenuItem } from '../components/primitives/ActionMenu';
@@ -182,11 +183,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
       // Show delete progress instead of navigating away
       setShowDeleteProgress(true);
     } catch (err) {
-      addToast({
-        type: 'error',
-        title: 'Delete failed',
-        detail: err instanceof Error ? err.message : 'Unknown error',
-      });
+      showErrorToast(err, 'Delete failed');
     } finally {
       setDeleting(false);
     }
@@ -273,7 +270,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
         queryClient.invalidateQueries({ queryKey: ['detail', apiPath] });
       }
     } catch (err) {
-      addToast({ type: 'error', title: 'Debug failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Debug failed');
     } finally {
       setActionLoading(null);
     }
@@ -290,7 +287,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
       queryClient.invalidateQueries({ queryKey: ['detail', apiPath] });
       queryClient.invalidateQueries({ queryKey: ['k8s', 'list', listApiPath] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Scale failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Scale failed');
     } finally {
       setActionLoading(null);
     }
@@ -307,7 +304,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
       queryClient.invalidateQueries({ queryKey: ['detail', apiPath] });
       queryClient.invalidateQueries({ queryKey: ['k8s', 'list', listApiPath] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Restart failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Restart failed');
     } finally {
       setActionLoading(null);
     }
@@ -821,7 +818,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
                       addToast({ type: 'success', title: `Label ${k}=${v} added` });
                       queryClient.invalidateQueries({ queryKey: ['detail', apiPath] });
                     } catch (err) {
-                      addToast({ type: 'error', title: 'Failed to add label', detail: err instanceof Error ? err.message : '' });
+                      showErrorToast(err, 'Failed to add label');
                     } finally {
                       setActionLoading(null);
                     }

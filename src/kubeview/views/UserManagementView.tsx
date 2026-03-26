@@ -14,6 +14,7 @@ import { useUIStore } from '../store/uiStore';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { Card } from '../components/primitives/Card';
 import { MetricGrid } from '../components/primitives/MetricGrid';
+import { showErrorToast } from '../engine/errorToast';
 
 export default function UserManagementView() {
   const go = useNavigateTab();
@@ -451,7 +452,7 @@ function IdentityAudit({ users, groups, clusterRoleBindings, oauthConfig, access
         queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
       }
     } catch (err: any) {
-      addToast({ type: 'error', title: 'Action failed', detail: err.message });
+      showErrorToast(err, 'Action failed');
     } finally {
       setActionLoading(false);
       setConfirmAction(null);

@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Settings, Puzzle, Shield, Database, GitBranch,
-  ArrowUpCircle, Clock, Loader2, GitCompare,
+  ArrowUpCircle, Clock, Loader2, GitCompare, AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sList, k8sGet } from '../engine/query';
@@ -24,6 +24,8 @@ import { UpdatesTab } from './admin/UpdatesTab';
 import { SnapshotsTab } from './admin/SnapshotsTab';
 import { loadSnapshots } from '../engine/snapshot';
 import { GitOpsConfig } from '../components/GitOpsConfig';
+import { ErrorsTab } from './admin/ErrorsTab';
+import { useErrorStore } from '../store/errorStore';
 
 /** OpenShift Infrastructure resource (config.openshift.io/v1) */
 interface Infrastructure extends K8sResource {
@@ -73,7 +75,7 @@ interface AvailableUpdate {
   risks?: Array<{ name?: string; message?: string }>;
 }
 
-type Tab = 'overview' | 'readiness' | 'operators' | 'config' | 'updates' | 'snapshots' | 'quotas' | 'certificates' | 'gitops' | 'timeline';
+type Tab = 'overview' | 'readiness' | 'operators' | 'config' | 'updates' | 'snapshots' | 'quotas' | 'certificates' | 'gitops' | 'errors' | 'timeline';
 
 // --- Main component ---
 
@@ -88,6 +90,7 @@ export default function AdminView() {
     window.history.replaceState(null, '', url.toString());
   };
   const addToast = useUIStore((s) => s.addToast);
+  const errorCount = useErrorStore((s) => s.getUnresolvedCount());
 
   // --- Data fetching ---
 
@@ -381,6 +384,7 @@ export default function AdminView() {
     { id: 'quotas', label: `Quotas (${quotas.length})`, icon: <Shield className="w-3.5 h-3.5" /> },
     { id: 'certificates', label: 'Certificates', icon: <Shield className="w-3.5 h-3.5" /> },
     { id: 'gitops', label: 'GitOps', icon: <GitBranch className="w-3.5 h-3.5" /> },
+    { id: 'errors', label: `Errors${errorCount > 0 ? ` (${errorCount})` : ''}`, icon: <AlertCircle className="w-3.5 h-3.5" /> },
     { id: 'timeline', label: 'Timeline', icon: <Clock className="w-3.5 h-3.5" /> },
   ];
 
@@ -483,6 +487,9 @@ export default function AdminView() {
 
         {/* ===== GITOPS ===== */}
         {activeTab === 'gitops' && <GitOpsConfig />}
+
+        {/* ===== ERRORS ===== */}
+        {activeTab === 'errors' && <ErrorsTab />}
 
         {/* ===== TIMELINE ===== */}
         {activeTab === 'timeline' && (

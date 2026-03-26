@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog';
 import { Panel } from '../../components/primitives/Panel';
 import { SnapshotsTab } from './SnapshotsTab';
+import { showErrorToast } from '../../engine/errorToast';
 
 /** PDB resource */
 interface PodDisruptionBudget extends K8sResource {
@@ -78,7 +79,7 @@ export function UpdatesTab({
           addToast({ type: 'success', title: 'Cluster update started', detail: `Updating to ${version}` });
           queryClient.invalidateQueries({ queryKey: ['admin', 'clusterversion'] });
         } catch (err) {
-          addToast({ type: 'error', title: 'Update failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+          showErrorToast(err, 'Update failed');
         }
         setUpdating(false);
       },
@@ -95,7 +96,7 @@ export function UpdatesTab({
       setShowChannelEdit(false);
       queryClient.invalidateQueries({ queryKey: ['admin', 'clusterversion'] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Channel update failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Channel update failed');
     }
   };
 

@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { k8sPatch } from '../engine/query';
 import { useUIStore } from '../store/uiStore';
 import { Card } from './primitives/Card';
+import { showErrorToast } from '../engine/errorToast';
 
 interface DataEditorProps {
   resourcePath: string; // API path to patch
@@ -65,7 +66,7 @@ export default function DataEditor({ resourcePath, data, kind, readOnly }: DataE
       addToast({ type: 'success', title: `${kind} updated` });
       queryClient.invalidateQueries({ queryKey: ['detail'] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Save failed', detail: err instanceof Error ? err.message : '' });
+      showErrorToast(err, 'Save failed');
     } finally {
       setSaving(false);
     }

@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../../components/feedback/ConfirmDialog';
 import { FormField } from './FormField';
 import type { Secret } from '../../engine/types';
 import { Card } from '../../components/primitives/Card';
+import { showErrorToast } from '../../engine/errorToast';
 
 /** HelmChartRepository CRD — not yet in engine/types, defined locally. */
 interface HelmChartRepository {
@@ -291,7 +292,7 @@ export function HelmTab() {
       setSelectedChart(null);
       setReleaseName('');
     } catch (err) {
-      addToast({ type: 'error', title: 'Helm install failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Helm install failed');
     }
     setInstalling(null);
   };
@@ -324,7 +325,7 @@ export function HelmTab() {
       queryClient.invalidateQueries({ queryKey: ['helm', 'repos'] });
       queryClient.invalidateQueries({ queryKey: ['helm', 'charts'] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to add repository', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to add repository');
     }
     setAddingRepo(false);
   };
@@ -340,7 +341,7 @@ export function HelmTab() {
       queryClient.invalidateQueries({ queryKey: ['helm', 'repos'] });
       queryClient.invalidateQueries({ queryKey: ['helm', 'charts'] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Failed to remove repository', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Failed to remove repository');
     }
     setDeleteRepo(null);
   };

@@ -8,6 +8,7 @@ import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { K8S_BASE as BASE } from './gvr';
 import { getClusterBase } from './clusterConnection';
 import { useUIStore } from '../store/uiStore';
+import { parseK8sErrorResponse, wrapNetworkError } from './errors';
 
 /** Sanitize a value for safe interpolation into PromQL label matchers */
 export function sanitizePromQL(value: string): string {
@@ -42,14 +43,6 @@ interface K8sListResponse<T> {
   items: T[];
 }
 
-interface K8sError {
-  kind: string;
-  apiVersion: string;
-  message: string;
-  reason: string;
-  code: number;
-}
-
 /**
  * List resources
  */
@@ -69,12 +62,15 @@ export async function k8sList<T>(
     url = `${base}${parts.join('/')}`;
   }
 
-  const response = await fetch(url, { headers: getImpersonationHeaders() });
+  let response: Response;
+  try {
+    response = await fetch(url, { headers: getImpersonationHeaders() });
+  } catch (e) {
+    throw wrapNetworkError(e, { operation: 'list', apiPath });
+  }
 
   if (!response.ok) {
-    let message = `Failed to list resources: ${response.statusText}`;
-    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
-    throw new Error(message);
+    throw await parseK8sErrorResponse(response, { operation: 'list', apiPath });
   }
 
   const data: K8sListResponse<T> = await response.json();
@@ -93,12 +89,15 @@ export async function k8sList<T>(
  * Get a single resource
  */
 export async function k8sGet<T>(apiPath: string, clusterId?: string): Promise<T> {
-  const response = await fetch(`${getClusterBase(clusterId)}${apiPath}`, { headers: getImpersonationHeaders() });
+  let response: Response;
+  try {
+    response = await fetch(`${getClusterBase(clusterId)}${apiPath}`, { headers: getImpersonationHeaders() });
+  } catch (e) {
+    throw wrapNetworkError(e, { operation: 'get', apiPath });
+  }
 
   if (!response.ok) {
-    let message = `Failed to get resource: ${response.statusText}`;
-    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
-    throw new Error(message);
+    throw await parseK8sErrorResponse(response, { operation: 'get', apiPath });
   }
 
   return response.json();
@@ -108,19 +107,22 @@ export async function k8sGet<T>(apiPath: string, clusterId?: string): Promise<T>
  * Create a resource
  */
 export async function k8sCreate<T>(apiPath: string, body: T, clusterId?: string): Promise<T> {
-  const response = await fetch(`${getClusterBase(clusterId)}${apiPath}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getImpersonationHeaders(),
-    },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getClusterBase(clusterId)}${apiPath}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getImpersonationHeaders(),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    throw wrapNetworkError(e, { operation: 'create', apiPath });
+  }
 
   if (!response.ok) {
-    let message = `Failed to create resource: ${response.statusText}`;
-    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
-    throw new Error(message);
+    throw await parseK8sErrorResponse(response, { operation: 'create', apiPath });
   }
 
   return response.json();
@@ -130,19 +132,22 @@ export async function k8sCreate<T>(apiPath: string, body: T, clusterId?: string)
  * Update a resource (full replace)
  */
 export async function k8sUpdate<T>(apiPath: string, body: T, clusterId?: string): Promise<T> {
-  const response = await fetch(`${getClusterBase(clusterId)}${apiPath}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getImpersonationHeaders(),
-    },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getClusterBase(clusterId)}${apiPath}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getImpersonationHeaders(),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    throw wrapNetworkError(e, { operation: 'update', apiPath });
+  }
 
   if (!response.ok) {
-    let message = `Failed to update resource: ${response.statusText}`;
-    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
-    throw new Error(message);
+    throw await parseK8sErrorResponse(response, { operation: 'update', apiPath });
   }
 
   return response.json();
@@ -157,19 +162,22 @@ export async function k8sPatch<T>(
   patchType: string = 'application/strategic-merge-patch+json',
   clusterId?: string
 ): Promise<T> {
-  const response = await fetch(`${getClusterBase(clusterId)}${apiPath}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': patchType,
-      ...getImpersonationHeaders(),
-    },
-    body: JSON.stringify(patch),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getClusterBase(clusterId)}${apiPath}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': patchType,
+        ...getImpersonationHeaders(),
+      },
+      body: JSON.stringify(patch),
+    });
+  } catch (e) {
+    throw wrapNetworkError(e, { operation: 'patch', apiPath });
+  }
 
   if (!response.ok) {
-    let message = `Failed to patch resource: ${response.statusText}`;
-    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
-    throw new Error(message);
+    throw await parseK8sErrorResponse(response, { operation: 'patch', apiPath });
   }
 
   return response.json();
@@ -195,23 +203,26 @@ export async function k8sDelete(apiPath: string, clusterId?: string): Promise<vo
     }
   }
 
-  const response = await fetch(`${base}${apiPath}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getImpersonationHeaders(),
-    },
-    body: JSON.stringify({
-      kind: 'DeleteOptions',
-      apiVersion: 'v1',
-      propagationPolicy: 'Background',
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${base}${apiPath}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getImpersonationHeaders(),
+      },
+      body: JSON.stringify({
+        kind: 'DeleteOptions',
+        apiVersion: 'v1',
+        propagationPolicy: 'Background',
+      }),
+    });
+  } catch (e) {
+    throw wrapNetworkError(e, { operation: 'delete', apiPath });
+  }
 
   if (!response.ok && response.status !== 404) {
-    let message = `Failed to delete resource: ${response.statusText}`;
-    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
-    throw new Error(message);
+    throw await parseK8sErrorResponse(response, { operation: 'delete', apiPath });
   }
 }
 
@@ -281,12 +292,15 @@ export async function k8sSubresource<T>(
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(url, options);
+  let response: Response;
+  try {
+    response = await fetch(url, options);
+  } catch (e) {
+    throw wrapNetworkError(e, { operation: subresource, apiPath });
+  }
 
   if (!response.ok) {
-    let message = `Failed to execute ${subresource}: ${response.statusText}`;
-    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
-    throw new Error(message);
+    throw await parseK8sErrorResponse(response, { operation: subresource, apiPath });
   }
 
   return response.json();
@@ -328,14 +342,15 @@ export async function k8sLogs(
     url += `?${queryString}`;
   }
 
-  const response = await fetch(url, {
-    headers: getImpersonationHeaders(),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, { headers: getImpersonationHeaders() });
+  } catch (e) {
+    throw wrapNetworkError(e, { operation: 'logs', apiPath: `/api/v1/namespaces/${namespace}/pods/${podName}/log` });
+  }
 
   if (!response.ok) {
-    let message = `Failed to get logs: ${response.statusText}`;
-    try { const error: K8sError = await response.json(); message = error.message || message; } catch {}
-    throw new Error(message);
+    throw await parseK8sErrorResponse(response, { operation: 'logs', apiPath: `/api/v1/namespaces/${namespace}/pods/${podName}/log` });
   }
 
   return response.text();

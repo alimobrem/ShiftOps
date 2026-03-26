@@ -8,6 +8,7 @@ import DeployProgress from '../../components/DeployProgress';
 import { FormField } from './FormField';
 import { Card } from '../../components/primitives/Card';
 import { MetricGrid } from '../../components/primitives/MetricGrid';
+import { showErrorToast } from '../../engine/errorToast';
 
 interface EnvVar { name: string; value: string }
 
@@ -134,7 +135,7 @@ export function QuickDeployTab() {
       addToast({ type: 'success', title: `Application "${name}" created`, detail: `Watching rollout in ${ns}` });
       setDeployedApp({ name: name.trim(), ns });
     } catch (err) {
-      addToast({ type: 'error', title: 'Deploy failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Deploy failed');
     }
     setDeploying(false);
   };

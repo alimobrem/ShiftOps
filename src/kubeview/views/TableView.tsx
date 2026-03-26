@@ -16,6 +16,7 @@ import { useUIStore } from '../store/uiStore';
 import type { K8sResource, ColumnDef } from '../engine/renderers';
 import { getColumnsForResource } from '../engine/enhancers';
 import { getEnhancer } from '../engine/enhancers';
+import { showErrorToast } from '../engine/errorToast';
 import { useCanI } from '../hooks/useCanI';
 import { Card } from '../components/primitives/Card';
 
@@ -362,11 +363,7 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
       }
       queryClient.invalidateQueries({ queryKey: ['k8s', 'list', apiPath] });
     } catch (err) {
-      addToast({
-        type: 'error',
-        title: `Action "${action}" failed`,
-        detail: err instanceof Error ? err.message : 'Unknown error',
-      });
+      showErrorToast(err, `Action "${action}" failed`);
     } finally {
       setInlineActionLoading(null);
     }
@@ -433,7 +430,7 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
       setDeleteProgress([{ name, ns, kind, status: 'done' }]);
       queryClient.invalidateQueries({ queryKey: ['k8s', 'list', apiPath] });
     } catch (err) {
-      addToast({ type: 'error', title: 'Delete failed', detail: err instanceof Error ? err.message : 'Unknown error' });
+      showErrorToast(err, 'Delete failed');
     } finally {
       setSingleDeleting(false);
     }
