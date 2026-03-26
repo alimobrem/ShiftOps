@@ -1,6 +1,6 @@
 {
   "name": "openshift-pulse",
-  "version": "5.4.0",
+  "version": "5.8.0",
   "description": "OpenShift Pulse — Next-generation OpenShift Console",
   "private": true,
   "engines": {

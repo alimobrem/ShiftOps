@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alimobrem/OpenshiftPulse/releases/tag/v5.7.0"><img src="https://img.shields.io/badge/release-v5.7.0-2563eb?style=for-the-badge" alt="Version"></a>
-  <img src="https://img.shields.io/badge/tests-1606%20passed-10b981?style=for-the-badge" alt="Tests">
+  <a href="https://github.com/alimobrem/OpenshiftPulse/releases/tag/v5.8.0"><img src="https://img.shields.io/badge/release-v5.8.0-2563eb?style=for-the-badge" alt="Version"></a>
+  <img src="https://img.shields.io/badge/tests-1687%20passed-10b981?style=for-the-badge" alt="Tests">
   <img src="https://img.shields.io/badge/health%20checks-77-f59e0b?style=for-the-badge" alt="Health Checks">
   <img src="https://img.shields.io/badge/CVEs-0-10b981?style=for-the-badge" alt="CVEs">
   <img src="https://img.shields.io/badge/license-MIT-6366f1?style=for-the-badge" alt="License">
@@ -112,7 +112,7 @@ npm run dev    # http://localhost:9000
 | **Pod/Node Terminal** | WebSocket exec with command history, copy output, GitHub-dark theme |
 | **Cluster Snapshots** | Capture state, compare field-by-field to find what changed |
 | **Dry-Run Validation** | Server-side dry-run before applying YAML changes |
-| **RBAC-Aware UI** | Actions hidden/disabled based on SelfSubjectAccessReview |
+| **RBAC-Aware UI** | Actions disabled with explanatory tooltips based on SelfSubjectAccessReview |
 | **User Impersonation** | Test as any user/SA — headers on all API calls, amber banner |
 | **Real-time Watches** | WebSocket + 60s polling fallback via TanStack Query |
 
@@ -130,7 +130,7 @@ npm run dev    # http://localhost:9000
 
 | View | Highlights |
 |------|-----------|
-| **Welcome** | Quick nav, cluster status, keyboard shortcuts |
+| **Welcome** | Quick nav, cluster status with error recovery, all capabilities clickable, keyboard shortcuts |
 | **Pulse** | Daily briefing with 4-zone risk assessment. Fleet mode: cluster health table, risk scores, AI analysis |
 | **Workloads** | Metrics + 6-check health audit, deployments sorted unhealthy-first |
 | **Compute** | Node metrics, CPU/memory bars, HyperShift-aware |
@@ -158,7 +158,7 @@ npm run dev    # http://localhost:9000
 | **State** | Zustand + TanStack Query | Client + server state separation |
 | **Real-time** | WebSocket watches | Instant updates, 60s polling fallback |
 | **Styling** | Tailwind CSS 3.4 | Utility-first, dark-mode only |
-| **Testing** | Vitest + jsdom | 1606 tests in ~4s |
+| **Testing** | Vitest + jsdom | 1687 tests in ~4s |
 | **Charts** | Pure SVG sparklines | Zero chart library dependency |
 | **Security** | Red Hat UBI images | 0 CVEs, all images from Red Hat registries |
 

@@ -83,23 +83,23 @@ export function useIncidentTimeline({ timeRange, namespace, categories }: UseInc
   const isLoading = eventsLoading || alertsLoading || rsLoading || deploysLoading || cvLoading || opsLoading;
 
   // Stable string key for categories Set (React can't compare Sets in deps)
-  const categoriesKey = [...categories].sort().join(',');
+  const categoriesKey = categories ? [...categories].sort().join(',') : '';
 
   // Transform all sources into TimelineEntry[]
   const result = useMemo(() => {
     let all: TimelineEntry[] = [];
 
-    if (categories.has('event')) {
-      all = all.concat(eventsToTimeline(rawEvents as unknown as Event[]));
+    if (categories?.has('event') && rawEvents) {
+      all = all.concat(eventsToTimeline((rawEvents || []) as unknown as Event[]));
     }
-    if (categories.has('alert')) {
-      all = all.concat(alertsToTimeline(alertGroups));
+    if (categories?.has('alert') && alertGroups) {
+      all = all.concat(alertsToTimeline(alertGroups || []));
     }
-    if (categories.has('rollout')) {
-      all = all.concat(rolloutsToTimeline(replicaSets as unknown as ReplicaSet[], deployments as unknown as Deployment[]));
+    if (categories?.has('rollout')) {
+      all = all.concat(rolloutsToTimeline((replicaSets || []) as unknown as ReplicaSet[], (deployments || []) as unknown as Deployment[]));
     }
-    if (categories.has('config')) {
-      all = all.concat(configChangesToTimeline(clusterVersion, operators as unknown as ClusterOperator[]));
+    if (categories?.has('config')) {
+      all = all.concat(configChangesToTimeline(clusterVersion || null, (operators || []) as unknown as ClusterOperator[]));
     }
 
     // Filter by namespace

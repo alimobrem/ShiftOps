@@ -1,5 +1,32 @@
 # Changelog
 
+## [5.8.0] - 2026-03-26
+
+### Fixed
+- **Silent catch blocks** — replaced 8 empty `catch {}` blocks with proper error surfacing via toasts or console warnings; OperatorCatalog now only swallows 409 Conflict
+- **Clipboard copy feedback** — PromQL copy in AlertsView no longer shows success toast on failure; all clipboard operations use shared `copyToClipboard()` helper
+- **window.prompt replaced** — Add Label dialog uses styled modal with separate key/value inputs instead of native `window.prompt()`
+- **RBAC dead ends** — disabled buttons now show tooltips explaining missing permissions instead of being hidden
+- **ErrorBoundary contextual messages** — categorizes errors as network/chunk/render with contextual recovery suggestions
+
+### Added
+- **WelcomeView error recovery** — cluster connection errors now show Retry button, proxy hint, and Administration link
+- **WelcomeView capabilities** — all 13 capabilities visible by default, all clickable (no more dead-end rows)
+- **TableView empty states** — enriched with EmptyState component, RBAC-gated Create button, namespace hints
+- **TableView filtered empty state** — shows "0 of N match" with active filter summary
+- **LogsView empty state** — troubleshooting guidance when no pods match selector
+- **AlertsView + FleetView empty states** — contextual guidance for each tab
+- **DetailView breadcrumbs** — `Kind / namespace / name` navigation replacing lone back button
+- **Tab titles with context** — tabs show `nginx (Deployment)` instead of just `nginx`
+- **Unsaved changes warning** — `useUnsavedChanges` hook with `useBlocker` + `beforeunload` for YAML editors
+- **Lazy component error boundaries** — NLFilterBar, AmbientInsight, InlineAgent wrapped in individual ErrorBoundary + skeleton fallbacks
+
+### Stats
+- **1687 tests** across 125 test files (+81 new tests)
+- **0 npm CVEs**, all Red Hat UBI images
+
+---
+
 ## [5.3.0] - 2026-03-25
 
 ### Added
