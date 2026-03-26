@@ -60,16 +60,23 @@ let pendingThinkingDelta = '';
 let rafScheduled = false;
 
 function flushDeltas(set: (fn: (s: AgentState) => Partial<AgentState>) => void) {
+  rafScheduled = false; // Always reset — even if no deltas to flush
   if (!pendingTextDelta && !pendingThinkingDelta) return;
   const text = pendingTextDelta;
   const thinking = pendingThinkingDelta;
   pendingTextDelta = '';
   pendingThinkingDelta = '';
-  rafScheduled = false;
   set((s) => ({
     streamingText: s.streamingText + text,
     thinkingText: s.thinkingText + thinking,
   }));
+}
+
+/** Reset all streaming accumulators — call on any terminal event */
+function resetStreamingState() {
+  pendingTextDelta = '';
+  pendingThinkingDelta = '';
+  rafScheduled = false;
 }
 
 function scheduleDeltaFlush(set: (fn: (s: AgentState) => Partial<AgentState>) => void) {
@@ -134,7 +141,39 @@ export const useAgentStore = create<AgentState>()(
               set({ connected: true, error: null });
               break;
             case 'disconnected':
-              set({ connected: false });
+              resetStreamingState();
+              // If we were mid-stream, save partial response as a message
+              if (get().streaming) {
+                const partial = get().streamingText;
+                if (partial) {
+                  const msg: AgentMessage = {
+                    id: makeId(),
+                    role: 'assistant',
+                    content: partial + '\n\n*(connection lost)*',
+                    timestamp: Date.now(),
+                  };
+                  set((s) => ({
+                    connected: false,
+                    messages: trimMessages([...s.messages, msg]),
+                    streaming: false,
+                    streamingText: '',
+                    thinkingText: '',
+                    activeTools: [],
+                    streamingComponents: [],
+                  }));
+                } else {
+                  set({
+                    connected: false,
+                    streaming: false,
+                    streamingText: '',
+                    thinkingText: '',
+                    activeTools: [],
+                    streamingComponents: [],
+                  });
+                }
+              } else {
+                set({ connected: false });
+              }
               break;
             case 'text_delta':
               pendingTextDelta += event.text;
@@ -154,8 +193,9 @@ export const useAgentStore = create<AgentState>()(
               set({ pendingConfirm: { tool: event.tool, input: event.input } });
               break;
             case 'done': {
-              // Flush any remaining deltas
+              // Flush any remaining deltas then reset accumulators
               flushDeltas(set);
+              resetStreamingState();
               const components = get().streamingComponents.map(truncateForPersistence);
               const msg: AgentMessage = {
                 id: makeId(),
@@ -177,6 +217,7 @@ export const useAgentStore = create<AgentState>()(
             }
             case 'error':
               flushDeltas(set);
+              resetStreamingState();
               set({
                 error: event.message,
                 streaming: false,
@@ -196,15 +237,15 @@ export const useAgentStore = create<AgentState>()(
       },
 
       disconnect: () => {
+        resetStreamingState();
         if (unsubscribe) { unsubscribe(); unsubscribe = null; }
         if (client) { client.disconnect(); client = null; }
-        set({ connected: false });
+        set({ connected: false, streaming: false, streamingText: '', thinkingText: '', activeTools: [], streamingComponents: [] });
       },
 
       sendMessage: (content, context, fleetMode) => {
         if (!client) return;
-        pendingTextDelta = '';
-        pendingThinkingDelta = '';
+        resetStreamingState();
 
         const userMsg: AgentMessage = {
           id: makeId(),
@@ -228,15 +269,14 @@ export const useAgentStore = create<AgentState>()(
       },
 
       switchMode: (mode) => {
-        pendingTextDelta = '';
-        pendingThinkingDelta = '';
+        resetStreamingState();
         set({ mode, messages: [], streamingText: '', thinkingText: '', activeTools: [], streamingComponents: [] });
         if (client) client.switchMode(mode);
       },
 
       clearChat: () => {
         pendingTextDelta = '';
-        pendingThinkingDelta = '';
+        resetStreamingState();
         set({ messages: [], streamingText: '', thinkingText: '', activeTools: [], streamingComponents: [], error: null });
         if (client) client.clear();
       },
@@ -247,8 +287,7 @@ export const useAgentStore = create<AgentState>()(
       },
 
       cancelQuery: () => {
-        pendingTextDelta = '';
-        pendingThinkingDelta = '';
+        resetStreamingState();
         if (client) {
           client.disconnect();
         }
