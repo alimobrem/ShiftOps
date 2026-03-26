@@ -551,7 +551,11 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
               <div className="flex items-center gap-2 mr-4">
                 <button
                   onClick={() => setShowBulkDeleteConfirm(true)}
-                  className="px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1.5"
+                  disabled={!canDelete}
+                  className={cn('px-3 py-1.5 text-xs text-white rounded flex items-center gap-1.5',
+                    canDelete ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-700 cursor-not-allowed opacity-50'
+                  )}
+                  title={canDelete ? `Delete ${selectedRows.size} selected` : 'No delete permission'}
                 >
                   <Trash2 className="w-3 h-3" />
                   Delete {selectedRows.size}
@@ -819,16 +823,18 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
                         >
                           <FileEdit className="w-3.5 h-3.5" />
                         </button>
-                        {canDelete && <button
+                        <button
                           onClick={(e) => { e.stopPropagation(); handleAction('delete-single', { resource }); }}
-                          disabled={inlineActionLoading === `${resource.metadata.uid}-delete-single`}
-                          className="inline-flex items-center px-1.5 py-1 text-xs text-slate-500 rounded hover:bg-red-900/50 hover:text-red-400 transition-colors disabled:opacity-50"
-                          title="Delete"
+                          disabled={!canDelete || inlineActionLoading === `${resource.metadata.uid}-delete-single`}
+                          className={cn('inline-flex items-center px-1.5 py-1 text-xs rounded transition-colors disabled:opacity-50',
+                            canDelete ? 'text-slate-500 hover:bg-red-900/50 hover:text-red-400' : 'text-slate-700 cursor-not-allowed'
+                          )}
+                          title={canDelete ? 'Delete' : 'No delete permission'}
                         >
                           {inlineActionLoading === `${resource.metadata.uid}-delete-single`
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             : <Trash2 className="w-3.5 h-3.5" />}
-                        </button>}
+                        </button>
                       </div>
                     </td>
                   </tr>
