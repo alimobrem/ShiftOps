@@ -48,7 +48,7 @@ export default function SecurityView() {
     queryFn: () => k8sList<K8sResource>('/apis/user.openshift.io/v1/users').catch(() => []),
     staleTime: 60000,
   });
-  const { data: clusterRoleBindings = [] } = useK8sListWatch({ apiPath: '/apis/rbac.authorization.k8s.io/v1/clusterrolebindings' });
+  const { data: clusterRoleBindings = [], isLoading: crbLoading } = useK8sListWatch({ apiPath: '/apis/rbac.authorization.k8s.io/v1/clusterrolebindings' });
   const { data: sccs = [] } = useQuery<K8sResource[]>({
     queryKey: ['security', 'sccs'],
     queryFn: () => k8sList<K8sResource>('/apis/security.openshift.io/v1/securitycontextconstraints').catch(() => []),
@@ -268,6 +268,17 @@ export default function SecurityView() {
           </h1>
           <p className="text-sm text-slate-400 mt-1">Security posture, audit checks, access control, and policy overview</p>
         </div>
+
+        {crbLoading && clusterRoleBindings.length === 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-slate-900 rounded-lg border border-slate-800 p-4 animate-pulse">
+                <div className="h-8 bg-slate-800 rounded w-1/3 mx-auto mb-2" />
+                <div className="h-3 bg-slate-800 rounded w-2/3 mx-auto" />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Score + Summary */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">

@@ -23,9 +23,9 @@ export default function NetworkingView() {
   const nsFilter = selectedNamespace !== '*' ? selectedNamespace : undefined;
 
   // Real-time data
-  const { data: rawServices = [] } = useK8sListWatch({ apiPath: '/api/v1/services', namespace: nsFilter });
+  const { data: rawServices = [], isLoading: svcLoading } = useK8sListWatch({ apiPath: '/api/v1/services', namespace: nsFilter });
   const services = rawServices as unknown as Service[];
-  const { data: rawIngresses = [] } = useK8sListWatch({ apiPath: '/apis/networking.k8s.io/v1/ingresses', namespace: nsFilter });
+  const { data: rawIngresses = [], isLoading: ingLoading } = useK8sListWatch({ apiPath: '/apis/networking.k8s.io/v1/ingresses', namespace: nsFilter });
   const ingresses = rawIngresses as unknown as Ingress[];
   const { data: rawRoutes = [] } = useK8sListWatch({ apiPath: '/apis/route.openshift.io/v1/routes', namespace: nsFilter });
   const routes = rawRoutes as unknown as Route[];
@@ -119,6 +119,17 @@ export default function NetworkingView() {
             </p>
           </div>
         </div>
+
+        {(svcLoading || ingLoading) && rawServices.length === 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-slate-900 rounded-lg border border-slate-800 p-3 animate-pulse">
+                <div className="h-3 bg-slate-800 rounded w-2/3 mb-2" />
+                <div className="h-5 bg-slate-800 rounded w-1/3" />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Issues */}
         {issues.length > 0 && (

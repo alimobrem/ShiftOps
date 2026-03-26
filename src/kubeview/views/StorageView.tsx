@@ -24,8 +24,8 @@ export default function StorageView() {
   const nsFilter = selectedNamespace !== '*' ? selectedNamespace : undefined;
 
   // Real-time data
-  const { data: pvcs = [] } = useK8sListWatch<PersistentVolumeClaim>({ apiPath: '/api/v1/persistentvolumeclaims', namespace: nsFilter });
-  const { data: pvs = [] } = useK8sListWatch<PersistentVolume>({ apiPath: '/api/v1/persistentvolumes' });
+  const { data: pvcs = [], isLoading: pvcsLoading } = useK8sListWatch<PersistentVolumeClaim>({ apiPath: '/api/v1/persistentvolumeclaims', namespace: nsFilter });
+  const { data: pvs = [], isLoading: pvsLoading } = useK8sListWatch<PersistentVolume>({ apiPath: '/api/v1/persistentvolumes' });
   const { data: storageClasses = [] } = useQuery<StorageClass[]>({
     queryKey: ['storage', 'storageclasses'],
     queryFn: () => k8sList('/apis/storage.k8s.io/v1/storageclasses') as Promise<StorageClass[]>,
@@ -116,6 +116,17 @@ export default function StorageView() {
           title="Storage"
           subtitle={<>Persistent volumes, claims, storage classes, and capacity{nsFilter && <span className="text-blue-400 ml-1">in {nsFilter}</span>}</>}
         />
+
+        {(pvcsLoading || pvsLoading) && pvcs.length === 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-slate-900 rounded-lg border border-slate-800 p-3 animate-pulse">
+                <div className="h-3 bg-slate-800 rounded w-2/3 mb-2" />
+                <div className="h-5 bg-slate-800 rounded w-1/3" />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Issues banner */}
         {issues.length > 0 && (

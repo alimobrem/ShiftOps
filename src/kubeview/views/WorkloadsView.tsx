@@ -44,10 +44,10 @@ export default function WorkloadsView() {
   const nsFilter = selectedNamespace !== '*' ? selectedNamespace : undefined;
   const safeNs = nsFilter ? sanitizePromQL(nsFilter) : '';
 
-  const { data: deployments = [] } = useK8sListWatch<Deployment>({ apiPath: '/apis/apps/v1/deployments', namespace: nsFilter });
+  const { data: deployments = [], isLoading: deploysLoading } = useK8sListWatch<Deployment>({ apiPath: '/apis/apps/v1/deployments', namespace: nsFilter });
   const { data: statefulsets = [] } = useK8sListWatch<StatefulSet>({ apiPath: '/apis/apps/v1/statefulsets', namespace: nsFilter });
   const { data: daemonsets = [] } = useK8sListWatch<DaemonSet>({ apiPath: '/apis/apps/v1/daemonsets', namespace: nsFilter });
-  const { data: pods = [] } = useK8sListWatch<Pod>({ apiPath: '/api/v1/pods', namespace: nsFilter });
+  const { data: pods = [], isLoading: podsLoading } = useK8sListWatch<Pod>({ apiPath: '/api/v1/pods', namespace: nsFilter });
   const { data: jobs = [] } = useK8sListWatch<Job>({ apiPath: '/apis/batch/v1/jobs', namespace: nsFilter });
   const { data: cronjobs = [] } = useK8sListWatch<CronJob>({ apiPath: '/apis/batch/v1/cronjobs', namespace: nsFilter });
   const { data: replicasets = [] } = useK8sListWatch<ReplicaSet>({ apiPath: '/apis/apps/v1/replicasets', namespace: nsFilter });
@@ -129,6 +129,17 @@ export default function WorkloadsView() {
           title="Workloads"
           subtitle={<>Deployments, StatefulSets, DaemonSets, Jobs, and Pods{nsFilter && <span className="text-blue-400 ml-1">in {nsFilter}</span>}</>}
         />
+
+        {(deploysLoading || podsLoading) && deployments.length === 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-slate-900 rounded-lg border border-slate-800 p-3 animate-pulse">
+                <div className="h-3 bg-slate-800 rounded w-2/3 mb-2" />
+                <div className="h-5 bg-slate-800 rounded w-1/3" />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Issues */}
         {issues.length > 0 && (

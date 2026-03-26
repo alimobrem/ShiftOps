@@ -14,8 +14,8 @@ export default function AccessControlView() {
   const nsFilter = selectedNamespace !== '*' ? selectedNamespace : undefined;
 
   // Use useK8sListWatch for real-time updates
-  const { data: clusterRoles = [] } = useK8sListWatch({ apiPath: '/apis/rbac.authorization.k8s.io/v1/clusterroles' });
-  const { data: clusterRoleBindings = [] } = useK8sListWatch({ apiPath: '/apis/rbac.authorization.k8s.io/v1/clusterrolebindings' });
+  const { data: clusterRoles = [], isLoading: crLoading } = useK8sListWatch({ apiPath: '/apis/rbac.authorization.k8s.io/v1/clusterroles' });
+  const { data: clusterRoleBindings = [], isLoading: crbLoading } = useK8sListWatch({ apiPath: '/apis/rbac.authorization.k8s.io/v1/clusterrolebindings' });
   const { data: roles = [] } = useK8sListWatch({ apiPath: '/apis/rbac.authorization.k8s.io/v1/roles', namespace: nsFilter });
   const { data: roleBindings = [] } = useK8sListWatch({ apiPath: '/apis/rbac.authorization.k8s.io/v1/rolebindings', namespace: nsFilter });
   const { data: serviceAccounts = [] } = useK8sListWatch({ apiPath: '/api/v1/serviceaccounts', namespace: nsFilter });
@@ -68,6 +68,17 @@ export default function AccessControlView() {
             </p>
           </div>
         </div>
+
+        {(crLoading || crbLoading) && clusterRoles.length === 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-slate-900 rounded-lg border border-slate-800 p-3 animate-pulse">
+                <div className="h-3 bg-slate-800 rounded w-2/3 mb-2" />
+                <div className="h-5 bg-slate-800 rounded w-1/3" />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Issues banner */}
         {broadPermissions.length > 5 && (
