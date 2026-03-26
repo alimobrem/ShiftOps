@@ -101,6 +101,7 @@ export const nodeEnhancer: ResourceEnhancer = {
       },
       render: (value) => <span className="font-mono text-xs text-slate-300">{String(value)} cores</span>,
       sortable: true,
+      sortType: 'number',
       priority: 12,
     },
     {
@@ -125,6 +126,7 @@ export const nodeEnhancer: ResourceEnhancer = {
       },
       render: (value) => <span className="font-mono text-xs text-slate-300">{String(value)}</span>,
       sortable: true,
+      sortType: 'number',
       priority: 14,
     },
     {
@@ -157,16 +159,16 @@ export const nodeEnhancer: ResourceEnhancer = {
     {
       id: 'age',
       header: 'Age',
-      accessorFn: (resource) => {
-        const ts = resource.metadata.creationTimestamp;
-        if (!ts) return '-';
-        const ms = Date.now() - new Date(ts).getTime();
+      accessorFn: (resource) => resource.metadata.creationTimestamp,
+      render: (value) => {
+        if (!value) return <span className="text-xs text-slate-500">-</span>;
+        const ms = Date.now() - new Date(String(value)).getTime();
         const days = Math.floor(ms / 86400000);
-        if (days > 0) return `${days}d`;
-        return `${Math.floor(ms / 3600000)}h`;
+        const label = days > 0 ? `${days}d` : `${Math.floor(ms / 3600000)}h`;
+        return <span className="text-xs text-slate-500">{label}</span>;
       },
-      render: (value) => <span className="text-xs text-slate-500">{String(value)}</span>,
       sortable: true,
+      sortType: 'date',
       priority: 16,
     },
   ],

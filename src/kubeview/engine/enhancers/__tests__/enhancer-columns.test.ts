@@ -61,6 +61,11 @@ describe('podEnhancer', () => {
   it('has default sort by name asc', () => {
     expect(podEnhancer.defaultSort).toEqual({ column: 'name', direction: 'asc' });
   });
+
+  it('restarts column has numeric sortType', () => {
+    const col = podEnhancer.columns.find((c) => c.id === 'restarts');
+    expect(col?.sortType).toBe('number');
+  });
 });
 
 describe('deploymentEnhancer', () => {
@@ -178,6 +183,18 @@ describe('nodeEnhancer', () => {
     expect(ids).toContain('cordon-toggle');
     expect(ids).toContain('drain');
   });
+
+  it('cpu and pods columns have numeric sortType', () => {
+    const cpuCol = nodeEnhancer.columns.find((c) => c.id === 'cpu');
+    const podsCol = nodeEnhancer.columns.find((c) => c.id === 'pods');
+    expect(cpuCol?.sortType).toBe('number');
+    expect(podsCol?.sortType).toBe('number');
+  });
+
+  it('age column has date sortType', () => {
+    const ageCol = nodeEnhancer.columns.find((c) => c.id === 'age');
+    expect(ageCol?.sortType).toBe('date');
+  });
 });
 
 describe('serviceEnhancer', () => {
@@ -264,5 +281,10 @@ describe('secretEnhancer', () => {
   it('returns 0 for no data', () => {
     const secret = {};
     expect(access(secretEnhancer, 'keys', secret)).toBe(0);
+  });
+
+  it('keys column has numeric sortType', () => {
+    const col = secretEnhancer.columns.find((c) => c.id === 'keys');
+    expect(col?.sortType).toBe('number');
   });
 });

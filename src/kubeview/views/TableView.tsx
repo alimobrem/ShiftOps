@@ -34,6 +34,36 @@ interface SortState {
   direction: SortDirection;
 }
 
+/**
+ * Compare two values according to the column's sortType.
+ * Exported for unit testing.
+ */
+export function compareValues(aValue: unknown, bValue: unknown, sortType?: 'string' | 'number' | 'date'): number {
+  // Handle null/undefined
+  if (aValue == null && bValue == null) return 0;
+  if (aValue == null) return 1;
+  if (bValue == null) return -1;
+
+  if (sortType === 'number') {
+    const aNum = Number(aValue);
+    const bNum = Number(bValue);
+    const aSafe = Number.isFinite(aNum) ? aNum : 0;
+    const bSafe = Number.isFinite(bNum) ? bNum : 0;
+    return aSafe - bSafe;
+  }
+
+  if (sortType === 'date') {
+    const aTime = new Date(String(aValue)).getTime();
+    const bTime = new Date(String(bValue)).getTime();
+    const aSafe = Number.isFinite(aTime) ? aTime : 0;
+    const bSafe = Number.isFinite(bTime) ? bTime : 0;
+    return aSafe - bSafe;
+  }
+
+  // Compare as strings by default
+  return String(aValue).localeCompare(String(bValue));
+}
+
 export default function TableView({ gvrKey, namespace: namespaceProp }: TableViewProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -187,17 +217,7 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
     sorted.sort((a, b) => {
       const aValue = column.accessorFn(a);
       const bValue = column.accessorFn(b);
-
-      // Handle null/undefined
-      if (aValue == null && bValue == null) return 0;
-      if (aValue == null) return 1;
-      if (bValue == null) return -1;
-
-      // Compare as strings by default
-      const aStr = String(aValue);
-      const bStr = String(bValue);
-
-      const comparison = aStr.localeCompare(bStr);
+      const comparison = compareValues(aValue, bValue, column.sortType);
       return sortState.direction === 'asc' ? comparison : -comparison;
     });
 

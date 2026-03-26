@@ -66,6 +66,7 @@ export const secretEnhancer: ResourceEnhancer = {
         );
       },
       sortable: true,
+      sortType: 'number',
       priority: 11,
     },
   ],

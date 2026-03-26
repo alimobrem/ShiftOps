@@ -28,6 +28,7 @@ export interface ColumnDef {
   accessorFn: (resource: K8sResource) => unknown;
   render: (value: unknown, resource: K8sResource) => ReactNode;
   sortable: boolean;
+  sortType?: 'string' | 'number' | 'date';  // default: 'string'
   width?: string;       // CSS width
   priority: number;     // lower = shown first, higher = hidden on small screens
 }
@@ -718,6 +719,7 @@ export function getDefaultColumns(namespaced: boolean): ColumnDef[] {
     accessorFn: (resource) => resource.metadata.creationTimestamp,
     render: renderAge,
     sortable: true,
+    sortType: 'date',
     width: '10%',
     priority: 2,
   });

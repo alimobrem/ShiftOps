@@ -91,6 +91,7 @@ export const podEnhancer: ResourceEnhancer = {
         );
       },
       sortable: true,
+      sortType: 'number',
       priority: 12,
     },
     {
