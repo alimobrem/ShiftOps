@@ -64,21 +64,10 @@ export default function YamlEditorView({ gvrKey, namespace, name }: YamlEditorVi
     setSaving(true);
     setSaveError(null);
     try {
-      // Re-inject resourceVersion — stripped by resourceToYaml for clean display,
-      // but required by K8s API for update (optimistic concurrency control)
-      let yamlToSend = currentYaml;
-      const rv = resource?.metadata?.resourceVersion;
-      if (rv && !currentYaml.includes('resourceVersion:')) {
-        yamlToSend = currentYaml.replace(
-          /^(metadata:\n(?:[ \t]+\S.*\n)*)/m,
-          `$1  resourceVersion: "${rv}"\n`,
-        );
-      }
-
       const res = await fetch(fetchUrl, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/yaml', ...getImpersonationHeaders() },
-        body: yamlToSend,
+        body: currentYaml,
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ message: res.statusText }));
@@ -98,7 +87,7 @@ export default function YamlEditorView({ gvrKey, namespace, name }: YamlEditorVi
     } finally {
       setSaving(false);
     }
-  }, [fetchUrl, currentYaml, hasChanges, saving, name, apiPath, addToast, queryClient, resource]);
+  }, [fetchUrl, currentYaml, hasChanges, saving, name, apiPath, addToast, queryClient]);
 
   const handleDiscard = useCallback(() => {
     setCurrentYaml(originalYaml);

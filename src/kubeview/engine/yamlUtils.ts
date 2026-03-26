@@ -79,7 +79,7 @@ export function resourceToYaml(resource: Record<string, unknown>): string {
   if (clean.metadata && typeof clean.metadata === 'object') {
     const meta = { ...(clean.metadata as Record<string, unknown>) };
     delete meta.managedFields;
-    delete meta.resourceVersion;
+    // Keep resourceVersion — required by K8s API for PUT updates
     delete meta.uid;
     delete meta.creationTimestamp;
     delete meta.generation;
