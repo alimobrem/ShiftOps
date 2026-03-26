@@ -10,9 +10,10 @@ const navigateMock = vi.fn();
 const addTabMock = vi.fn();
 const addToastMock = vi.fn();
 
+const blockerMock = { state: 'unblocked' as string, proceed: vi.fn(), reset: vi.fn() };
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
-  return { ...actual, useNavigate: () => navigateMock };
+  return { ...actual, useNavigate: () => navigateMock, useBlocker: () => blockerMock };
 });
 
 vi.mock('../../store/uiStore', () => ({
