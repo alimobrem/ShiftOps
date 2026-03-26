@@ -406,6 +406,116 @@ describe('DetailView', () => {
     });
   });
 
+  describe('breadcrumb navigation', () => {
+    it('renders kind, namespace, and name segments for namespaced resource', async () => {
+      mockK8sGet.mockResolvedValue(makePod());
+
+      renderDetailView({ gvrKey: 'v1/pods', namespace: 'default', name: 'my-pod' });
+
+      await waitFor(() => {
+        expect(screen.getAllByText('my-pod').length).toBeGreaterThanOrEqual(1);
+      });
+
+      const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(nav).toBeDefined();
+
+      // Kind segment links to list view
+      const kindLink = screen.getByRole('button', { name: 'pods' });
+      expect(kindLink).toBeDefined();
+
+      // Namespace segment links to filtered list
+      // 'default' appears in breadcrumb and namespace badge — find the one inside the nav
+      const nsLinks = Array.from(nav.querySelectorAll('button'));
+      const nsLink = nsLinks.find((el) => el.textContent === 'default');
+      expect(nsLink).toBeDefined();
+
+      // Name is plain text (h1 inside the breadcrumb)
+      const nameHeading = nav.querySelector('h1');
+      expect(nameHeading?.textContent).toBe('my-pod');
+    });
+
+    it('omits namespace segment for cluster-scoped resource', async () => {
+      const node = {
+        apiVersion: 'v1',
+        kind: 'Node',
+        metadata: {
+          name: 'worker-1',
+          uid: 'node-uid-1',
+          creationTimestamp: '2025-01-01T00:00:00Z',
+          resourceVersion: '100',
+          labels: {},
+          annotations: {},
+        },
+        spec: {},
+        status: {
+          conditions: [{ type: 'Ready', status: 'True', lastTransitionTime: '2025-01-01T00:00:00Z' }],
+          nodeInfo: { kubeletVersion: 'v1.30.0', operatingSystem: 'linux', architecture: 'amd64', containerRuntimeVersion: 'cri-o://1.30.0' },
+        },
+      };
+      mockK8sGet.mockResolvedValue(node);
+
+      renderDetailView({ gvrKey: 'v1/nodes', name: 'worker-1' });
+
+      await waitFor(() => {
+        expect(screen.getAllByText('worker-1').length).toBeGreaterThanOrEqual(1);
+      });
+
+      const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+
+      // Kind link should exist
+      const kindLink = screen.getByRole('button', { name: 'nodes' });
+      expect(kindLink).toBeDefined();
+
+      // No namespace button inside the breadcrumb
+      const buttons = Array.from(nav.querySelectorAll('button'));
+      // Only the kind button should be in the breadcrumb
+      expect(buttons).toHaveLength(1);
+
+      // Name is plain text (h1 heading)
+      const nameHeading = nav.querySelector('h1');
+      expect(nameHeading?.textContent).toBe('worker-1');
+    });
+
+    it('navigates to list view when kind breadcrumb is clicked', async () => {
+      mockK8sGet.mockResolvedValue(makeDeployment());
+
+      renderDetailView({ gvrKey: 'apps/v1/deployments', namespace: 'default', name: 'my-deployment' });
+
+      await waitFor(() => {
+        expect(screen.getAllByText('my-deployment').length).toBeGreaterThanOrEqual(1);
+      });
+
+      const kindLink = screen.getByRole('button', { name: 'deployments' });
+      fireEvent.click(kindLink);
+
+      expect(addTabMock).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/r/apps~v1~deployments' }),
+      );
+      expect(navigateMock).toHaveBeenCalledWith('/r/apps~v1~deployments');
+    });
+
+    it('navigates to namespace-filtered list when namespace breadcrumb is clicked', async () => {
+      mockK8sGet.mockResolvedValue(makePod());
+
+      renderDetailView({ gvrKey: 'v1/pods', namespace: 'kube-system', name: 'my-pod' });
+
+      await waitFor(() => {
+        expect(screen.getAllByText('my-pod').length).toBeGreaterThanOrEqual(1);
+      });
+
+      const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      const nsLinks = Array.from(nav.querySelectorAll('button'));
+      const nsLink = nsLinks.find((el) => el.textContent === 'kube-system');
+      expect(nsLink).toBeDefined();
+      fireEvent.click(nsLink!);
+
+      expect(addTabMock).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/r/v1~pods?ns=kube-system' }),
+      );
+      expect(navigateMock).toHaveBeenCalledWith('/r/v1~pods?ns=kube-system');
+    });
+  });
+
   it('shows containers section for pods in overview tab', async () => {
     mockK8sGet.mockResolvedValue(makePod());
 

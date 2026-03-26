@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Box,
   Bug,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sGet, k8sList, k8sDelete, k8sPatch, k8sCreate, k8sLogs } from '../engine/query';
@@ -394,7 +395,27 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <h1 className="text-2xl font-bold text-slate-100">{resource.metadata.name}</h1>
+              <nav className="flex items-center gap-1 text-sm" aria-label="Breadcrumb">
+                <button
+                  onClick={() => go(`/r/${gvrUrl}`, resourcePlural)}
+                  className="text-blue-400 hover:text-blue-300 transition-colors capitalize"
+                >
+                  {resourcePlural}
+                </button>
+                {namespace && (
+                  <>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                    <button
+                      onClick={() => go(`/r/${gvrUrl}?ns=${namespace}`, `${resourcePlural} (${namespace})`)}
+                      className="text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      {namespace}
+                    </button>
+                  </>
+                )}
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                <h1 className="text-slate-100 font-semibold text-sm m-0">{resource.metadata.name}</h1>
+              </nav>
               <button
                 onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(resource.metadata.name); addToast({ type: 'success', title: 'Name copied' }); }}
                 className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
