@@ -3,26 +3,18 @@ import { useBlocker } from 'react-router-dom';
 
 /**
  * Warns users before navigating away from unsaved changes.
- * Handles both in-app navigation (react-router useBlocker) and
- * browser-level navigation (beforeunload).
- *
- * Returns { showConfirm, confirmNavigation, cancelNavigation } to
- * render a ConfirmDialog when in-app navigation is blocked.
+ * Combines react-router useBlocker (in-app) with beforeunload (browser-level).
  */
 export function useUnsavedChanges(hasChanges: boolean) {
   const [showConfirm, setShowConfirm] = useState(false);
-
-  // Block in-app navigation via react-router
   const blocker = useBlocker(hasChanges);
 
-  // When blocker activates, show confirm dialog
   useEffect(() => {
     if (blocker.state === 'blocked') {
       setShowConfirm(true);
     }
   }, [blocker.state]);
 
-  // Browser/tab close warning
   useEffect(() => {
     if (!hasChanges) return;
     const handler = (e: BeforeUnloadEvent) => {

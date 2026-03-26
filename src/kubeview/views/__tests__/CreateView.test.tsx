@@ -437,4 +437,32 @@ describe('CreateView', () => {
     fireEvent.change(textarea, { target: { value: 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: a\n---\napiVersion: v1\nkind: Secret\nmetadata:\n  name: b' } });
     expect(screen.getByText(/2 documents/)).toBeDefined();
   });
+
+  // ===== Unsaved changes warning =====
+
+  it('shows ConfirmDialog when blocker is activated during YAML editing', () => {
+    // Render with a specific GVR so it enters edit mode directly
+    renderCreateView({ gvrKey: 'apps/v1/deployments' });
+
+    // Should be in edit mode with YAML editor visible
+    expect(screen.getByTestId('yaml-editor')).toBeDefined();
+
+    // Modify YAML content to trigger hasYamlChanges
+    const editor = screen.getByTestId('yaml-editor');
+    fireEvent.change(editor, { target: { value: 'apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: changed' } });
+
+    // Simulate blocker activation
+    blockerMock.state = 'blocked';
+    // Re-render to pick up blocker state change
+    renderCreateView({ gvrKey: 'apps/v1/deployments' });
+
+    expect(screen.getByText('Unsaved changes')).toBeDefined();
+    expect(screen.getByText(/changes will be lost/)).toBeDefined();
+  });
+
+  it('does not show ConfirmDialog when no YAML changes', () => {
+    blockerMock.state = 'unblocked';
+    renderCreateView({ gvrKey: 'v1/pods' });
+    expect(screen.queryByText('Unsaved changes')).toBeNull();
+  });
 });

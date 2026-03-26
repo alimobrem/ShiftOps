@@ -2,21 +2,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, cleanup } from '@testing-library/react';
 
-// Mock react-router-dom's useBlocker
-const blockerMock = { state: 'unblocked' as string, proceed: vi.fn(), reset: vi.fn() };
+const blockerMock: Record<string, any> = { state: 'unblocked', proceed: vi.fn(), reset: vi.fn() };
 vi.mock('react-router-dom', () => ({
   useBlocker: (condition: boolean) => {
     blockerMock._condition = condition;
     return blockerMock;
   },
 }));
-
-// Extend mock type for internal tracking
-declare module 'react-router-dom' {
-  interface Blocker {
-    _condition?: boolean;
-  }
-}
 
 import { useUnsavedChanges } from '../useUnsavedChanges';
 

@@ -92,7 +92,6 @@ export default function CreateView({ gvrKey }: CreateViewProps) {
   const [error, setError] = useState<string | null>(null);
   const [showDryRun, setShowDryRun] = useState(false);
 
-  // Track whether user has modified the YAML content
   const initialYamlRef = useRef('');
   const hasYamlChanges = editMode && yaml !== '' && yaml !== initialYamlRef.current;
   const { showConfirm, confirmNavigation, cancelNavigation } = useUnsavedChanges(hasYamlChanges);

@@ -47,7 +47,6 @@ export default function YamlEditorView({ gvrKey, namespace, name }: YamlEditorVi
   const [showGitOpsDialog, setShowGitOpsDialog] = useState(false);
   const hasChanges = currentYaml !== originalYaml;
 
-  // Warn before navigating away with unsaved changes
   const { showConfirm, confirmNavigation, cancelNavigation } = useUnsavedChanges(hasChanges);
 
   // ArgoCD awareness
