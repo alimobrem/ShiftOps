@@ -9,6 +9,8 @@ import { k8sList, k8sGet } from '../engine/query';
 import { K8S_BASE as BASE } from '../engine/gvr';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { Card } from './primitives/Card';
+import type { K8sResource } from '../engine/renderers';
+import type { Pod, Event, ContainerStatus } from '../engine/types';
 
 interface DeployProgressProps {
   type: 'deployment' | 'job';
@@ -33,7 +35,7 @@ export default function DeployProgress({ type, name, namespace, mode = 'deploy',
       const path = type === 'deployment'
         ? `/apis/apps/v1/namespaces/${namespace}/deployments/${name}`
         : `/apis/batch/v1/namespaces/${namespace}/jobs/${name}`;
-      return k8sGet<any>(path).catch(() => null);
+      return k8sGet<K8sResource>(path).catch(() => null);
     },
     refetchInterval: 2000,
   });
@@ -42,8 +44,8 @@ export default function DeployProgress({ type, name, namespace, mode = 'deploy',
   const { data: pods = [] } = useQuery({
     queryKey: ['deploy-progress-pods', namespace, name],
     queryFn: async () => {
-      const allPods = await k8sList<any>(`/api/v1/namespaces/${namespace}/pods`);
-      return allPods.filter((p: any) => {
+      const allPods = await k8sList<Pod>(`/api/v1/namespaces/${namespace}/pods`);
+      return allPods.filter((p) => {
         const labels = p.metadata.labels || {};
         return labels.app === name || p.metadata.name?.startsWith(name);
       });
@@ -55,15 +57,15 @@ export default function DeployProgress({ type, name, namespace, mode = 'deploy',
   const { data: events = [] } = useQuery({
     queryKey: ['deploy-progress-events', namespace, name],
     queryFn: async () => {
-      const allEvents = await k8sList<any>(`/api/v1/namespaces/${namespace}/events`);
+      const allEvents = await k8sList<Event>(`/api/v1/namespaces/${namespace}/events`);
       return allEvents
-        .filter((e: any) => {
-          const ref = e.involvedObject;
-          return ref?.name === name || pods.some((p: any) => ref?.name === p.metadata.name);
+        .filter((e) => {
+          const ref = (e as unknown as K8sResource & { involvedObject?: { name?: string } }).involvedObject;
+          return ref?.name === name || pods.some((p) => ref?.name === p.metadata.name);
         })
-        .sort((a: any, b: any) => {
-          const at = a.lastTimestamp || a.firstTimestamp || '';
-          const bt = b.lastTimestamp || b.firstTimestamp || '';
+        .sort((a, b) => {
+          const at = a.lastTimestamp || a.metadata.creationTimestamp || '';
+          const bt = b.lastTimestamp || b.metadata.creationTimestamp || '';
           return new Date(bt).getTime() - new Date(at).getTime();
         })
         .slice(0, 20);
@@ -220,12 +222,12 @@ export default function DeployProgress({ type, name, namespace, mode = 'deploy',
         <div className="px-4 py-2 border-b border-slate-800">
           <div className="text-xs text-slate-500 mb-2">Pods ({pods.length})</div>
           <div className="space-y-1">
-            {pods.map((pod: any) => {
+            {pods.map((pod) => {
               const podPhase = pod.status?.phase || 'Pending';
-              const containers = pod.status?.containerStatuses || [];
-              const ready = containers.filter((c: any) => c.ready).length;
+              const containers: ContainerStatus[] = (pod.status as Record<string, unknown>)?.containerStatuses as ContainerStatus[] || [];
+              const ready = containers.filter((c) => c.ready).length;
               const total = containers.length || (pod.spec?.containers?.length || 1);
-              const waiting = containers.find((c: any) => c.state?.waiting)?.state?.waiting;
+              const waiting = containers.find((c) => c.state?.waiting)?.state?.waiting;
               const isTerminating = !!pod.metadata?.deletionTimestamp;
 
               return (
@@ -264,7 +266,7 @@ export default function DeployProgress({ type, name, namespace, mode = 'deploy',
         </button>
         {showEvents && events.length > 0 && (
           <div className="px-4 pb-3 space-y-1 max-h-40 overflow-auto">
-            {events.map((e: any, i: number) => (
+            {events.map((e, i) => (
               <div key={i} className="flex items-start gap-2 py-1">
                 {e.type === 'Warning' ? <AlertTriangle className="w-3 h-3 text-yellow-500 mt-0.5 shrink-0" /> : <CheckCircle className="w-3 h-3 text-slate-600 mt-0.5 shrink-0" />}
                 <div className="min-w-0">

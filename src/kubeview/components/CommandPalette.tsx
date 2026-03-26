@@ -7,6 +7,8 @@ import { getFavorites } from '../engine/favorites';
 import { useClusterStore } from '../store/clusterStore';
 import { generateSmartPrompts } from '../engine/smartPrompts';
 import { AIIconStatic, AI_ACCENT, aiGlowClass } from './agent/AIBranding';
+import type { K8sResource } from '../engine/renderers';
+import type { ResourceType } from '../engine/discovery';
 import { cn } from '@/lib/utils';
 import { getResourceIcon } from '../engine/iconRegistry';
 import { isMultiCluster } from '../engine/clusterConnection';
@@ -69,7 +71,7 @@ export function CommandPalette() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mode, setMode] = useState<'default' | 'browse' | 'action' | 'query'>('default');
   const [searchAllClusters, setSearchAllClusters] = useState(false);
-  const [fleetResults, setFleetResults] = useState<FleetResult<any>[]>([]);
+  const [fleetResults, setFleetResults] = useState<FleetResult<K8sResource>[]>([]);
   const [fleetLoading, setFleetLoading] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -244,7 +246,7 @@ export function CommandPalette() {
                     {clusterResult.data.length === 0 && clusterResult.status === 'fulfilled' && (
                       <div className="px-3 py-1 text-xs text-slate-500">No matches</div>
                     )}
-                    {clusterResult.data.map((resource: any) => (
+                    {clusterResult.data.map((resource) => (
                       <button
                         key={`${clusterResult.clusterId}-${resource.metadata.namespace || ''}-${resource.metadata.name}`}
                         onClick={() => {
@@ -307,7 +309,7 @@ export function CommandPalette() {
 function getCommandItems(
   mode: string,
   query: string,
-  resourceRegistry: Map<string, any> | null,
+  resourceRegistry: Map<string, ResourceType> | null,
   currentPath: string = '/',
 ): CommandItem[] {
   const cleanQuery = query.replace(/^[/:?]/, '').toLowerCase();
