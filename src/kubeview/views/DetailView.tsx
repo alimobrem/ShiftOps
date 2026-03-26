@@ -35,6 +35,7 @@ import { useK8sListWatch } from '../hooks/useK8sListWatch';
 import { kindToPlural } from '../engine/renderers/index';
 import { buildApiPath } from '../hooks/useResourceUrl';
 import { useUIStore } from '../store/uiStore';
+import { useClusterStore } from '../store/clusterStore';
 import { jsonToYaml, resourceToYaml } from '../engine/yamlUtils';
 // Terminal now opens in dock panel via useUIStore.openTerminal()
 import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
@@ -169,6 +170,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   }, [rawEvents, name, isWorkload, managedPods]);
 
   // Find related resources
+  const resourceRegistry = useClusterStore((s) => s.resourceRegistry);
   const relatedResources = React.useMemo(() => {
     if (!resource) return [];
 
@@ -185,7 +187,15 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
       const ownerGvr = ownerGroup
         ? `${ownerGroup}~${ownerVersion}~${ownerPlural}`
         : `${ownerVersion}~${ownerPlural}`;
-      const ns = namespace || '_';
+      const ownerGvrKey = ownerGroup
+        ? `${ownerGroup}/${ownerVersion}/${ownerPlural}`
+        : `${ownerVersion}/${ownerPlural}`;
+
+      // Check if owner is cluster-scoped via resource registry
+      const ownerType = resourceRegistry?.get(ownerGvrKey)
+        ?? (ownerGvrKey.split('/').length === 2 ? resourceRegistry?.get(`core/${ownerGvrKey}`) : undefined);
+      const ownerNamespaced = ownerType?.namespaced ?? true;
+      const ns = ownerNamespaced ? (namespace || '_') : '_';
 
       related.push({
         type: owner.kind,
@@ -195,7 +205,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
     }
 
     return related;
-  }, [resource, namespace]);
+  }, [resource, namespace, resourceRegistry]);
 
 
   const handleDelete = async () => {
