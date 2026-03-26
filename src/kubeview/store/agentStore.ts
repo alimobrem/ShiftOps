@@ -122,6 +122,8 @@ export const useAgentStore = create<AgentState>()(
       },
 
       connect: () => {
+        // If already connected with correct mode, skip reconnection
+        if (client && get().connected && client.connected) return;
         if (unsubscribe) unsubscribe();
         if (client) client.disconnect();
         client = new AgentClient(get().mode);
