@@ -61,9 +61,10 @@ describe('RBAC integration in TableView', () => {
     expect(source).toContain('{canCreate &&');
   });
 
-  it('hides Delete button when user lacks delete permission', () => {
+  it('disables Delete button when user lacks delete permission', () => {
     const source = fs.readFileSync(path.join(SRC, 'views/TableView.tsx'), 'utf-8');
-    expect(source).toContain('{canDelete &&');
+    expect(source).toContain('No delete permission');
+    expect(source).toContain('disabled={!canDelete');
   });
 
   it('disables Edit YAML when user lacks update permission', () => {

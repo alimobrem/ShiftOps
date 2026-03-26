@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { MoreHorizontal } from 'lucide-react';
 
-export type ActionMenuItem = { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean } | 'separator' | null;
+export type ActionMenuItem = { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean; disabled?: boolean; title?: string } | 'separator' | null;
 
 export function ActionMenu({ items }: { items: ActionMenuItem[] }) {
   const [open, setOpen] = React.useState(false);
@@ -27,9 +27,11 @@ export function ActionMenu({ items }: { items: ActionMenuItem[] }) {
                 <button
                   key={i}
                   onClick={() => { setOpen(false); item.onClick(); }}
+                  disabled={item.disabled}
+                  title={item.title}
                   className={cn(
-                    'w-full px-3 py-2 text-left text-sm flex items-center gap-2.5 transition-colors hover:bg-slate-700',
-                    item.danger ? 'text-red-400' : 'text-slate-300'
+                    'w-full px-3 py-2 text-left text-sm flex items-center gap-2.5 transition-colors',
+                    item.disabled ? 'text-slate-600 cursor-not-allowed' : item.danger ? 'text-red-400 hover:bg-slate-700' : 'text-slate-300 hover:bg-slate-700'
                   )}
                 >
                   {item.icon}

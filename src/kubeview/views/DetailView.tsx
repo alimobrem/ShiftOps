@@ -53,6 +53,7 @@ import { ArgoSyncBadge } from '../components/ArgoSyncBadge';
 import { GitOpsInfoCard } from '../components/GitOpsInfoCard';
 import { ResourceHistoryPanel } from './argocd/ResourceHistoryPanel';
 import { useArgoSyncInfo } from '../hooks/useArgoCD';
+import { useCanI } from '../hooks/useCanI';
 
 interface DetailViewProps {
   gvrKey: string;
@@ -72,6 +73,11 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
   const gvrUrl = gvrKey.replace(/\//g, '~');
   const gvrParts = gvrKey.split('/');
   const resourcePlural = gvrParts[gvrParts.length - 1];
+  const resourceGroup = gvrParts.length === 3 ? gvrParts[0] : '';
+
+  // RBAC permission checks
+  const { allowed: canDelete } = useCanI('delete', resourceGroup, resourcePlural, namespace);
+  const { allowed: canUpdate } = useCanI('update', resourceGroup, resourcePlural, namespace);
 
   // Build API path for this specific resource
   const apiPath = React.useMemo(
@@ -445,20 +451,27 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
               </>
             )}
             {isScalable && (
-              <div className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-slate-800/50">
-                <button onClick={() => handleScale(-1)} disabled={!!actionLoading} className="px-1.5 py-1 text-slate-400 rounded hover:bg-slate-700 hover:text-slate-200 transition-colors disabled:opacity-30">
+              <div className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-slate-800/50" title={canUpdate ? undefined : 'No update permission'}>
+                <button onClick={() => handleScale(-1)} disabled={!canUpdate || !!actionLoading} className={cn('px-1.5 py-1 rounded transition-colors disabled:opacity-30', canUpdate ? 'text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'text-slate-700 cursor-not-allowed')}>
                   <Minus className="w-3 h-3" />
                 </button>
                 <span className={cn('px-2 py-0.5 text-xs font-mono text-slate-300', actionLoading === 'scale' && 'animate-pulse')}>
                   {(resource.spec as Deployment['spec'])?.replicas ?? 0}
                 </span>
-                <button onClick={() => handleScale(1)} disabled={!!actionLoading} className="px-1.5 py-1 text-slate-400 rounded hover:bg-slate-700 hover:text-slate-200 transition-colors disabled:opacity-30">
+                <button onClick={() => handleScale(1)} disabled={!canUpdate || !!actionLoading} className={cn('px-1.5 py-1 rounded transition-colors disabled:opacity-30', canUpdate ? 'text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'text-slate-700 cursor-not-allowed')}>
                   <Plus className="w-3 h-3" />
                 </button>
               </div>
             )}
             {isRestartable && (
-              <button onClick={handleRestart} disabled={!!actionLoading} className="px-2.5 py-1.5 text-xs text-slate-400 rounded hover:bg-slate-800 hover:text-orange-400 flex items-center gap-1.5 transition-colors disabled:opacity-50">
+              <button
+                onClick={handleRestart}
+                disabled={!canUpdate || !!actionLoading}
+                className={cn('px-2.5 py-1.5 text-xs rounded flex items-center gap-1.5 transition-colors disabled:opacity-50',
+                  canUpdate ? 'text-slate-400 hover:bg-slate-800 hover:text-orange-400' : 'text-slate-700 cursor-not-allowed'
+                )}
+                title={canUpdate ? 'Restart rollout' : 'No update permission'}
+              >
                 <RotateCw className={cn('w-3.5 h-3.5', actionLoading === 'restart' && 'animate-spin')} /> {actionLoading === 'restart' ? 'Restarting...' : 'Restart'}
               </button>
             )}
@@ -473,7 +486,7 @@ export default function DetailView({ gvrKey, namespace, name }: DetailViewProps)
                 { icon: <Activity className="w-3.5 h-3.5" />, label: 'Metrics', onClick: handleViewMetrics },
                 namespace ? { icon: <GitBranch className="w-3.5 h-3.5" />, label: 'Dependencies', onClick: () => go(`/deps/${gvrUrl}/${namespace}/${name}`, `${name} (Deps)`) } : null,
                 'separator',
-                { icon: <Trash2 className="w-3.5 h-3.5 text-red-400" />, label: 'Delete', onClick: () => setShowDeleteConfirm(true), danger: true },
+                { icon: <Trash2 className={cn('w-3.5 h-3.5', canDelete ? 'text-red-400' : 'text-slate-600')} />, label: canDelete ? 'Delete' : 'Delete (no permission)', onClick: () => setShowDeleteConfirm(true), danger: canDelete, disabled: !canDelete, title: canDelete ? undefined : 'No delete permission' },
               ]}
             />
           </div>
