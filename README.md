@@ -22,6 +22,7 @@
   <a href="#-screenshots">Screenshots</a> &bull;
   <a href="#-features">Features</a> &bull;
   <a href="#-deploy-to-openshift">Deploy</a> &bull;
+  <a href="API_CONTRACT.md">API Contract</a> &bull;
   <a href="SECURITY.md">Security</a> &bull;
   <a href="CHANGELOG.md">Changelog</a>
 </p>

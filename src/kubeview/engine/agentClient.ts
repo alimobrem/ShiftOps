@@ -1,6 +1,8 @@
 /**
  * Agent WebSocket client — connects to the Pulse Agent API server.
  *
+ * Protocol Version: 1 (see API_CONTRACT.md for full specification)
+ *
  * Handles streaming text, thinking, tool use events, and confirmation
  * requests over a persistent WebSocket connection.
  */
