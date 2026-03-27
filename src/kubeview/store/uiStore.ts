@@ -25,7 +25,7 @@ export interface ToastData {
   suggestions?: string[];
 }
 
-export type DockPanel = 'logs' | 'terminal' | 'events' | 'agent' | null;
+export type DockPanel = 'logs' | 'terminal' | 'events' | 'agent' | 'monitor' | null;
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'disconnected';
 
 interface UIState {
@@ -114,6 +114,7 @@ const DEFAULT_TABS: Tab[] = [
   { id: 'welcome', title: 'Welcome', icon: 'Home', path: '/welcome', pinned: true, closable: true },
   { id: 'pulse', title: 'Pulse', icon: 'Activity', path: '/pulse', pinned: true, closable: true },
   { id: 'admin', title: 'Admin', icon: 'Settings', path: '/admin', pinned: true, closable: true },
+  { id: 'monitor', title: 'Monitor', icon: 'Shield', path: '/monitor', pinned: false, closable: true },
 ];
 
 // Default toast durations (ms)
