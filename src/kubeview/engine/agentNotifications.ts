@@ -237,15 +237,22 @@ export async function startAgentNotifications(intervalMs = DEFAULT_INTERVAL) {
     subscribeToMonitorToasts();
     // Subscribe to action reports for auto-fix toasts
     subscribeToActionReportToasts();
+    useUIStore.getState().removeDegradedReason('polling_fallback');
+    useUIStore.getState().removeDegradedReason('agent_unreachable');
   } else if (protocol === '1') {
-    // Fall back to existing polling
+    // Fall back to existing polling — mark as degraded
+    useUIStore.getState().addDegradedReason('polling_fallback');
+    useUIStore.getState().removeDegradedReason('agent_unreachable');
     intervalId = setInterval(poll, intervalMs);
+  } else {
+    // Agent unavailable
+    useUIStore.getState().addDegradedReason('agent_unreachable');
   }
-  // If null (no agent), do nothing — will retry on next call
 }
 
 export function stopAgentNotifications() {
   running = false;
+  useUIStore.getState().removeDegradedReason('polling_fallback');
   // Stop v2 monitor
   if (unsubscribeMonitor) {
     unsubscribeMonitor();

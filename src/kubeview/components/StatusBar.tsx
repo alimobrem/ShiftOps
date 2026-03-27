@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bot, Shield } from 'lucide-react';
+import { AlertTriangle, Bot, Shield } from 'lucide-react';
+import { DEGRADED_MESSAGES } from '../engine/degradedMode';
 import { useUIStore } from '../store/uiStore';
 import { useFleetStore } from '../store/fleetStore';
 import { useMonitorStore } from '../store/monitorStore';
 import { isMultiCluster } from '../engine/clusterConnection';
+import { isFeatureEnabled } from '../engine/featureFlags';
 import { cn } from '@/lib/utils';
 
 function formatRelativeTime(timestamp: number): string {
@@ -34,6 +36,7 @@ export function StatusBar({ onToggleNotifications, notificationCenterOpen }: Sta
   const monitorConnected = useMonitorStore((s) => s.connected);
   const monitorFindings = useMonitorStore((s) => s.findings);
   const monitorUnreadCount = useMonitorStore((s) => s.unreadCount);
+  const degradedReasons = useUIStore((s) => s.degradedReasons);
   const monitorCriticalCount = monitorFindings.filter((f) => f.severity === 'critical').length;
   const navigate = useNavigate();
 
@@ -92,6 +95,17 @@ export function StatusBar({ onToggleNotifications, notificationCenterOpen }: Sta
 
       {/* Right */}
       <div className="flex items-center gap-3">
+        {isFeatureEnabled('incidentCenter') && (
+          <button
+            onClick={() => navigate('/incidents')}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors text-slate-500 hover:text-slate-300"
+            title="Incidents"
+            aria-label="Open Incidents"
+          >
+            <Shield className="h-3 w-3 text-amber-500" />
+            <span className="text-[11px]">Incidents</span>
+          </button>
+        )}
         <button
           onClick={() => navigate('/monitor')}
           className="flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors text-slate-500 hover:text-slate-300"
@@ -101,6 +115,16 @@ export function StatusBar({ onToggleNotifications, notificationCenterOpen }: Sta
           <span className={cn('inline-block h-1.5 w-1.5 rounded-full', monitorConnected ? 'bg-emerald-500' : 'bg-red-500')} />
           <span className="text-[11px]">Monitor</span>
         </button>
+        {degradedReasons.size > 0 && (
+          <button
+            onClick={onToggleNotifications}
+            className="flex items-center gap-1 text-amber-400 hover:text-amber-300 px-1.5 py-0.5 rounded transition-colors"
+            title={Array.from(degradedReasons).map((r) => DEGRADED_MESSAGES[r].title).join(', ')}
+          >
+            <AlertTriangle className="h-3 w-3" />
+            <span className="text-[11px]">Degraded</span>
+          </button>
+        )}
         <button
           onClick={onToggleNotifications}
           className={cn(

@@ -1,5 +1,6 @@
 import { Route, useParams } from 'react-router-dom';
 import React, { Suspense, lazy } from 'react';
+import { isFeatureEnabled } from '../engine/featureFlags';
 
 const AccessControlView = lazy(() => import('../views/AccessControlView'));
 const UserManagementView = lazy(() => import('../views/UserManagementView'));
@@ -12,6 +13,7 @@ const ComputeView = lazy(() => import('../views/ComputeView'));
 const BuildsView = lazy(() => import('../views/BuildsView'));
 const CRDsView = lazy(() => import('../views/CRDsView'));
 const SecurityView = lazy(() => import('../views/SecurityView'));
+const IdentityView = lazy(() => import('../views/IdentityView'));
 const ArgoCDView = lazy(() => import('../views/ArgoCDView'));
 const FleetView = lazy(() => import('../views/FleetView'));
 const CompareView = lazy(() => import('../views/fleet/CompareView'));
@@ -22,6 +24,17 @@ const FleetAlertsView = lazy(() => import('../views/fleet/FleetAlertsView'));
 const DriftDetectorView = lazy(() => import('../views/fleet/DriftDetectorView').then(m => ({ default: m.DriftDetectorView })));
 const MonitorView = lazy(() => import('../views/MonitorView'));
 const DynamicView = lazy(() => import('../views/DynamicView').then(m => ({ default: m.DynamicView })));
+const IncidentCenterView = lazy(() => import('../views/IncidentCenterView'));
+const OnboardingView = lazy(() => import('../views/OnboardingView'));
+
+function CatchFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400">
+      <p className="text-sm">This feature is not available.</p>
+      <p className="text-xs text-slate-500">Enable it in Administration &gt; Feature Flags.</p>
+    </div>
+  );
+}
 
 function LoadingFallback() {
   return (
@@ -58,6 +71,7 @@ export function domainRoutes() {
       <Route path="security" element={<Lazy><SecurityView /></Lazy>} />
       <Route path="access-control" element={<Lazy><AccessControlView /></Lazy>} />
       <Route path="users" element={<Lazy><UserManagementView /></Lazy>} />
+      <Route path="identity" element={<Lazy><IdentityView /></Lazy>} />
       <Route path="admin" element={<Lazy><AdminView /></Lazy>} />
       <Route path="alerts" element={<Lazy><AlertsView /></Lazy>} />
       <Route path="gitops" element={<Lazy><ArgoCDView /></Lazy>} />
@@ -70,6 +84,8 @@ export function domainRoutes() {
       <Route path="fleet/drift" element={<Lazy><DriftDetectorView /></Lazy>} />
       <Route path="monitor" element={<Lazy><MonitorView /></Lazy>} />
       <Route path="dynamic/:id" element={<Lazy><DynamicViewRoute /></Lazy>} />
+      <Route path="incidents" element={<Lazy>{isFeatureEnabled('incidentCenter') ? <IncidentCenterView /> : <CatchFallback />}</Lazy>} />
+      <Route path="onboarding" element={<Lazy>{isFeatureEnabled('onboarding') ? <OnboardingView /> : <CatchFallback />}</Lazy>} />
     </>
   );
 }

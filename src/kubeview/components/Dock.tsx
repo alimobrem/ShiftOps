@@ -4,11 +4,18 @@ import { useUIStore } from '../store/uiStore';
 import { useAgentStore } from '../store/agentStore';
 import { useMonitorStore } from '../store/monitorStore';
 import { AIIconStatic, AIBadge, AI_ACCENT, aiActiveClass } from './agent/AIBranding';
+import { DegradedBanner } from './primitives/DegradedBanner';
 import { cn } from '@/lib/utils';
 
 const DockAgentPanel = lazy(() => import('./agent/DockAgentPanel').then(m => ({ default: m.DockAgentPanel })));
 const LogStream = lazy(() => import('./logs/LogStream'));
 const PodTerminal = lazy(() => import('./PodTerminal'));
+
+function DockAgentDegradedBanner() {
+  const degradedReasons = useUIStore((s) => s.degradedReasons);
+  if (!degradedReasons.has('agent_unreachable')) return null;
+  return <DegradedBanner reason="agent_unreachable" />;
+}
 
 export function Dock() {
   const dockPanel = useUIStore((s) => s.dockPanel);
@@ -216,9 +223,12 @@ export function Dock() {
         )}
 
         {dockPanel === 'agent' && (
-          <Suspense fallback={<div className="text-sm text-slate-500 p-4">Loading agent...</div>}>
-            <DockAgentPanel />
-          </Suspense>
+          <>
+            <DockAgentDegradedBanner />
+            <Suspense fallback={<div className="text-sm text-slate-500 p-4">Loading agent...</div>}>
+              <DockAgentPanel />
+            </Suspense>
+          </>
         )}
 
         {dockPanel === 'monitor' && (

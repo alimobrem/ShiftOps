@@ -58,7 +58,7 @@ describe('route modules', () => {
         'path="workloads"', 'path="networking"', 'path="compute"',
         'path="storage"', 'path="builds"', 'path="crds"',
         'path="security"', 'path="access-control"', 'path="users"',
-        'path="admin"', 'path="alerts"',
+        'path="identity"', 'path="admin"', 'path="alerts"',
         'path="fleet/workloads"', 'path="fleet/alerts"', 'path="fleet/r/:gvr"',
       ];
       for (const p of paths) {
@@ -68,7 +68,7 @@ describe('route modules', () => {
 
     it('lazy-loads all domain views', () => {
       const views = [
-        'AccessControlView', 'UserManagementView', 'StorageView',
+        'AccessControlView', 'UserManagementView', 'IdentityView', 'StorageView',
         'AdminView', 'AlertsView', 'WorkloadsView', 'NetworkingView',
         'ComputeView', 'BuildsView', 'CRDsView', 'SecurityView',
       ];

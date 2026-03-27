@@ -5,7 +5,7 @@ import { startAgentNotifications, stopAgentNotifications, isAgentNotificationsRu
 const mockAddToast = vi.fn();
 
 vi.mock('../../store/uiStore', () => ({
-  useUIStore: { getState: () => ({ addToast: mockAddToast, openDock: vi.fn() }) },
+  useUIStore: { getState: () => ({ addToast: mockAddToast, openDock: vi.fn(), addDegradedReason: vi.fn(), removeDegradedReason: vi.fn() }) },
 }));
 
 vi.mock('../../store/agentStore', () => ({
@@ -14,6 +14,13 @@ vi.mock('../../store/agentStore', () => ({
 
 vi.mock('../../hooks/useMonitor', () => ({
   emitMonitorEvent: vi.fn(),
+}));
+
+vi.mock('../../store/monitorStore', () => ({
+  useMonitorStore: {
+    getState: () => ({ connect: vi.fn(), disconnect: vi.fn(), findings: [], recentActions: [] }),
+    subscribe: vi.fn(() => vi.fn()),
+  },
 }));
 
 let mockHandler: ((event: Record<string, unknown>) => void) | null = null;

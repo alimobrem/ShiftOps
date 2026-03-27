@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { DegradedReason } from '../engine/degradedMode';
 
 export interface Tab {
   id: string;
@@ -105,6 +106,11 @@ interface UIState {
   impersonateGroups: string[];
   setImpersonation: (user: string | null, groups?: string[]) => void;
   clearImpersonation: () => void;
+
+  // Degraded mode (runtime-only, not persisted)
+  degradedReasons: Set<DegradedReason>;
+  addDegradedReason: (reason: DegradedReason) => void;
+  removeDegradedReason: (reason: DegradedReason) => void;
 }
 
 let tabIdCounter = Date.now();
@@ -332,6 +338,23 @@ export const useUIStore = create<UIState>()(
       impersonateGroups: [],
       setImpersonation: (user, groups = []) => set({ impersonateUser: user, impersonateGroups: groups }),
       clearImpersonation: () => set({ impersonateUser: null, impersonateGroups: [] }),
+
+      // Degraded mode
+      degradedReasons: new Set<DegradedReason>(),
+      addDegradedReason: (reason) =>
+        set((state) => {
+          if (state.degradedReasons.has(reason)) return state;
+          const next = new Set(state.degradedReasons);
+          next.add(reason);
+          return { degradedReasons: next };
+        }),
+      removeDegradedReason: (reason) =>
+        set((state) => {
+          if (!state.degradedReasons.has(reason)) return state;
+          const next = new Set(state.degradedReasons);
+          next.delete(reason);
+          return { degradedReasons: next };
+        }),
     }),
     {
       name: 'openshiftpulse-ui-storage',

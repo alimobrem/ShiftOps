@@ -5,15 +5,16 @@ import {
   CheckCircle, XCircle, GitBranch, Clock, ChevronDown,
   Github, HeartPulse, Search, AlertCircle, RefreshCw,
   FileCode, History, GitGraph, ScrollText, Camera,
-  Diff, Monitor, Terminal,
+  Diff, Monitor, Terminal, Rocket, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUIStore } from '../store/uiStore';
 import { MetricGrid } from '../components/primitives/MetricGrid';
 import { useNavigateTab } from '../hooks/useNavigateTab';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';
 import { usePrefetchOnHover } from '../hooks/usePrefetchOnHover';
+import { isFeatureEnabled } from '../engine/featureFlags';
 import type { K8sResource } from '../engine/renderers';
 import type { Node, Condition } from '../engine/types';
 
@@ -26,6 +27,7 @@ export default function WelcomeView() {
   const connectionStatus = useUIStore((s) => s.connectionStatus);
   const go = useNavigateTab();
   const queryClient = useQueryClient();
+  const launchpad = isFeatureEnabled('welcomeLaunchpad');
 
   const { data: nodes = [], isLoading: nodesLoading, isError: nodesError } = useK8sListWatch({ apiPath: '/api/v1/nodes' });
 
@@ -41,6 +43,21 @@ export default function WelcomeView() {
   [typedNodes]);
 
   const [showAllCapabilities, setShowAllCapabilities] = useState(true);
+  const [allViewsOpen, setAllViewsOpen] = useState(!launchpad);
+
+  // Launchpad: top issues count from firing alerts
+  const { data: firingAlerts = [] } = useQuery<Array<{ labels: Record<string, string>; state: string }>>({
+    queryKey: ['welcome', 'firing-alerts'],
+    queryFn: async () => {
+      const res = await fetch('/api/prometheus/api/v1/alerts');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json.data?.alerts || []).filter((a: { state: string }) => a.state === 'firing');
+    },
+    refetchInterval: 30000,
+    enabled: launchpad,
+  });
+  const topIssuesCount = firingAlerts.length;
 
   return (
     <div className="h-full overflow-auto bg-slate-950">
@@ -80,6 +97,67 @@ export default function WelcomeView() {
             </div>
           </div>
         </div>
+
+        {/* ── Launchpad: Cluster State Summary ── */}
+        {launchpad && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 text-center">
+              <div className="text-lg font-bold text-slate-100">{typedNodes.length}</div>
+              <div className="text-xs text-slate-500">Nodes</div>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 text-center">
+              <div className={cn('text-lg font-bold', readyCount === typedNodes.length ? 'text-emerald-400' : 'text-amber-400')}>
+                {readyCount}/{typedNodes.length}
+              </div>
+              <div className="text-xs text-slate-500">Ready</div>
+            </div>
+            <button
+              onClick={() => go('/alerts', 'Alerts')}
+              className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 text-center hover:bg-slate-800/60 transition-colors"
+            >
+              <div className={cn('text-lg font-bold', topIssuesCount > 0 ? 'text-red-400' : 'text-emerald-400')}>
+                {topIssuesCount}
+              </div>
+              <div className="text-xs text-slate-500">Issues</div>
+            </button>
+            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 text-center">
+              <div className={cn('text-lg font-bold', isConnected ? 'text-emerald-400' : 'text-red-400')}>
+                {isConnected ? 'Up' : 'Down'}
+              </div>
+              <div className="text-xs text-slate-500">Status</div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Launchpad: Onboarding CTA ── */}
+        {launchpad && isFeatureEnabled('onboarding') && (
+          <button
+            onClick={() => go('/onboarding', 'Onboarding')}
+            className="group relative w-full flex items-center gap-4 p-4 rounded-xl border bg-gradient-to-br from-violet-500/20 to-violet-600/5 border-violet-500/20 hover:border-violet-500/40 transition-all text-left"
+          >
+            <span className="text-violet-400" aria-hidden="true"><Rocket className="w-5 h-5" /></span>
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-slate-100">Get Started</div>
+              <div className="text-xs text-slate-400 mt-0.5">Complete the onboarding wizard to configure your cluster</div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-700 group-hover:text-violet-400 transition-colors" aria-hidden="true" />
+          </button>
+        )}
+
+        {/* ── Launchpad: Top Issues ── */}
+        {launchpad && topIssuesCount > 0 && (
+          <button
+            onClick={() => go('/alerts', 'Alerts')}
+            className="group relative w-full flex items-center gap-4 p-4 rounded-xl border bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20 hover:border-red-500/40 transition-all text-left"
+          >
+            <span className="text-red-400" aria-hidden="true"><AlertTriangle className="w-5 h-5" /></span>
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-red-300">{topIssuesCount} alert{topIssuesCount !== 1 ? 's' : ''} firing</div>
+              <div className="text-xs text-slate-400 mt-0.5">View and triage active incidents</div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-700 group-hover:text-red-400 transition-colors" aria-hidden="true" />
+          </button>
+        )}
 
         {/* ── Cluster Pulse (primary CTA) ── */}
         <button
