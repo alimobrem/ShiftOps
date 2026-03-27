@@ -78,7 +78,7 @@ interface AvailableUpdate {
   risks?: Array<{ name?: string; message?: string }>;
 }
 
-type Tab = 'overview' | 'readiness' | 'operators' | 'config' | 'updates' | 'snapshots' | 'quotas' | 'certificates' | 'gitops' | 'errors' | 'timeline';
+type Tab = 'overview' | 'readiness' | 'operators' | 'config' | 'updates' | 'snapshots' | 'quotas' | 'certificates' | 'gitops';
 
 // --- Main component ---
 
@@ -387,8 +387,6 @@ export default function AdminView() {
     { id: 'quotas', label: `Quotas (${quotas.length})`, icon: <Shield className="w-3.5 h-3.5" /> },
     { id: 'certificates', label: 'Certificates', icon: <Shield className="w-3.5 h-3.5" /> },
     { id: 'gitops', label: 'GitOps', icon: <GitBranch className="w-3.5 h-3.5" /> },
-    { id: 'errors', label: `Errors${errorCount > 0 ? ` (${errorCount})` : ''}`, icon: <AlertCircle className="w-3.5 h-3.5" /> },
-    { id: 'timeline', label: 'Timeline', icon: <Clock className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -492,15 +490,6 @@ export default function AdminView() {
         {/* ===== GITOPS ===== */}
         {activeTab === 'gitops' && <GitOpsConfig />}
 
-        {/* ===== ERRORS ===== */}
-        {activeTab === 'errors' && <ErrorsTab />}
-
-        {/* ===== TIMELINE ===== */}
-        {activeTab === 'timeline' && (
-          <React.Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 text-blue-400 animate-spin" /></div>}>
-            <TimelineViewLazy />
-          </React.Suspense>
-        )}
       </div>
     </div>
   );
