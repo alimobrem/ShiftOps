@@ -9,6 +9,7 @@ import { useGitOpsSetupStore, type WizardStep } from '../../store/gitopsSetupSto
 import { OperatorInstallStep } from './steps/OperatorInstallStep';
 import { GitProviderStep } from './steps/GitProviderStep';
 import { SelectResourcesStep } from './steps/SelectResourcesStep';
+import { ExportStep } from './steps/ExportStep';
 import { CreateApplicationStep } from './steps/CreateApplicationStep';
 import { VerificationStep } from './steps/VerificationStep';
 import { cn } from '@/lib/utils';
@@ -16,8 +17,9 @@ import { cn } from '@/lib/utils';
 const STEPS: { id: WizardStep; label: string; description: string }[] = [
   { id: 'operator', label: 'Install Operator', description: 'OpenShift GitOps (ArgoCD)' },
   { id: 'git-config', label: 'Configure Git', description: 'Repository, token, branch' },
-  { id: 'select-resources', label: 'Select Resources', description: 'Choose what to export' },
-  { id: 'first-app', label: 'Create Application', description: 'First ArgoCD app' },
+  { id: 'select-resources', label: 'Select Resources', description: 'Choose what to track' },
+  { id: 'export', label: 'Export & Commit', description: 'Snapshot cluster to git' },
+  { id: 'first-app', label: 'Create Apps', description: 'App-of-apps setup' },
   { id: 'done', label: 'Verification', description: 'Confirm everything works' },
 ];
 
@@ -42,9 +44,10 @@ export function GitOpsSetupWizard() {
   );
 
   const advanceToNext = useCallback(() => {
-    const currentIdx = STEPS.findIndex((s) => s.id === currentStep);
-    if (currentIdx < STEPS.length - 1) {
-      setStep(STEPS[currentIdx + 1].id);
+    const stepOrder: WizardStep[] = ['operator', 'git-config', 'select-resources', 'export', 'first-app', 'done'];
+    const currentIdx = stepOrder.indexOf(currentStep);
+    if (currentIdx < stepOrder.length - 1) {
+      setStep(stepOrder[currentIdx + 1]);
     }
   }, [currentStep, setStep]);
 
@@ -122,6 +125,7 @@ export function GitOpsSetupWizard() {
             {currentStep === 'operator' && <OperatorInstallStep onComplete={advanceToNext} />}
             {currentStep === 'git-config' && <GitProviderStep onComplete={advanceToNext} />}
             {currentStep === 'select-resources' && <SelectResourcesStep onComplete={advanceToNext} />}
+            {currentStep === 'export' && <ExportStep onComplete={advanceToNext} />}
             {currentStep === 'first-app' && <CreateApplicationStep onComplete={advanceToNext} />}
             {currentStep === 'done' && (
               <VerificationStep onClose={closeWizard} />
