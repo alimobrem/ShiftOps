@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { useArgoCDStore } from './argoCDStore';
 import { k8sGet } from '../engine/query';
 
-export type WizardStep = 'operator' | 'git-config' | 'first-app' | 'done';
+export type WizardStep = 'operator' | 'git-config' | 'select-resources' | 'export' | 'first-app' | 'done';
 
 interface GitOpsSetupState {
   wizardOpen: boolean;
@@ -11,8 +11,19 @@ interface GitOpsSetupState {
   completedSteps: WizardStep[];
   dismissed: boolean;
 
+  // Export selections
+  selectedCategories: string[];
+  selectedNamespaces: string[];
+  clusterName: string;
+  exportMode: 'branch' | 'pr';
+
   operatorPhase: 'idle' | 'creating' | 'pending' | 'installing' | 'succeeded' | 'failed';
   operatorError: string | null;
+
+  setSelectedCategories: (cats: string[]) => void;
+  setSelectedNamespaces: (ns: string[]) => void;
+  setClusterName: (name: string) => void;
+  setExportMode: (mode: 'branch' | 'pr') => void;
 
   openWizard: (resumeAt?: WizardStep) => void;
   closeWizard: () => void;
@@ -29,8 +40,18 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
       currentStep: 'operator',
       completedSteps: [],
       dismissed: false,
+      selectedCategories: [],
+      selectedNamespaces: [],
+      clusterName: 'my-cluster',
+      exportMode: 'pr',
+
       operatorPhase: 'idle',
       operatorError: null,
+
+      setSelectedCategories: (cats) => set({ selectedCategories: cats }),
+      setSelectedNamespaces: (ns) => set({ selectedNamespaces: ns }),
+      setClusterName: (name) => set({ clusterName: name }),
+      setExportMode: (mode) => set({ exportMode: mode }),
 
       openWizard: (resumeAt) => {
         const step = resumeAt || get().currentStep;
@@ -69,10 +90,12 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
         try {
           await k8sGet('/api/v1/namespaces/openshiftpulse/secrets/openshiftpulse-gitops-config');
           completed.push('git-config');
-          resumeStep = 'first-app';
+          resumeStep = 'select-resources';
         } catch {
           // Not configured
         }
+
+        // select-resources and export are transient steps — skip detection
 
         // Check if apps exist
         if (useArgoCDStore.getState().applications.length > 0) {
@@ -80,7 +103,8 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
           resumeStep = 'done';
         }
 
-        set({ completedSteps: completed, currentStep: completed.length === 3 ? 'done' : resumeStep });
+        const allDone = completed.length >= 3 && completed.includes('first-app');
+        set({ completedSteps: completed, currentStep: allDone ? 'done' : resumeStep });
       },
     }),
     {
