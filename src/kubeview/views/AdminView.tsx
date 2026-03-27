@@ -431,13 +431,23 @@ export default function AdminView() {
           <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
             <div className="rounded border border-slate-800 bg-slate-950/70 p-2">
               <div className="text-slate-400">Release gate</div>
-              <div className={cn('mt-1 font-medium', evalStatus?.release?.gate_passed ? 'text-green-300' : 'text-slate-300')}>
+              <div className={cn(
+                'mt-1 font-medium',
+                evalStatus?.release
+                  ? (evalStatus.release.gate_passed ? 'text-green-300' : 'text-amber-300')
+                  : 'text-slate-300',
+              )}>
                 {evalStatus?.release ? (evalStatus.release.gate_passed ? 'PASS' : 'FAIL') : 'n/a'}
               </div>
             </div>
             <div className="rounded border border-slate-800 bg-slate-950/70 p-2">
               <div className="text-slate-400">Outcomes gate</div>
-              <div className={cn('mt-1 font-medium', evalStatus?.outcomes?.gate_passed ? 'text-green-300' : 'text-slate-300')}>
+              <div className={cn(
+                'mt-1 font-medium',
+                evalStatus?.outcomes
+                  ? (evalStatus.outcomes.gate_passed ? 'text-green-300' : 'text-amber-300')
+                  : 'text-slate-300',
+              )}>
                 {evalStatus?.outcomes ? (evalStatus.outcomes.gate_passed ? 'PASS' : 'FAIL') : 'n/a'}
               </div>
             </div>

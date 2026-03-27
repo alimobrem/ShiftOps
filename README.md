@@ -98,7 +98,7 @@ npm run dev    # http://localhost:9000
 | **Incident Center** | Consolidates Monitor + Alerts + Errors + Timeline into 4 tabs: Now (live findings), Investigate (alerts + errors), Actions (auto-fix history), History (correlated timeline) |
 | **Identity & Access** | Unified view merging User Management + Access Control into a single surface for users, groups, service accounts, RBAC audit, and impersonation |
 | **Incident Timeline** | Unified timeline merging alerts, events, rollouts, and config changes with correlation groups |
-| **Admin Overview** | Firing alerts, named degraded operators, cert warnings, quota hot spots, health score — the 8am view |
+| **Admin Overview** | Firing alerts, named degraded operators, cert warnings, quota hot spots, health score, and Agent quality gate status with PASS/FAIL emphasis — the 8am view |
 | **ArgoCD / GitOps** | 4-step setup wizard (operator install → git config → first app → verify), sync badges, auto-PR on save, drift detection, Rollouts (canary/blue-green), Projects. GitHub, GitLab, Bitbucket. |
 | **Capacity Planning** | predict_linear() projections for CPU, memory, disk, pods with days-until-exhaustion and trend charts |
 | **HyperShift** | Auto-detects hosted control planes, adapts checks, hides irrelevant Machine API panels |
