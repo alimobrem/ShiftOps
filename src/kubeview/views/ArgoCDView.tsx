@@ -136,10 +136,21 @@ export default function ArgoCDView() {
           title="GitOps"
           subtitle={<>ArgoCD Applications, sync status, and drift detection{namespace && <span className="text-violet-400 ml-1">· {namespace}</span>}</>}
           actions={
-            <Button variant="ghost" size="sm" onClick={() => refresh()} disabled={applicationsLoading}>
-              <RefreshCw className={cn('w-3.5 h-3.5', applicationsLoading && 'animate-spin')} />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              {isConfigured && (
+                <Button size="sm" onClick={() => openWizard('select-resources')} className="bg-blue-600 hover:bg-blue-500">
+                  Export Cluster to Git
+                </Button>
+              )}
+              <Button size="sm" onClick={() => openWizard(isConfigured ? 'first-app' : 'operator')} className="bg-violet-600 hover:bg-violet-500">
+                <Sparkles className="w-3.5 h-3.5" />
+                {isConfigured ? 'Create Application' : 'Set Up GitOps'}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => refresh()} disabled={applicationsLoading}>
+                <RefreshCw className={cn('w-3.5 h-3.5', applicationsLoading && 'animate-spin')} />
+                Refresh
+              </Button>
+            </div>
           }
         />
 
