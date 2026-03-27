@@ -63,7 +63,7 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
       selectedCategories: [],
       selectedNamespaces: [],
       exportSummary: null,
-      exportSelections: { clusterName: '', categoryIds: ['cluster-config', 'operators'], namespaces: [], exportMode: 'pr' },
+      exportSelections: { clusterName: '', categoryIds: [], namespaces: [], exportMode: 'pr' },
 
       openWizard: (resumeAt) => {
         const step = resumeAt || get().currentStep;
@@ -126,6 +126,7 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
       partialize: (state) => ({
         completedSteps: state.completedSteps,
         dismissed: state.dismissed,
+        exportSelections: state.exportSelections,
       }),
     },
   ),

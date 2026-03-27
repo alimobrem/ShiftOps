@@ -83,7 +83,7 @@ export function SelectResourcesStep({ onComplete }: Props) {
   const selectAllNamespaces = () => setSelectedNamespaces([...allNamespaces]);
   const clearAllNamespaces = () => setSelectedNamespaces([]);
 
-  const needsNamespaces = categoryIds.includes('workloads') || categoryIds.includes('operators');
+  const needsNamespaces = RESOURCE_CATEGORIES.some((c) => categoryIds.includes(c.id) && c.resources.some((r) => r.namespaced));
   const canContinue = clusterName.trim() && categoryIds.length > 0 && (!needsNamespaces || selectedNamespaces.length > 0);
 
   const handleContinue = () => {
