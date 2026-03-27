@@ -30,8 +30,11 @@ interface CategoryProgress {
 }
 
 export function ExportStep({ onComplete }: Props) {
-  const { selectedCategories, selectedNamespaces, clusterName, exportMode } =
-    useGitOpsSetupStore();
+  const { exportSelections } = useGitOpsSetupStore();
+  const selectedCategories = exportSelections.categoryIds;
+  const selectedNamespaces = exportSelections.namespaces;
+  const clusterName = exportSelections.clusterName;
+  const exportMode = exportSelections.exportMode;
   const markComplete = useGitOpsSetupStore((s) => s.markStepComplete);
   const { config } = useGitOpsConfig();
 
