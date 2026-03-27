@@ -262,7 +262,7 @@ describe('exportClusterToGit', () => {
     expect(mockProvider.createPullRequest).toHaveBeenCalled();
 
     const completeEvent = events.find((e) => e.type === 'complete');
-    expect(completeEvent).toEqual({ type: 'complete', totalResources: 1 });
+    expect(completeEvent).toMatchObject({ type: 'complete', totalResources: 1 });
   });
 
   it('skips resources from system namespaces', async () => {

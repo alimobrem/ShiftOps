@@ -58,35 +58,32 @@ export function ExportStep({ onComplete }: Props) {
       case 'category-start':
         setCategoryProgress((prev) => ({
           ...prev,
-          [event.category]: { status: 'running', fileCount: 0 },
+          [event.categoryId]: { status: 'running', fileCount: 0 },
         }));
         break;
-      case 'file-committed':
-        if (event.file) {
-          setCommittedFiles((prev) => [...prev, event.file!]);
-        }
+      case 'category-fetched':
         setCategoryProgress((prev) => ({
           ...prev,
-          [event.category]: { status: 'running', fileCount: event.fileCount || 0 },
+          [event.categoryId]: { status: 'running', fileCount: event.resourceCount },
         }));
-        requestAnimationFrame(() => {
-          fileLogRef.current?.scrollTo({ top: fileLogRef.current.scrollHeight });
+        break;
+      case 'category-committed':
+        setCategoryProgress((prev) => {
+          const current = prev[event.categoryId];
+          return {
+            ...prev,
+            [event.categoryId]: { status: 'done', fileCount: current?.fileCount || 0 },
+          };
         });
-        break;
-      case 'category-done':
-        setCategoryProgress((prev) => ({
-          ...prev,
-          [event.category]: { status: 'done', fileCount: event.fileCount || 0 },
-        }));
         break;
       case 'category-error':
         setCategoryProgress((prev) => ({
           ...prev,
-          [event.category]: { status: 'error', fileCount: 0, error: event.error },
+          [event.categoryId]: { status: 'error', fileCount: 0, error: event.error },
         }));
         break;
       case 'complete':
-        setTotalFiles(event.totalFiles || 0);
+        setTotalFiles(event.type === 'complete' ? event.totalResources : 0);
         if (event.prUrl) setPrUrl(event.prUrl);
         break;
     }
@@ -110,22 +107,30 @@ export function ExportStep({ onComplete }: Props) {
     const branchName = `pulse/cluster-export-${Date.now()}`;
 
     try {
-      const provider = createGitProvider(config);
-      const url = await exportClusterToGit({
-        gitProvider: provider,
+      const generator = exportClusterToGit({
         config,
-        branchName,
         clusterName,
-        selectedCategories,
-        selectedNamespaces,
+        categoryIds: selectedCategories,
+        namespaces: selectedNamespaces,
         exportMode,
-        signal: controller.signal,
-        onEvent: handleEvent,
+        branchName,
       });
 
-      if (url) setPrUrl(url);
-      setPhase('done');
-      markComplete('export');
+      for await (const event of generator) {
+        if (controller.signal.aborted) break;
+        handleEvent(event);
+
+        if (event.type === 'error') {
+          setErrorMessage(event.error);
+          setPhase('error');
+          return;
+        }
+        if (event.type === 'complete') {
+          setPhase('done');
+          markComplete('export');
+          return;
+        }
+      }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         setPhase('cancelled');

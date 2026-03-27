@@ -138,7 +138,7 @@ export type ExportEvent =
   | { type: 'category-fetched'; categoryId: string; resourceCount: number }
   | { type: 'category-committed'; categoryId: string }
   | { type: 'category-error'; categoryId: string; error: string }
-  | { type: 'complete'; totalResources: number }
+  | { type: 'complete'; totalResources: number; prUrl?: string }
   | { type: 'error'; error: string };
 
 // ── Export options ──
@@ -194,6 +194,19 @@ export async function* exportClusterToGit(
   const targetBranch = exportMode === 'pr' ? branchName : config.baseBranch;
   let totalResources = 0;
 
+  // If no namespaces selected, auto-discover user namespaces
+  let effectiveNamespaces = namespaces;
+  if (effectiveNamespaces.length === 0) {
+    try {
+      const allNs = await k8sList<K8sResource>('/api/v1/namespaces');
+      effectiveNamespaces = allNs
+        .map((ns) => ns.metadata.name)
+        .filter(isUserNamespace);
+    } catch {
+      effectiveNamespaces = [];
+    }
+  }
+
   for (const category of categories) {
     yield { type: 'category-start', categoryId: category.id, label: category.label };
 
@@ -201,7 +214,7 @@ export async function* exportClusterToGit(
       let categoryResourceCount = 0;
 
       for (const resDef of category.resources) {
-        const fetchNamespaces = resDef.namespaced ? namespaces : ['_cluster_'];
+        const fetchNamespaces = resDef.namespaced ? effectiveNamespaces : ['_cluster_'];
 
         for (const ns of fetchNamespaces) {
           try {
@@ -250,19 +263,21 @@ export async function* exportClusterToGit(
   }
 
   // Create PR if needed
+  let prUrl: string | undefined;
   if (exportMode === 'pr' && totalResources > 0) {
     try {
-      await provider.createPullRequest(
+      const pr = await provider.createPullRequest(
         `Export cluster resources: ${clusterName}`,
         `Exported ${totalResources} resources from cluster \`${clusterName}\` across ${categories.length} categories.\n\nCategories: ${categories.map((c) => c.label).join(', ')}`,
         branchName,
         config.baseBranch,
       );
+      prUrl = pr.url;
     } catch (err) {
       yield { type: 'error', error: `Failed to create PR: ${err instanceof Error ? err.message : String(err)}` };
       return;
     }
   }
 
-  yield { type: 'complete', totalResources };
+  yield { type: 'complete', totalResources, prUrl };
 }
