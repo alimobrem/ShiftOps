@@ -3,13 +3,14 @@ import { persist } from 'zustand/middleware';
 import { useArgoCDStore } from './argoCDStore';
 import { k8sGet } from '../engine/query';
 
-export type WizardStep = 'operator' | 'git-config' | 'first-app' | 'select-resources' | 'export' | 'done';
+export type WizardStep = 'operator' | 'git-config' | 'first-app' | 'done';
 
-interface ExportProgress {
-  category: string;
-  totalFiles: number;
-  committedFiles: number;
-  errors: string[];
+export interface ExportSummary {
+  resourceCount: number;
+  categories: string[];
+  namespaces: string[];
+  prUrl?: string;
+  clusterName: string;
 }
 
 interface GitOpsSetupState {
@@ -21,11 +22,12 @@ interface GitOpsSetupState {
   operatorPhase: 'idle' | 'creating' | 'pending' | 'installing' | 'succeeded' | 'failed';
   operatorError: string | null;
 
+  /** Categories selected for app-of-apps export (e.g. 'deployments', 'services') */
   selectedCategories: string[];
+  /** Namespaces to export for app-of-apps pattern */
   selectedNamespaces: string[];
-  clusterName: string;
-  exportProgress: ExportProgress | null;
-  exportMode: 'direct-commit' | 'pull-request';
+  /** Summary of the last export */
+  exportSummary: ExportSummary | null;
 
   openWizard: (resumeAt?: WizardStep) => void;
   closeWizard: () => void;
@@ -34,9 +36,7 @@ interface GitOpsSetupState {
   setOperatorPhase: (phase: GitOpsSetupState['operatorPhase'], error?: string) => void;
   setSelectedCategories: (categories: string[]) => void;
   setSelectedNamespaces: (namespaces: string[]) => void;
-  setClusterName: (name: string) => void;
-  setExportProgress: (progress: ExportProgress | null) => void;
-  setExportMode: (mode: 'direct-commit' | 'pull-request') => void;
+  setExportSummary: (summary: ExportSummary) => void;
   detectCompletedSteps: () => Promise<void>;
 }
 
@@ -50,11 +50,9 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
       operatorPhase: 'idle',
       operatorError: null,
 
-      selectedCategories: ['cluster-config', 'operators'],
+      selectedCategories: [],
       selectedNamespaces: [],
-      clusterName: '',
-      exportProgress: null,
-      exportMode: 'pull-request',
+      exportSummary: null,
 
       openWizard: (resumeAt) => {
         const step = resumeAt || get().currentStep;
@@ -77,9 +75,7 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
 
       setSelectedCategories: (categories) => set({ selectedCategories: categories }),
       setSelectedNamespaces: (namespaces) => set({ selectedNamespaces: namespaces }),
-      setClusterName: (name) => set({ clusterName: name }),
-      setExportProgress: (progress) => set({ exportProgress: progress }),
-      setExportMode: (mode) => set({ exportMode: mode }),
+      setExportSummary: (summary) => set({ exportSummary: summary }),
 
       detectCompletedSteps: async () => {
         const completed: WizardStep[] = [];
@@ -118,10 +114,6 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
       partialize: (state) => ({
         completedSteps: state.completedSteps,
         dismissed: state.dismissed,
-        selectedCategories: state.selectedCategories,
-        selectedNamespaces: state.selectedNamespaces,
-        clusterName: state.clusterName,
-        exportMode: state.exportMode,
       }),
     },
   ),

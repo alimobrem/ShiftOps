@@ -3,11 +3,16 @@
  * across GitHub, GitLab, and Bitbucket via their REST APIs.
  */
 
+export interface FileCommit {
+  path: string;
+  content: string;
+}
+
 export interface GitProvider {
   createBranch(baseBranch: string, newBranch: string): Promise<void>;
   getFileContent(branch: string, path: string): Promise<{ content: string; sha: string } | null>;
   createOrUpdateFile(branch: string, path: string, content: string, message: string, fileSha?: string): Promise<void>;
-  commitMultipleFiles(branch: string, files: Array<{ path: string; content: string }>, message: string): Promise<void>;
+  commitMultipleFiles(branch: string, files: FileCommit[], message: string): Promise<void>;
   createPullRequest(title: string, body: string, head: string, base: string): Promise<{ url: string; number: number }>;
 }
 
@@ -132,23 +137,32 @@ class GitHubProvider implements GitProvider {
     if (!res.ok) throw new Error(`Failed to update file: ${res.status}`);
   }
 
-  async commitMultipleFiles(branch: string, files: Array<{ path: string; content: string }>, message: string): Promise<void> {
+  async commitMultipleFiles(branch: string, files: FileCommit[], message: string): Promise<void> {
+    // Get the latest commit SHA on the branch
     const refRes = await fetch(`${this.apiBase}/git/ref/heads/${branch}`, { headers: this.headers });
     if (!refRes.ok) throw new Error(`Failed to get branch ref: ${refRes.status}`);
     const refData = await refRes.json();
-    const commitSha = refData.object.sha;
+    const latestCommitSha = refData.object.sha;
 
-    const commitRes = await fetch(`${this.apiBase}/git/commits/${commitSha}`, { headers: this.headers });
+    // Get the tree SHA of that commit
+    const commitRes = await fetch(`${this.apiBase}/git/commits/${latestCommitSha}`, { headers: this.headers });
     if (!commitRes.ok) throw new Error(`Failed to get commit: ${commitRes.status}`);
     const commitData = await commitRes.json();
     const baseTreeSha = commitData.tree.sha;
 
-    const tree = files.map(f => ({
-      path: f.path,
-      mode: '100644' as const,
-      type: 'blob' as const,
-      content: f.content,
+    // Create blobs for each file and build tree entries
+    const tree = await Promise.all(files.map(async (f) => {
+      const blobRes = await fetch(`${this.apiBase}/git/blobs`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({ content: f.content, encoding: 'utf-8' }),
+      });
+      if (!blobRes.ok) throw new Error(`Failed to create blob for ${f.path}: ${blobRes.status}`);
+      const blobData = await blobRes.json();
+      return { path: f.path, mode: '100644' as const, type: 'blob' as const, sha: blobData.sha };
     }));
+
+    // Create a new tree
     const treeRes = await fetch(`${this.apiBase}/git/trees`, {
       method: 'POST',
       headers: this.headers,
@@ -157,20 +171,22 @@ class GitHubProvider implements GitProvider {
     if (!treeRes.ok) throw new Error(`Failed to create tree: ${treeRes.status}`);
     const treeData = await treeRes.json();
 
+    // Create the commit
     const newCommitRes = await fetch(`${this.apiBase}/git/commits`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify({ message, tree: treeData.sha, parents: [commitSha] }),
+      body: JSON.stringify({ message, tree: treeData.sha, parents: [latestCommitSha] }),
     });
     if (!newCommitRes.ok) throw new Error(`Failed to create commit: ${newCommitRes.status}`);
     const newCommitData = await newCommitRes.json();
 
-    const updateRefRes = await fetch(`${this.apiBase}/git/refs/heads/${branch}`, {
+    // Update the branch ref
+    const updateRes = await fetch(`${this.apiBase}/git/refs/heads/${branch}`, {
       method: 'PATCH',
       headers: this.headers,
       body: JSON.stringify({ sha: newCommitData.sha }),
     });
-    if (!updateRefRes.ok) throw new Error(`Failed to update ref: ${updateRefRes.status}`);
+    if (!updateRes.ok) throw new Error(`Failed to update branch ref: ${updateRes.status}`);
   }
 
   async createPullRequest(title: string, body: string, head: string, base: string): Promise<{ url: string; number: number }> {
@@ -233,8 +249,8 @@ class GitLabProvider implements GitProvider {
     if (!res.ok) throw new Error(`Failed to update file: ${res.status}`);
   }
 
-  async commitMultipleFiles(branch: string, files: Array<{ path: string; content: string }>, message: string): Promise<void> {
-    const actions = files.map(f => ({
+  async commitMultipleFiles(branch: string, files: FileCommit[], message: string): Promise<void> {
+    const actions = files.map((f) => ({
       action: 'create' as const,
       file_path: f.path,
       content: f.content,
@@ -302,10 +318,24 @@ class BitbucketProvider implements GitProvider {
     return { content, sha: '' };
   }
 
-  private async postFiles(branch: string, files: Array<{ path: string; content: string }>, message: string): Promise<void> {
+  async createOrUpdateFile(branch: string, path: string, content: string, message: string): Promise<void> {
     const formData = new FormData();
-    for (const file of files) {
-      formData.append(file.path, new Blob([file.content]));
+    formData.append(path, new Blob([content]));
+    formData.append('message', message);
+    formData.append('branch', branch);
+
+    const res = await fetch(`${this.apiBase}/src`, {
+      method: 'POST',
+      headers: { Authorization: this.headers.Authorization },
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`Failed to update file: ${res.status}`);
+  }
+
+  async commitMultipleFiles(branch: string, files: FileCommit[], message: string): Promise<void> {
+    const formData = new FormData();
+    for (const f of files) {
+      formData.append(f.path, new Blob([f.content]));
     }
     formData.append('message', message);
     formData.append('branch', branch);
@@ -316,14 +346,6 @@ class BitbucketProvider implements GitProvider {
       body: formData,
     });
     if (!res.ok) throw new Error(`Failed to commit files: ${res.status}`);
-  }
-
-  async createOrUpdateFile(branch: string, path: string, content: string, message: string): Promise<void> {
-    await this.postFiles(branch, [{ path, content }], message);
-  }
-
-  async commitMultipleFiles(branch: string, files: Array<{ path: string; content: string }>, message: string): Promise<void> {
-    await this.postFiles(branch, files, message);
   }
 
   async createPullRequest(title: string, body: string, head: string, base: string): Promise<{ url: string; number: number }> {
