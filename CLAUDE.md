@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-OpenShift Pulse — a React/TypeScript dashboard for OpenShift Day-2 operations. All data comes from live Kubernetes APIs (no mock data in production code). v5.12.0, ~145 source files, 1710 tests.
+OpenShift Pulse — a React/TypeScript dashboard for OpenShift Day-2 operations. All data comes from live Kubernetes APIs (no mock data in production code). v5.12.0, ~180 source files, 1888 tests.
 
 ## Commands
 
@@ -16,12 +16,15 @@ npm run dev              # rspack dev server on port 9000
 npm run build            # production build (~1s)
 
 # Tests
-npx vitest --run         # run all tests (~3s)
+npx vitest --run         # run all tests (~8s)
 npx vitest --run src/kubeview/views/__tests__/WorkloadsView.test.tsx  # single file
 npx vitest --run -t "test name pattern"  # single test by name
 
 # Type checking
 npm run type-check       # tsc --noEmit
+
+# Full verify
+npm run verify           # type-check + strict + lint + test + build
 
 # Lint & format
 npm run lint             # eslint with --fix
@@ -35,6 +38,15 @@ npm run format           # prettier
 - **Shell**: `components/Shell.tsx` wraps all routes (CommandBar + TabBar + Dock + StatusBar)
 - **Routes**: `routes/resourceRoutes.tsx` (generic CRUD), `routes/domainRoutes.tsx` (views like Workloads, Storage), `routes/redirects.tsx`
 - URL pattern for resources: `/r/{group~version~plural}/{namespace}/{name}` (GVR encoding uses `~` separator)
+- **Feature-gated routes**: `/incidents`, `/identity`, `/onboarding` — gated by `engine/featureFlags.ts` (localStorage-based). Toggle in Admin > Overview > Feature Flags.
+
+### Navigation Structure (target)
+```
+Home:     Welcome (smart launchpad)
+Operate:  Pulse, Incident Center, Workloads, Compute, Networking, Storage, Fleet
+Govern:   Identity & Access, Security, GitOps
+Platform: Admin, Onboarding
+```
 
 ### Data Layer
 - **API proxy**: All K8s calls go through `/api/kubernetes` → rspack dev proxy → `oc proxy :8001`
@@ -44,41 +56,75 @@ npm run format           # prettier
 - **Discovery**: `engine/discovery.ts` — discovers all resource types from `/apis` endpoint, builds `ResourceRegistry` (Map<string, ResourceType>)
 - **Impersonation**: `getImpersonationHeaders()` in `engine/query.ts` — added to ALL fetch calls from `uiStore` state
 
-### State Management
-- **`store/clusterStore.ts`** (zustand) — cluster discovery, version info, HyperShift detection (`isHyperShift` when `controlPlaneTopology === 'External'`)
-- **`store/uiStore.ts`** (zustand + persist) — tabs, toasts, dock panel, namespace, impersonation, connection status. Persisted to `localStorage` with `openshiftpulse-` prefix
+### State Management (Zustand stores)
+- **`store/uiStore.ts`** — tabs, toasts, dock panel, namespace, impersonation, connection status, degradedReasons. Persisted to localStorage
+- **`store/clusterStore.ts`** — cluster discovery, version info, HyperShift detection
+- **`store/monitorStore.ts`** — findings, predictions, pending/recent actions, fix history (from agent WebSocket)
+- **`store/agentStore.ts`** — chat messages, streaming, tool execution, pending confirmations
+- **`store/trustStore.ts`** — agent trust level (0-4), auto-fix categories
+- **`store/errorStore.ts`** — tracked K8s API errors by category with suggestions
+- **`store/fleetStore.ts`** — multi-cluster connections, ACM detection
+- **`store/argoCDStore.ts`** — ArgoCD availability, apps, sync status
+- **`store/onboardingStore.ts`** — readiness gate results, waivers, wizard/checklist mode, scheduled rechecks
+
+### Canonical Data Models
+- **`engine/types/incident.ts`** — `IncidentItem`, `PrometheusAlert`, `FleetAlert` + mapper functions. Single source of truth for all incident-related types.
+- **`engine/readiness/types.ts`** — `ReadinessGate`, `GateResult`, `GateStatus`, `ReadinessReport`, `CategorySummary`. Single source of truth for readiness types.
+- **`engine/monitorClient.ts`** — `Finding`, `ResourceRef`, `ActionReport`, `Prediction`, `MonitorEvent`. Agent WebSocket types.
+- **`engine/fixHistory.ts`** — `ActionRecord`, `FixHistoryResponse`. Agent REST types.
+
+### Agent Integration
+- **Monitor WebSocket**: `engine/monitorClient.ts` → `store/monitorStore.ts` — single connection managed by `agentNotifications.ts`
+- **Agent Chat WebSocket**: `engine/agentClient.ts` → `store/agentStore.ts` — interactive SRE/security agent
+- **Degraded mode**: `engine/degradedMode.ts` — 5 failure reasons tracked in `uiStore.degradedReasons`, displayed via `primitives/DegradedBanner.tsx`
+- **Confirmation flow**: `confirm_request` → UI shows approval dialog → `confirm_response` with nonce for replay prevention
+
+### Readiness Engine
+- **Gates**: `engine/readiness/gates.ts` — 30 gates across 6 categories (prerequisites, security, reliability, observability, operations, gitops)
+- **Scoring**: `engine/readiness/scoring.ts` — weighted scoring, `isProductionReady()` with 80% threshold
+- **UI bridge**: `components/onboarding/types.ts` — `CategoryView` + `buildCategoryViews()` bridges engine data → UI components
 
 ### Engine (src/kubeview/engine/)
 - **renderers/** — `K8sResource` type definition, `ColumnDef` for list tables, `kindToPlural()`, status color mapping
 - **enhancers/** — per-kind column/action extensions (pods, deployments, nodes, services, secrets). Register via `enhancers/register.ts`
 - **actions.ts** — `ResourceAction` registry (quick/navigate/danger categories)
 - **gvr.ts** — `K8S_BASE` constant (`/api/kubernetes`), GVR↔URL encoding utilities
-- **snapshot.ts** — cluster state capture/compare
+- **featureFlags.ts** — localStorage-based feature flags: `incidentCenter`, `identityView`, `welcomeLaunchpad`, `onboarding`
+- **degradedMode.ts** — `DegradedReason` type + `DEGRADED_MESSAGES` for 5 failure modes
+
+### Unified Incident Feed
+- **`hooks/useIncidentFeed.ts`** — merges 4 sources (monitor findings, tracked errors, Prometheus alerts, timeline) into `IncidentItem[]` via canonical mappers. Deduplicates by correlationKey, sorts by severity.
+- Used by `views/incidents/NowTab.tsx` in the Incident Center
 
 ### UI Components
-- **Primitives**: `components/primitives/` — Panel, Card, DataTable, Badge, Dropdown, SearchInput, StatusBadge, ActionMenu, EmptyState
-- **Feedback**: `components/feedback/` — Toast, ConfirmDialog (not native `confirm()`), ProgressModal, InlineFeedback
-- **YAML**: `components/yaml/` — YamlEditor (CodeMirror), DryRunPanel, DiffPreview, SchemaPanel, SnippetEngine
-- **Logs/Metrics**: `components/logs/`, `components/metrics/` — LogStream, MultiContainerLogs, MetricsChart, Prometheus helpers
+- **Primitives**: `components/primitives/` — Panel, Card, DataTable, Badge, Dropdown, SearchInput, StatusBadge, ActionMenu, EmptyState, DegradedBanner
+- **Feedback**: `components/feedback/` — Toast, ConfirmDialog, ProgressModal, InlineFeedback
+- **YAML**: `components/yaml/` — YamlEditor (CodeMirror), DryRunPanel, DiffPreview
+- **Onboarding**: `components/onboarding/` — ReadinessWizard, ReadinessChecklist, GateCard, ReadinessScore, WaiverDialog, CategoryStep
 
 ### Views (src/kubeview/views/)
-14 domain views (Workloads, Storage, Networking, Compute, Pulse, Alerts, etc.) + detail views (IncidentContext, WorkloadAudit, RollbackPanel) + admin tabs. Each domain view typically has metrics + health audit (6 checks each).
+- **Operate**: Pulse, IncidentCenter (Now/Investigate/Actions/History tabs), Workloads, Compute, Networking, Storage, Fleet
+- **Govern**: Identity (Users/Groups/RBAC/Impersonation), Security, GitOps (ArgoCD)
+- **Platform**: Admin (11 tabs), Onboarding (wizard/checklist modes)
+- **Legacy**: Monitor, Alerts, UserManagement, AccessControl (redirect to new views when feature flags on)
 
 ### Testing
 - **Framework**: vitest + jsdom + @testing-library/react
-- **Test setup**: `src/kubeview/__tests__/setup.tsx` — factories (`makeDeployment`, `makePod`, `makeNode`, `makeConfigMap`), `wrapList()`, `createMockServer()`, `k8sHandlers()`, `renderWithProviders()`
-- **Mocking patterns**: Most tests (24/63 files) use `vi.mock` with `_mockListWatchData` objects to feed data to components. Integration tests (2 files) use MSW `http.get/post/patch/delete` handlers against `*/api/kubernetes*` paths for network-level mocking.
-- `__APP_VERSION__` is defined in both `rspack.config.ts` and `vitest.config.ts` via DefinePlugin/define
+- **Config**: `vitest.config.ts` — excludes `.claude/worktrees/**` from test discovery
+- **Test setup**: `src/kubeview/__tests__/setup.tsx` — factories, mock server, renderWithProviders
+- **Mocking**: `vi.mock` with `_mockListWatchData`, MSW handlers for integration tests
+- `__APP_VERSION__` defined in both `rspack.config.ts` and `vitest.config.ts`
 
 ### Key Conventions
 - Path alias: `@/` maps to `src/`
 - CSS: Tailwind + PatternFly 6. Main class `.openshiftpulse` in `styles/index.css`
 - Icons: lucide-react
-- State: zustand (no Redux)
+- State: zustand (no Redux). Persisted stores use `persist` middleware with `openshiftpulse-` prefix
 - Routing: react-router-dom v7
-- PromQL values sanitized via `sanitizePromQL()` in `engine/query.ts`
-- Header values sanitized against CRLF injection
-- RBAC checks via `hooks/useCanI.ts` (SelfSubjectAccessReview)
+- Types: define once in `engine/types/` or `engine/readiness/`, import everywhere. Never duplicate interfaces.
+- Feature flags: `engine/featureFlags.ts` — check with `isFeatureEnabled(flag)`, toggle in Admin
+- Degraded mode: set via `uiStore.addDegradedReason()`, display via `DegradedBanner`
+- Agent confirmation: always pass `nonce` from `confirm_request` back in `confirm_response`
 
 ### Environment Variables (dev server)
 - `K8S_API_URL` — K8s API target (default: `http://localhost:8001`)
@@ -89,6 +135,10 @@ npm run format           # prettier
 
 ### Deploy to OpenShift
 ```bash
-npm run build && oc start-build openshiftpulse --from-dir=. --follow -n openshiftpulse && oc rollout restart deployment/openshiftpulse -n openshiftpulse
+# UI only
+npm run build && oc start-build openshiftpulse --from-dir=dist --follow -n openshiftpulse && oc rollout restart deployment/openshiftpulse -n openshiftpulse
+
+# Full stack (UI + Agent)
+./deploy/deploy.sh --agent-repo ../pulse-agent
 ```
-Manifests in `deploy/deployment.yaml`. OAuth proxy, 2 replicas, PDB, topology spread.
+Helm chart in `deploy/helm/openshiftpulse/`. OAuth proxy, 2 replicas, PDB, topology spread. WS token auto-synced from agent secret on re-deploys.
