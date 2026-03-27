@@ -31,9 +31,16 @@ export function jsonToYaml(obj: unknown, indent: number = 0): string {
         if (entries.length === 0) return `${prefix}- {}`;
         const first = entries[0];
         const rest = entries.slice(1);
-        let result = `${prefix}- ${first[0]}: ${jsonToYaml(first[1], indent + 4)}`;
+        const firstVal = first[1];
+        const isComplex = typeof firstVal === 'object' && firstVal !== null;
+        let result = isComplex
+          ? `${prefix}- ${first[0]}:\n${jsonToYaml(firstVal, indent + 4)}`
+          : `${prefix}- ${first[0]}: ${jsonToYaml(firstVal, indent + 4)}`;
         for (const [k, v] of rest) {
-          result += `\n${prefix}  ${k}: ${jsonToYaml(v, indent + 4)}`;
+          const valIsComplex = typeof v === 'object' && v !== null;
+          result += valIsComplex
+            ? `\n${prefix}  ${k}:\n${jsonToYaml(v, indent + 4)}`
+            : `\n${prefix}  ${k}: ${jsonToYaml(v, indent + 4)}`;
         }
         return result;
       }
