@@ -5,6 +5,14 @@ import { k8sGet } from '../engine/query';
 
 export type WizardStep = 'operator' | 'git-config' | 'first-app' | 'done';
 
+export interface ExportSummary {
+  resourceCount: number;
+  categories: string[];
+  namespaces: string[];
+  prUrl?: string;
+  clusterName: string;
+}
+
 interface GitOpsSetupState {
   wizardOpen: boolean;
   currentStep: WizardStep;
@@ -14,11 +22,21 @@ interface GitOpsSetupState {
   operatorPhase: 'idle' | 'creating' | 'pending' | 'installing' | 'succeeded' | 'failed';
   operatorError: string | null;
 
+  /** Categories selected for app-of-apps export (e.g. 'deployments', 'services') */
+  selectedCategories: string[];
+  /** Namespaces to export for app-of-apps pattern */
+  selectedNamespaces: string[];
+  /** Summary of the last export */
+  exportSummary: ExportSummary | null;
+
   openWizard: (resumeAt?: WizardStep) => void;
   closeWizard: () => void;
   setStep: (step: WizardStep) => void;
   markStepComplete: (step: WizardStep) => void;
   setOperatorPhase: (phase: GitOpsSetupState['operatorPhase'], error?: string) => void;
+  setSelectedCategories: (categories: string[]) => void;
+  setSelectedNamespaces: (namespaces: string[]) => void;
+  setExportSummary: (summary: ExportSummary) => void;
   detectCompletedSteps: () => Promise<void>;
 }
 
@@ -31,6 +49,10 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
       dismissed: false,
       operatorPhase: 'idle',
       operatorError: null,
+
+      selectedCategories: [],
+      selectedNamespaces: [],
+      exportSummary: null,
 
       openWizard: (resumeAt) => {
         const step = resumeAt || get().currentStep;
@@ -50,6 +72,10 @@ export const useGitOpsSetupStore = create<GitOpsSetupState>()(
 
       setOperatorPhase: (phase, error) =>
         set({ operatorPhase: phase, operatorError: error || null }),
+
+      setSelectedCategories: (categories) => set({ selectedCategories: categories }),
+      setSelectedNamespaces: (namespaces) => set({ selectedNamespaces: namespaces }),
+      setExportSummary: (summary) => set({ exportSummary: summary }),
 
       detectCompletedSteps: async () => {
         const completed: WizardStep[] = [];
