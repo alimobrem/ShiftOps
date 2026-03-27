@@ -9,6 +9,19 @@ import { createGitProvider, type FileCommit } from '../../../engine/gitProvider'
 import { showErrorToast } from '../../../engine/errorToast';
 import { cn } from '@/lib/utils';
 
+/** Ensure the target path exists in the git repo (creates .gitkeep if missing). */
+async function ensureGitPath(provider: ReturnType<typeof createGitProvider>, branch: string, path: string) {
+  try {
+    await provider.getFileContent(branch, `${path}/.gitkeep`);
+  } catch {
+    try {
+      await provider.createOrUpdateFile(branch, `${path}/.gitkeep`, '', `Initialize ${path} directory`);
+    } catch {
+      // Path may already exist with other files — safe to ignore
+    }
+  }
+}
+
 /** Ensure ArgoCD has a repository secret for the configured git repo (idempotent). */
 async function ensureArgoRepoSecret(argoNamespace: string, config: GitOpsConfig) {
   const secretName = `repo-${config.repoUrl.replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 50)}`;
@@ -285,8 +298,9 @@ export function CreateApplicationStep({ onComplete }: Props) {
           config.baseBranch,
         );
 
-        // Ensure ArgoCD has repo credentials (idempotent)
+        // Ensure ArgoCD has repo credentials and target path exists
         await ensureArgoRepoSecret(argoNamespace, config);
+        await ensureGitPath(provider, config.baseBranch, rootAppObj.spec.source.path);
 
         await k8sCreate(
           `/apis/argoproj.io/v1alpha1/namespaces/${argoNamespace}/applications`,
@@ -301,9 +315,14 @@ export function CreateApplicationStep({ onComplete }: Props) {
           clusterName,
         });
       } else if (applicationObj) {
-        // Ensure ArgoCD has repo credentials (idempotent)
+        // Ensure ArgoCD has repo credentials and target path exists
         if (isConfigured && config) {
           await ensureArgoRepoSecret(argoNamespace, config);
+          const appPath = applicationObj.spec?.source?.path;
+          if (appPath) {
+            const provider = createGitProvider(config);
+            await ensureGitPath(provider, config.baseBranch, appPath);
+          }
         }
         await k8sCreate(
           `/apis/argoproj.io/v1alpha1/namespaces/${argoNamespace}/applications`,
