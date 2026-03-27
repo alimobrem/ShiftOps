@@ -78,10 +78,10 @@ export default function WelcomeView() {
               <circle cx="17" cy="7" r="1.2" fill="white" opacity="0.5"/>
             </svg>
             <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-3">
-              Welcome to <span className="bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">OpenShift Pulse</span>
+              <span className="bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">OpenShift Pulse</span>
             </h1>
             <p className="text-slate-400 max-w-xl mx-auto leading-relaxed">
-              A single pane of glass for your OpenShift cluster — health audits, real-time diagnosis, and one-click remediation.
+              Your cluster at a glance. Incidents, remediation, and production readiness — all in one place.
             </p>
             <div className="mt-5">
               <ClusterStatusPill
@@ -137,8 +137,8 @@ export default function WelcomeView() {
           >
             <span className="text-violet-400" aria-hidden="true"><Rocket className="w-5 h-5" /></span>
             <div className="flex-1">
-              <div className="text-sm font-semibold text-slate-100">Get Started</div>
-              <div className="text-xs text-slate-400 mt-0.5">Complete the onboarding wizard to configure your cluster</div>
+              <div className="text-sm font-semibold text-slate-100">Production Setup</div>
+              <div className="text-xs text-slate-400 mt-0.5">Run the readiness wizard — verify connectivity, security, alerting, and GitOps</div>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-700 group-hover:text-violet-400 transition-colors" aria-hidden="true" />
           </button>
@@ -159,37 +159,23 @@ export default function WelcomeView() {
           </button>
         )}
 
-        {/* ── Cluster Pulse (primary CTA) ── */}
-        <button
-          onClick={() => go('/pulse', 'Pulse')}
-          {...usePrefetchOnHover('/pulse')}
-          className="group relative w-full flex items-center gap-4 p-5 rounded-xl border bg-gradient-to-br from-blue-500/20 to-blue-600/5 border-blue-500/20 hover:border-blue-500/40 transition-all text-left"
-          aria-label="Open Cluster Pulse — risk score, attention items, and live issues"
-        >
-          <span className="text-blue-400" aria-hidden="true"><HeartPulse className="w-6 h-6" /></span>
-          <div className="flex-1">
-            <div className="text-base font-semibold text-slate-100">Cluster Pulse</div>
-            <div className="text-xs text-slate-400 mt-0.5">Risk score, attention items, and live issues</div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-slate-700 group-hover:text-blue-400 transition-colors" aria-hidden="true" />
-        </button>
-
-        {/* ── Quick Nav Row ── */}
-        <MetricGrid>
-          <ViewTile icon={<Bell className="w-4 h-4 text-red-400" />}      title="Incidents"      onClick={() => go('/incidents', 'Incidents')} />
-          <ViewTile icon={<Package className="w-4 h-4 text-blue-400" />}  title="Workloads"      onClick={() => go('/workloads', 'Workloads')} path="/workloads" />
-          <ViewTile icon={<Server className="w-4 h-4 text-blue-400" />}   title="Compute"        onClick={() => go('/compute', 'Compute')} path="/compute" />
-          <ViewTile icon={<Settings className="w-4 h-4 text-slate-400" />} title="Admin"          onClick={() => go('/admin', 'Administration')} />
-        </MetricGrid>
-
-        {/* ── Start Here ── */}
+        {/* ── Primary Actions ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <ActionCard
+            icon={<HeartPulse className="w-5 h-5" />}
+            accentClass="from-blue-500/20 to-blue-600/5 border-blue-500/20"
+            iconColor="text-blue-400"
+            title="Cluster Pulse"
+            description="Risk score, attention items, and daily health briefing"
+            onClick={() => go('/pulse', 'Pulse')}
+            path="/pulse"
+          />
           <ActionCard
             icon={<Bell className="w-5 h-5" />}
             accentClass="from-red-500/20 to-red-600/5 border-red-500/20"
             iconColor="text-red-400"
             title="Incident Center"
-            description="Unified triage — findings, alerts, errors, and automated remediation in one view"
+            description="Unified triage — findings, alerts, errors, and automated remediation"
             onClick={() => go('/incidents', 'Incidents')}
           />
           <ActionCard
@@ -200,17 +186,9 @@ export default function WelcomeView() {
             description="30 gates across security, reliability, observability — wizard and continuous checks"
             onClick={() => go('/onboarding', 'Onboarding')}
           />
-          <ActionCard
-            icon={<Search className="w-5 h-5" />}
-            accentClass="from-violet-500/20 to-violet-600/5 border-violet-500/20"
-            iconColor="text-violet-400"
-            title="Find Anything"
-            description={`${MOD_KEY}K to search 500+ resource types, ${MOD_KEY}B to browse by API group`}
-            onClick={openCommandPalette}
-          />
         </div>
 
-        {/* ── All Views (#5 — now includes all 15 navigable views) ── */}
+        {/* ── All Views ── */}
         <section aria-labelledby="all-views-heading">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-px flex-1 bg-slate-800" />
@@ -219,59 +197,22 @@ export default function WelcomeView() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-            {/* Operate */}
-            <ViewTile icon={<HeartPulse className="w-4 h-4 text-blue-400" />} title="Pulse"          onClick={() => go('/pulse', 'Pulse')} path="/pulse" />
-            <ViewTile icon={<Bell className="w-4 h-4 text-red-400" />}        title="Incidents"      onClick={() => go('/incidents', 'Incidents')} />
-            <ViewTile icon={<Package className="w-4 h-4 text-blue-400" />}    title="Workloads"      onClick={() => go('/workloads', 'Workloads')} path="/workloads" />
-            <ViewTile icon={<Server className="w-4 h-4 text-blue-400" />}     title="Compute"        onClick={() => go('/compute', 'Compute')} path="/compute" />
-            <ViewTile icon={<Globe className="w-4 h-4 text-cyan-400" />}      title="Networking"     onClick={() => go('/networking', 'Networking')} path="/networking" />
-            <ViewTile icon={<HardDrive className="w-4 h-4 text-orange-400" />} title="Storage"       onClick={() => go('/storage', 'Storage')} path="/storage" />
-            <ViewTile icon={<Globe className="w-4 h-4 text-blue-400" />}      title="Fleet"          onClick={() => go('/fleet', 'Fleet')} />
-            {/* Govern */}
-            <ViewTile icon={<Users className="w-4 h-4 text-teal-400" />}      title="Identity"       onClick={() => go('/identity', 'Identity')} />
-            <ViewTile icon={<Shield className="w-4 h-4 text-indigo-400" />}   title="Security"       onClick={() => go('/security', 'Security')} path="/security" />
-            <ViewTile icon={<GitBranch className="w-4 h-4 text-violet-400" />} title="GitOps"        onClick={() => go('/gitops', 'GitOps')} />
-            {/* Platform */}
-            <ViewTile icon={<Settings className="w-4 h-4 text-slate-400" />}  title="Admin"          onClick={() => go('/admin', 'Administration')} />
-            <ViewTile icon={<Rocket className="w-4 h-4 text-violet-400" />}   title="Onboarding"     onClick={() => go('/onboarding', 'Onboarding')} />
-            <ViewTile icon={<Hammer className="w-4 h-4 text-amber-500" />}    title="Builds"         onClick={() => go('/builds', 'Builds')} path="/builds" />
-            <ViewTile icon={<Puzzle className="w-4 h-4 text-violet-400" />}   title="CRDs"           onClick={() => go('/crds', 'CRDs')} />
+            <ViewTile icon={<HeartPulse className="w-4 h-4 text-blue-400" />} title="Pulse"       onClick={() => go('/pulse', 'Pulse')} path="/pulse" />
+            <ViewTile icon={<Bell className="w-4 h-4 text-red-400" />}        title="Incidents"    onClick={() => go('/incidents', 'Incidents')} />
+            <ViewTile icon={<Package className="w-4 h-4 text-blue-400" />}    title="Workloads"    onClick={() => go('/workloads', 'Workloads')} path="/workloads" />
+            <ViewTile icon={<Server className="w-4 h-4 text-blue-400" />}     title="Compute"      onClick={() => go('/compute', 'Compute')} path="/compute" />
+            <ViewTile icon={<Globe className="w-4 h-4 text-cyan-400" />}      title="Networking"   onClick={() => go('/networking', 'Networking')} path="/networking" />
+            <ViewTile icon={<HardDrive className="w-4 h-4 text-orange-400" />} title="Storage"     onClick={() => go('/storage', 'Storage')} path="/storage" />
+            <ViewTile icon={<Globe className="w-4 h-4 text-blue-400" />}      title="Fleet"        onClick={() => go('/fleet', 'Fleet')} />
+            <ViewTile icon={<Bell className="w-4 h-4 text-amber-400" />}      title="Alerts"       onClick={() => go('/alerts', 'Alerts')} />
+            <ViewTile icon={<Users className="w-4 h-4 text-teal-400" />}      title="Identity"     onClick={() => go('/identity', 'Identity')} />
+            <ViewTile icon={<Shield className="w-4 h-4 text-indigo-400" />}   title="Security"     onClick={() => go('/security', 'Security')} path="/security" />
+            <ViewTile icon={<GitBranch className="w-4 h-4 text-violet-400" />} title="GitOps"      onClick={() => go('/gitops', 'GitOps')} />
+            <ViewTile icon={<Settings className="w-4 h-4 text-slate-400" />}  title="Admin"        onClick={() => go('/admin', 'Administration')} />
+            <ViewTile icon={<Rocket className="w-4 h-4 text-violet-400" />}   title="Onboarding"   onClick={() => go('/onboarding', 'Onboarding')} />
+            <ViewTile icon={<Hammer className="w-4 h-4 text-amber-500" />}    title="Builds"       onClick={() => go('/builds', 'Builds')} path="/builds" />
+            <ViewTile icon={<Puzzle className="w-4 h-4 text-violet-400" />}   title="CRDs"         onClick={() => go('/crds', 'CRDs')} />
           </div>
-        </section>
-
-        {/* ── Key Capabilities (#6 clickable, #7 show 6 with toggle, #11 accurate count) ── */}
-        <section aria-labelledby="capabilities-heading">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="h-px flex-1 bg-slate-800" />
-            <h2 id="capabilities-heading" className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Key Capabilities</h2>
-            <div className="h-px flex-1 bg-slate-800" />
-          </div>
-
-          <div className="rounded-xl border border-slate-800/60 bg-slate-900/50 divide-y divide-slate-800/60">
-            <CapabilityRow iconColor="text-violet-400" icon={<FileCode className="w-4 h-4" />} title="YAML Editor" description="Autocomplete, diff preview, server-side dry-run validation" onClick={() => go('/r/apps~v1~deployments', 'Deployments')} path="/r/apps~v1~deployments" />
-            <CapabilityRow iconColor="text-violet-400" icon={<GitBranch className="w-4 h-4" />} title="GitOps / ArgoCD" description="Sync badges, auto-PR on save, drift detection — GitHub, GitLab, Bitbucket" onClick={() => go('/gitops', 'GitOps')} />
-            <CapabilityRow iconColor="text-blue-400" icon={<Clock className="w-4 h-4" />} title="Incident Timeline" description="Correlated alerts, events, rollouts, and config changes" onClick={() => go('/incidents', 'Incidents')} />
-            <CapabilityRow iconColor="text-emerald-400" icon={<Monitor className="w-4 h-4" />} title="Production Readiness" description="30 gates across 6 categories with continuous re-checks" onClick={() => go('/onboarding', 'Onboarding')} />
-            <CapabilityRow iconColor="text-indigo-400" icon={<Shield className="w-4 h-4" />} title="Security Audit" description="TLS, encryption, SCCs, network policies, ACS detection" onClick={() => go('/security', 'Security')} path="/security" />
-            <CapabilityRow iconColor="text-cyan-400" icon={<History className="w-4 h-4" />} title="Rollback" description="Compare deployment revisions and roll back with one click" onClick={() => go('/workloads', 'Workloads')} path="/workloads" />
-            {showAllCapabilities && (
-              <>
-                <CapabilityRow iconColor="text-teal-400" icon={<Users className="w-4 h-4" />} title="Impersonation" description="Test RBAC as another user — all API calls use impersonation headers" onClick={() => go('/identity', 'Identity')} />
-                <CapabilityRow iconColor="text-indigo-400" icon={<GitGraph className="w-4 h-4" />} title="Dependency Graph" description="Visualize resource relationships — pods, services, volumes, owner chains" onClick={() => go('/workloads', 'Workloads')} path="/workloads" />
-                <CapabilityRow iconColor="text-blue-400" icon={<ScrollText className="w-4 h-4" />} title="Log Streaming" description="Real-time pod logs with search, follow, timestamps, download" onClick={() => go('/workloads', 'Workloads')} path="/workloads" />
-                <CapabilityRow iconColor="text-amber-400" icon={<Camera className="w-4 h-4" />} title="Cluster Snapshots" description="Capture and compare cluster state over time" onClick={() => go('/admin?tab=snapshots', 'Snapshots')} />
-                <CapabilityRow iconColor="text-violet-400" icon={<Diff className="w-4 h-4" />} title="Resource Diffing" description="YAML diff preview against the live version before saving" onClick={() => go('/workloads', 'Workloads')} path="/workloads" />
-                <CapabilityRow iconColor="text-orange-400" icon={<Terminal className="w-4 h-4" />} title="Pod Shell" description="Shell access to containers and nodes for live debugging" onClick={() => go('/r/v1~pods', 'Pods')} path="/r/v1~pods" />
-              </>
-            )}
-          </div>
-          <button
-            onClick={() => setShowAllCapabilities(v => !v)}
-            className="flex items-center gap-1.5 mx-auto mt-3 text-xs text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showAllCapabilities && 'rotate-180')} />
-            {showAllCapabilities ? 'Show fewer' : 'Show all 12 capabilities'}
-          </button>
         </section>
 
         {/* ── Keyboard Shortcuts (#1 fix 11px, #12 platform-aware) ── */}
