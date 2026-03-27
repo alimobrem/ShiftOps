@@ -11,7 +11,8 @@ import { useKeyboardShortcuts, useDiscovery } from '../hooks';
 import { useUIStore } from '../store/uiStore';
 import { registerBuiltinEnhancers } from '../engine/enhancers/register';
 import { startAgentNotifications, stopAgentNotifications } from '../engine/agentNotifications';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { NotificationCenter } from './agent/NotificationCenter';
 
 // Register enhancers once at module load
 registerBuiltinEnhancers();
@@ -28,6 +29,11 @@ export function Shell() {
     startAgentNotifications();
     return () => stopAgentNotifications();
   }, []);
+
+  // Notification center state
+  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
+  const toggleNotifications = useCallback(() => setNotificationCenterOpen((prev) => !prev), []);
+  const closeNotifications = useCallback(() => setNotificationCenterOpen(false), []);
 
   // Get overlay state
   const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen);
@@ -64,11 +70,12 @@ export function Shell() {
       </div>
 
       {/* Status bar at bottom */}
-      <StatusBar />
+      <StatusBar onToggleNotifications={toggleNotifications} notificationCenterOpen={notificationCenterOpen} />
 
       {/* Overlay components */}
       {commandPaletteOpen && <CommandPalette />}
       {browserOpen && <ResourceBrowser />}
+      <NotificationCenter open={notificationCenterOpen} onClose={closeNotifications} />
       <ToastContainer />
       <CssHealthCheck />
     </div>

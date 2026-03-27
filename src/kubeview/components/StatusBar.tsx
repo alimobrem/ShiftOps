@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Bot } from 'lucide-react';
+import { Bot, Shield } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { useFleetStore } from '../store/fleetStore';
 import { isMultiCluster } from '../engine/clusterConnection';
@@ -14,7 +14,12 @@ function formatRelativeTime(timestamp: number): string {
   return `${Math.floor(seconds / 86400)}d`;
 }
 
-export function StatusBar() {
+interface StatusBarProps {
+  onToggleNotifications?: () => void;
+  notificationCenterOpen?: boolean;
+}
+
+export function StatusBar({ onToggleNotifications, notificationCenterOpen }: StatusBarProps = {}) {
   const connectionStatus = useUIStore((s) => s.connectionStatus);
   const lastSyncTime = useUIStore((s) => s.lastSyncTime);
   const selectedNamespace = useUIStore((s) => s.selectedNamespace);
@@ -81,6 +86,17 @@ export function StatusBar() {
 
       {/* Right */}
       <div className="flex items-center gap-3">
+        <button
+          onClick={onToggleNotifications}
+          className={cn(
+            'flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors',
+            notificationCenterOpen ? 'bg-emerald-600/30 text-emerald-400' : 'text-slate-500 hover:text-slate-300'
+          )}
+          title="Toggle Notifications"
+          aria-label="Toggle notifications"
+        >
+          <Shield className="h-3 w-3 text-emerald-500" />
+        </button>
         <button
           onClick={() => dockPanel === 'agent' ? closeDock() : openDock('agent')}
           className={cn(
