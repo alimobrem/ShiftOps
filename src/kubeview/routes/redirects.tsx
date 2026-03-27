@@ -13,10 +13,7 @@ export function redirectRoutes() {
       <Route path="config-compare" element={<Navigate to="/admin" replace />} />
       <Route path="timeline" element={<Navigate to={isFeatureEnabled('incidentCenter') ? '/incidents' : '/admin?tab=timeline'} replace />} />
       {isFeatureEnabled('incidentCenter') && (
-        <>
-          <Route path="monitor" element={<Navigate to="/incidents" replace />} />
-          <Route path="alerts" element={<Navigate to="/incidents" replace />} />
-        </>
+        <Route path="monitor" element={<Navigate to="/incidents" replace />} />
       )}
       {isFeatureEnabled('identityView') && (
         <>

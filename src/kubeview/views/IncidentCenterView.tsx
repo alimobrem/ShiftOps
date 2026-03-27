@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
-  Siren, Zap, Search, Wrench, Clock, Settings, Play, Activity,
+  Siren, Zap, Search, Wrench, Clock, Settings, Play, Activity, Cpu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card } from '../components/primitives/Card';
@@ -69,6 +70,16 @@ export default function IncidentCenterView() {
     setTrustAutoFixCategories(arr);
   };
 
+  const { data: agentInfo } = useQuery<{ protocol: string; agent: string; tools: number }>({
+    queryKey: ['agent', 'version'],
+    queryFn: async () => {
+      const res = await fetch('/api/agent/version');
+      if (!res.ok) return null;
+      return res.json();
+    },
+    refetchInterval: 60000,
+  });
+
   const [scanning, setScanning] = useState(false);
   const prevLastScan = useRef(lastScanTime);
 
@@ -107,23 +118,35 @@ export default function IncidentCenterView() {
               Real-time incidents, correlation analysis, and automated remediation
             </p>
           </div>
-          <div
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg border',
-              connected
-                ? 'bg-green-900/30 border-green-800'
-                : 'bg-slate-900 border-slate-700',
+          <div className="flex items-center gap-3">
+            {agentInfo && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-xs text-slate-400">
+                <Cpu className="w-3.5 h-3.5 text-violet-400" />
+                <span>Agent v{agentInfo.agent}</span>
+                <span className="text-slate-600">·</span>
+                <span>Protocol {agentInfo.protocol}</span>
+                <span className="text-slate-600">·</span>
+                <span>{agentInfo.tools} tools</span>
+              </div>
             )}
-          >
-            <span
+            <div
               className={cn(
-                'w-2 h-2 rounded-full',
-                connected ? 'bg-green-400 animate-pulse' : 'bg-slate-500',
+                'flex items-center gap-2 px-4 py-2 rounded-lg border',
+                connected
+                  ? 'bg-green-900/30 border-green-800'
+                  : 'bg-slate-900 border-slate-700',
               )}
-            />
-            <span className={cn('text-sm font-medium', connected ? 'text-green-300' : 'text-slate-400')}>
-              {connected ? 'Live' : 'Disconnected'}
-            </span>
+            >
+              <span
+                className={cn(
+                  'w-2 h-2 rounded-full',
+                  connected ? 'bg-green-400 animate-pulse' : 'bg-slate-500',
+                )}
+              />
+              <span className={cn('text-sm font-medium', connected ? 'text-green-300' : 'text-slate-400')}>
+                {connected ? 'Live' : 'Disconnected'}
+              </span>
+            </div>
           </div>
         </div>
 
