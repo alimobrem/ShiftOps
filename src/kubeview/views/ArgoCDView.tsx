@@ -55,9 +55,10 @@ export default function ArgoCDView() {
     setSyncing(appName);
     try {
       await k8sPatch(`/apis/argoproj.io/v1alpha1/namespaces/${appNs}/applications/${appName}`, {
-        operation: {
-          initiatedBy: { username: 'pulse', automated: false },
-          sync: { revision: 'HEAD' },
+        metadata: {
+          annotations: {
+            'argocd.argoproj.io/refresh': 'hard',
+          },
         },
       });
       addToast({ type: 'success', title: 'Sync triggered', detail: `Application ${appName} is syncing` });
