@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { Card } from '../components/primitives/Card';
 import { EmptyState } from '../components/primitives/EmptyState';
 import { useMonitorStore } from '../store/monitorStore';
+import { useUIStore } from '../store/uiStore';
+import { useAgentStore } from '../store/agentStore';
 import { useTrustStore, TRUST_LABELS, type TrustLevel } from '../store/trustStore';
 import type { ActionRecord } from '../engine/fixHistory';
 
@@ -273,7 +275,18 @@ export default function MonitorView() {
                         <span className="text-xs text-slate-500">{formatRelativeTime(finding.timestamp)}</span>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <button className="px-2.5 py-1.5 text-xs bg-violet-600 hover:bg-violet-700 text-white rounded flex items-center gap-1.5 transition-colors">
+                        <button
+                          onClick={() => {
+                            useUIStore.getState().openDock('agent');
+                            const agentStore = useAgentStore.getState();
+                            if (agentStore.connected) {
+                              agentStore.sendMessage(
+                                `The monitor detected this issue:\n\n"${finding.title}: ${finding.summary}"\n\nInvestigate this further. What is the root cause and what should I do to fix it?`,
+                              );
+                            }
+                          }}
+                          className="px-2.5 py-1.5 text-xs bg-violet-600 hover:bg-violet-700 text-white rounded flex items-center gap-1.5 transition-colors"
+                        >
                           <Eye className="w-3.5 h-3.5" />
                           Investigate
                         </button>

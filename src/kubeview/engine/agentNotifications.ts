@@ -1,6 +1,9 @@
 /**
- * Agent Notifications — connects to /ws/monitor for real-time findings,
+ * Agent Notifications — delegates to monitorStore for v2 real-time findings,
  * falling back to 5-minute polling for v1 agents.
+ *
+ * Toast notifications for critical/warning findings are handled via a
+ * Zustand subscriber on the monitor store's findings array.
  */
 
 import { AgentClient } from './agentClient';
@@ -8,7 +11,7 @@ import type { AgentEvent } from './agentClient';
 import { useUIStore } from '../store/uiStore';
 import { useAgentStore } from '../store/agentStore';
 import { useMonitorStore } from '../store/monitorStore';
-import type { Finding, Prediction, ActionReport } from './monitorClient';
+import type { Finding } from './monitorClient';
 
 const DEFAULT_INTERVAL = 300_000; // 5 minutes
 const PROMPT =
@@ -16,16 +19,13 @@ const PROMPT =
 
 let running = false;
 
-// --- v2 monitor state ---
-let monitorWs: WebSocket | null = null;
-let monitorReconnectTimer: ReturnType<typeof setTimeout> | null = null;
-let monitorReconnectAttempts = 0;
-const MONITOR_RECONNECT_MAX_DELAY = 30_000;
-
 // --- v1 fallback state ---
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let polling = false; // guard against overlapping polls
 let client: AgentClient | null = null;
+
+// --- v2 toast subscriber ---
+let unsubscribeMonitor: (() => void) | null = null;
 
 const AGENT_BASE = '/api/agent';
 const QUERY_TIMEOUT = 30_000; // 30s max per query
@@ -41,130 +41,57 @@ async function detectProtocol(): Promise<'2' | '1' | null> {
   }
 }
 
-// --- v2: Monitor WebSocket ---
+// --- v2: Toast notifications for critical/warning findings ---
 
-function connectMonitor() {
-  if (monitorWs) {
-    monitorWs.close();
-    monitorWs = null;
-  }
-
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const url = `${protocol}//${window.location.host}${AGENT_BASE}/ws/monitor`;
-
-  monitorWs = new WebSocket(url);
-
-  monitorWs.onopen = () => {
-    monitorReconnectAttempts = 0;
-    useMonitorStore.setState({ connected: true });
-  };
-
-  monitorWs.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data) as Record<string, unknown>;
-      const eventType = data.type as string;
-      const monitorState = useMonitorStore.getState();
-
-      if (eventType === 'finding') {
-        const { type: _, ...finding } = data as unknown as { type: string } & Finding;
-        // Skip dismissed findings
-        if (!monitorState.dismissedFindingIds.includes(finding.id)) {
-          useMonitorStore.setState((s) => ({
-            findings: [...s.findings.filter((f) => f.id !== finding.id), finding].slice(-200),
-            unreadCount: s.unreadCount + 1,
-          }));
+function showFindingToast(finding: Finding) {
+  const store = useUIStore.getState();
+  store.addToast({
+    type: finding.severity === 'critical' ? 'error' : 'warning',
+    title: `Monitor: ${finding.title}`,
+    detail: finding.summary,
+    duration: 15000,
+    action: {
+      label: 'Investigate',
+      onClick: () => {
+        store.openDock('agent');
+        const agentStore = useAgentStore.getState();
+        if (agentStore.connected) {
+          agentStore.sendMessage(
+            `The monitor detected this issue:\n\n"${finding.title}: ${finding.summary}"\n\nInvestigate this further. What is the root cause and what should I do to fix it?`,
+          );
         }
-
-        // Show toast for critical/warning findings
-        if (finding.severity === 'critical' || finding.severity === 'warning') {
-          const store = useUIStore.getState();
-          store.addToast({
-            type: finding.severity === 'critical' ? 'error' : 'warning',
-            title: `Monitor: ${finding.title}`,
-            detail: finding.summary,
-            duration: 15000,
-            action: {
-              label: 'Investigate',
-              onClick: () => {
-                store.openDock('agent');
-                const agentStore = useAgentStore.getState();
-                if (agentStore.connected) {
-                  agentStore.sendMessage(
-                    `The monitor detected this issue:\n\n"${finding.title}: ${finding.summary}"\n\nInvestigate this further. What is the root cause and what should I do to fix it?`,
-                  );
-                }
-              },
-            },
-          });
-        }
-      } else if (eventType === 'prediction') {
-        const { type: _, ...prediction } = data as unknown as { type: string } & Prediction;
-        useMonitorStore.setState((s) => ({
-          predictions: [...s.predictions.filter((p) => p.id !== prediction.id), prediction].slice(-50),
-          unreadCount: s.unreadCount + 1,
-        }));
-      } else if (eventType === 'action_report') {
-        const { type: _, ...report } = data as unknown as { type: string } & ActionReport;
-        if (report.status === 'proposed') {
-          useMonitorStore.setState((s) => ({
-            pendingActions: [...s.pendingActions, report],
-            unreadCount: s.unreadCount + 1,
-          }));
-        } else {
-          useMonitorStore.setState((s) => ({
-            pendingActions: s.pendingActions.filter((a) => a.id !== report.id),
-            recentActions: [...s.recentActions, report].slice(-50),
-          }));
-        }
-      } else if (eventType === 'monitor_status') {
-        const statusData = data as unknown as { activeWatches: string[]; lastScan: number; nextScan: number };
-        useMonitorStore.setState({
-          activeWatches: statusData.activeWatches,
-          lastScanTime: statusData.lastScan,
-          nextScanTime: statusData.nextScan,
-        });
-      }
-    } catch {
-      // Silently skip unparseable messages
-    }
-  };
-
-  monitorWs.onclose = () => {
-    monitorWs = null;
-    useMonitorStore.setState({ connected: false });
-
-    if (!running) return;
-
-    // Reconnect with exponential backoff + jitter
-    const baseDelay = Math.min(
-      1000 * Math.pow(2, monitorReconnectAttempts),
-      MONITOR_RECONNECT_MAX_DELAY,
-    );
-    const jitter = Math.random() * 1000;
-    monitorReconnectAttempts++;
-
-    monitorReconnectTimer = setTimeout(() => {
-      monitorReconnectTimer = null;
-      if (running) connectMonitor();
-    }, baseDelay + jitter);
-  };
-
-  monitorWs.onerror = () => {
-    // onclose will fire after onerror — reconnect handled there
-  };
+      },
+    },
+  });
 }
 
-function disconnectMonitor() {
-  if (monitorReconnectTimer) {
-    clearTimeout(monitorReconnectTimer);
-    monitorReconnectTimer = null;
-  }
-  monitorReconnectAttempts = 0;
-  if (monitorWs) {
-    monitorWs.close();
-    monitorWs = null;
-  }
-  useMonitorStore.setState({ connected: false });
+/**
+ * Subscribe to monitorStore findings and fire toasts for new critical/warning entries.
+ * Tracks seen finding IDs to avoid duplicate toasts on rehydration or re-renders.
+ */
+function subscribeToMonitorToasts() {
+  // Seed with existing IDs so we don't toast on rehydration
+  const toastedIds = new Set(
+    useMonitorStore.getState().findings.map((f) => f.id),
+  );
+  let prevFindings = useMonitorStore.getState().findings;
+
+  unsubscribeMonitor = useMonitorStore.subscribe((state) => {
+    const findings = state.findings;
+    if (findings === prevFindings) return;
+
+    // Find newly added findings
+    const prevIds = new Set(prevFindings.map((f) => f.id));
+    for (const finding of findings) {
+      if (!prevIds.has(finding.id) && !toastedIds.has(finding.id)) {
+        toastedIds.add(finding.id);
+        if (finding.severity === 'critical' || finding.severity === 'warning') {
+          showFindingToast(finding);
+        }
+      }
+    }
+    prevFindings = findings;
+  });
 }
 
 // --- v1: Polling fallback ---
@@ -263,7 +190,10 @@ export async function startAgentNotifications(intervalMs = DEFAULT_INTERVAL) {
   const protocol = await detectProtocol();
 
   if (protocol === '2') {
-    connectMonitor();
+    // Delegate to monitorStore — single WebSocket connection
+    useMonitorStore.getState().connect();
+    // Subscribe to findings for toast notifications
+    subscribeToMonitorToasts();
   } else if (protocol === '1') {
     // Fall back to existing polling
     intervalId = setInterval(poll, intervalMs);
@@ -273,7 +203,12 @@ export async function startAgentNotifications(intervalMs = DEFAULT_INTERVAL) {
 
 export function stopAgentNotifications() {
   running = false;
-  disconnectMonitor();
+  // Stop v2 monitor
+  if (unsubscribeMonitor) {
+    unsubscribeMonitor();
+    unsubscribeMonitor = null;
+  }
+  useMonitorStore.getState().disconnect();
   // Also stop v1 polling
   if (intervalId) {
     clearInterval(intervalId);
