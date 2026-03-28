@@ -262,10 +262,13 @@ export const useMonitorStore = create<MonitorState>()(
       },
 
       dismissFinding: (id) => {
-        set((s) => ({
-          findings: s.findings.filter((f) => f.id !== id),
-          dismissedFindingIds: [...s.dismissedFindingIds, id],
-        }));
+        set((s) => {
+          const dismissed = [...s.dismissedFindingIds, id];
+          return {
+            findings: s.findings.filter((f) => f.id !== id),
+            dismissedFindingIds: dismissed.slice(-500), // keep last 500
+          };
+        });
       },
 
       approveAction: (actionId) => {
