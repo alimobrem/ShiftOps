@@ -95,7 +95,7 @@ npm run dev    # http://localhost:9000
 | **Cluster Health** | 77 automated checks (31 cluster + 46 domain) with YAML fix examples and "Why it matters" explanations |
 | **Daily Briefing** | Risk score ring, control plane status, certificate expiry, attention items with remediation steps. "Cluster Zen" calm state when everything is healthy. |
 | **Instant Navigation** | Hover-prefetch preloads view data before click — navigation feels instant with zero skeleton flash. Applied to Welcome tiles and Command Palette. |
-| **Incident Center** | Consolidates Monitor + Alerts + Errors + Timeline into 4 tabs: Now (live findings), Investigate (alerts + errors), Actions (auto-fix history), History (correlated timeline). Trust controls are backend-capability-aware. |
+| **Incident Center** | Consolidates Monitor + Alerts + Errors + Timeline into 4 tabs: Now (live findings), Investigate (alerts + errors + AI root-cause investigation reports), Actions (auto-fix history + post-fix verification), History (correlated timeline). Trust controls are backend-capability-aware. |
 | **Identity & Access** | Unified view merging User Management + Access Control into a single surface for users, groups, service accounts, RBAC audit, and impersonation |
 | **Incident Timeline** | Unified timeline merging alerts, events, rollouts, and config changes with correlation groups |
 | **Admin Overview** | Firing alerts, named degraded operators, cert warnings, quota hot spots, health score, and Agent quality gate status with PASS/FAIL emphasis — the 8am view |

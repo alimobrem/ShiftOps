@@ -39,6 +39,9 @@ export interface ActionReport {
   timestamp: number;
   reasoning?: string;
   durationMs?: number;
+  verificationStatus?: 'verified' | 'still_failing';
+  verificationEvidence?: string;
+  verificationTimestamp?: number;
 }
 
 export interface Prediction {
@@ -60,10 +63,34 @@ export interface MonitorStatus {
   nextScan: number;
 }
 
+export interface InvestigationReport {
+  id: string;
+  findingId: string;
+  category: string;
+  status: 'completed' | 'failed';
+  summary: string;
+  suspectedCause?: string;
+  recommendedFix?: string;
+  confidence?: number;
+  error?: string;
+  timestamp: number;
+}
+
+export interface VerificationReport {
+  id: string;
+  actionId: string;
+  findingId: string;
+  status: 'verified' | 'still_failing';
+  evidence: string;
+  timestamp: number;
+}
+
 export type MonitorEvent =
   | ({ type: 'finding' } & Finding)
   | ({ type: 'action_report' } & ActionReport)
   | ({ type: 'prediction' } & Prediction)
+  | ({ type: 'investigation_report' } & InvestigationReport)
+  | ({ type: 'verification_report' } & VerificationReport)
   | ({ type: 'monitor_status' } & MonitorStatus)
   | { type: 'findings_snapshot'; activeIds: string[]; timestamp: number }
   | { type: 'connected' }

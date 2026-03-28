@@ -12,6 +12,8 @@ import {
   type Finding,
   type ActionReport,
   type Prediction,
+  type InvestigationReport,
+  type VerificationReport,
 } from '../engine/monitorClient';
 import {
   fetchFixHistory,
@@ -22,6 +24,8 @@ import { useTrustStore } from './trustStore';
 
 const MAX_FINDINGS = 200;
 const MAX_PREDICTIONS = 50;
+const MAX_INVESTIGATIONS = 100;
+const MAX_VERIFICATIONS = 200;
 const MAX_RECENT_ACTIONS = 50;
 
 interface MonitorState {
@@ -35,6 +39,8 @@ interface MonitorState {
   findings: Finding[];
   dismissedFindingIds: string[];
   predictions: Prediction[];
+  investigations: InvestigationReport[];
+  verifications: VerificationReport[];
   pendingActions: ActionReport[];
   recentActions: ActionReport[];
 
@@ -86,6 +92,8 @@ export const useMonitorStore = create<MonitorState>()(
       findings: [],
       dismissedFindingIds: [],
       predictions: [],
+      investigations: [],
+      verifications: [],
       pendingActions: [],
       recentActions: [],
 
@@ -160,6 +168,34 @@ export const useMonitorStore = create<MonitorState>()(
                   [...s.predictions, prediction],
                   MAX_PREDICTIONS,
                 ),
+                unreadCount: s.unreadCount + 1,
+              }));
+              break;
+            }
+
+            case 'investigation_report': {
+              const { type: _, ...report } = event;
+              set((s) => ({
+                investigations: capArray([...s.investigations, report], MAX_INVESTIGATIONS),
+                unreadCount: s.unreadCount + 1,
+              }));
+              break;
+            }
+
+            case 'verification_report': {
+              const { type: _, ...report } = event;
+              set((s) => ({
+                verifications: capArray([...s.verifications, report], MAX_VERIFICATIONS),
+                recentActions: s.recentActions.map((action) => (
+                  action.id === report.actionId
+                    ? {
+                      ...action,
+                      verificationStatus: report.status,
+                      verificationEvidence: report.evidence,
+                      verificationTimestamp: report.timestamp,
+                    }
+                    : action
+                )),
                 unreadCount: s.unreadCount + 1,
               }));
               break;
@@ -279,6 +315,8 @@ export const useMonitorStore = create<MonitorState>()(
         dismissedFindingIds: state.dismissedFindingIds,
         findings: state.findings.slice(-MAX_FINDINGS),
         predictions: state.predictions.slice(-MAX_PREDICTIONS),
+        investigations: state.investigations.slice(-MAX_INVESTIGATIONS),
+        verifications: state.verifications.slice(-MAX_VERIFICATIONS),
         recentActions: state.recentActions.slice(-MAX_RECENT_ACTIONS),
       }),
     },

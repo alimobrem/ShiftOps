@@ -7,6 +7,7 @@ import { Card } from '../../components/primitives/Card';
 import { EmptyState } from '../../components/primitives/EmptyState';
 import { useIncidentTimeline, type TimeRange } from '../../hooks/useIncidentTimeline';
 import { useUIStore } from '../../store/uiStore';
+import { useMonitorStore } from '../../store/monitorStore';
 import { useNavigateTab } from '../../hooks/useNavigateTab';
 import { resourceDetailUrl } from '../../engine/gvr';
 import type { TimelineEntry, TimelineCategory, CorrelationGroup } from '../../engine/types/timeline';
@@ -43,6 +44,19 @@ export function InvestigateTab() {
 
   const timeline = useIncidentTimeline({ timeRange, namespace: nsFilter, categories });
   const correlationGroups = timeline.correlationGroups || [];
+  const investigations = useMonitorStore((s) => s.investigations);
+  const findings = useMonitorStore((s) => s.findings);
+  const latestInvestigations = React.useMemo(
+    () => [...investigations]
+      .filter((report) => {
+        if (!nsFilter) return true;
+        const finding = findings.find((item) => item.id === report.findingId);
+        return Boolean(finding?.resources?.some((resource) => resource.namespace === nsFilter));
+      })
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 5),
+    [findings, investigations, nsFilter],
+  );
 
   const filteredGroups = React.useMemo(() => {
     if (!searchQuery) return correlationGroups;
@@ -69,6 +83,35 @@ export function InvestigateTab() {
 
   return (
     <div className="space-y-6">
+      {latestInvestigations.length > 0 && (
+        <Card>
+          <div className="px-4 py-3 border-b border-slate-800">
+            <h2 className="text-sm font-semibold text-slate-100">AI Root Cause Investigations</h2>
+          </div>
+          <div className="divide-y divide-slate-800">
+            {latestInvestigations.map((report) => (
+              <div key={report.id} className="px-4 py-3">
+                <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                  <span className={cn('px-1.5 py-0.5 rounded', report.status === 'completed' ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300')}>
+                    {report.status}
+                  </span>
+                  <span>{report.category}</span>
+                  <span>-</span>
+                  <span>{new Date(report.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <div className="text-sm text-slate-200">{report.summary || 'Investigation completed'}</div>
+                {report.suspectedCause && (
+                  <div className="text-xs text-slate-400 mt-1">Cause: {report.suspectedCause}</div>
+                )}
+                {report.recommendedFix && (
+                  <div className="text-xs text-slate-400 mt-1">Suggested fix: {report.recommendedFix}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
         <Card className="flex gap-1 p-1">

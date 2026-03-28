@@ -213,6 +213,16 @@ function RecentActionCard({
           {action.error && (
             <p className="text-xs text-red-400 mb-1">{action.error}</p>
           )}
+          {action.verificationStatus && (
+            <p className={cn(
+              'text-xs mb-1',
+              action.verificationStatus === 'verified' ? 'text-green-400' : 'text-amber-400',
+            )}
+            >
+              Verification: {action.verificationStatus === 'verified' ? 'verified healthy on next scan' : 'still failing on next scan'}
+              {action.verificationEvidence ? ` — ${action.verificationEvidence}` : ''}
+            </p>
+          )}
           <span className="text-xs text-slate-500">{formatRelativeTime(action.timestamp)}</span>
         </div>
         {action.status === 'completed' && (
