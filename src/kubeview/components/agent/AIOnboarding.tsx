@@ -7,6 +7,7 @@ import { Bot, Shield, BarChart3, Wrench, X } from 'lucide-react';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useUIStore } from '../../store/uiStore';
 import { useAgentStore } from '../../store/agentStore';
+import { useTrustStore } from '../../store/trustStore';
 import { AIIconStatic, AI_ACCENT, aiGlowClass, AIBadge } from './AIBranding';
 import { cn } from '@/lib/utils';
 
@@ -27,11 +28,13 @@ export function AIOnboarding({ compact = false, className }: AIOnboardingProps) 
   const { aiOnboardingSeen, dismissOnboarding } = useOnboardingStore();
   const openDock = useUIStore((s) => s.openDock);
   const connectAndSend = useAgentStore((s) => s.connectAndSend);
+  const setTrustLevel = useTrustStore((s) => s.setTrustLevel);
 
   if (aiOnboardingSeen) return null;
 
   const tryIt = () => {
-    connectAndSend('Check overall cluster health');
+    setTrustLevel(1);
+    connectAndSend('Give me a safe read-only cluster health summary and top 3 risks.');
     openDock('agent');
     dismissOnboarding();
   };
@@ -41,7 +44,7 @@ export function AIOnboarding({ compact = false, className }: AIOnboardingProps) 
       <div className={cn('flex items-center gap-3 rounded-lg border p-3', AI_ACCENT.border, AI_ACCENT.bg, className)}>
         <AIIconStatic size={16} />
         <span className="flex-1 text-sm text-slate-300">
-          Pulse has an AI assistant that can diagnose issues, scan security, and generate dashboards.
+          Pulse AI starts in confirmation mode. Review recommendations first, then raise trust as confidence grows.
         </span>
         <button onClick={tryIt} className={cn('text-xs font-medium px-3 py-1 rounded-full', AI_ACCENT.text, AI_ACCENT.border, 'border', AI_ACCENT.bgHover)}>
           Try it
@@ -93,7 +96,7 @@ export function AIOnboarding({ compact = false, className }: AIOnboardingProps) 
           Try it now
         </button>
         <span className="text-xs text-slate-500">
-          Press <kbd className="rounded border border-slate-600 px-1.5 py-0.5 text-xs font-mono text-slate-400">⌘K</kbd> then <kbd className="rounded border border-slate-600 px-1.5 py-0.5 text-xs font-mono text-slate-400">?</kbd> to ask a question anytime
+          Start in confirm mode, verify actions in history, then increase trust when ready.
         </span>
       </div>
     </div>

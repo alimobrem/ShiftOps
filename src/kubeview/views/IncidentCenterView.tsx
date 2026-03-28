@@ -34,11 +34,7 @@ const TRUST_LEVELS = [
 
 const AUTO_FIX_CATEGORIES = [
   { id: 'crashloop', label: 'CrashLoopBackOff', description: 'Restart pods stuck in crash loops' },
-  { id: 'resource_limits', label: 'Resource Limits', description: 'Adjust CPU/memory requests and limits' },
-  { id: 'cert_expiry', label: 'Certificate Expiry', description: 'Renew expiring TLS certificates' },
-  { id: 'scaling', label: 'Scaling', description: 'Scale replicas based on load patterns' },
-  { id: 'cleanup', label: 'Cleanup', description: 'Remove completed jobs, evicted pods' },
-  { id: 'network', label: 'Network', description: 'Fix service/ingress misconfigurations' },
+  { id: 'workloads', label: 'Degraded Deployments', description: 'Trigger rolling restart for degraded deployments' },
 ] as const;
 
 export default function IncidentCenterView() {
@@ -87,6 +83,34 @@ export default function IncidentCenterView() {
     refetchInterval: 60000,
   });
 
+  const { data: monitorCapabilities } = useQuery<{
+    max_trust_level: number;
+    supported_auto_fix_categories: string[];
+  }>({
+    queryKey: ['agent', 'monitor-capabilities'],
+    queryFn: async () => {
+      const res = await fetch('/api/agent/monitor/capabilities');
+      if (!res.ok) return { max_trust_level: 3, supported_auto_fix_categories: ['crashloop', 'workloads'] };
+      return res.json();
+    },
+    staleTime: 300000,
+    refetchInterval: 300000,
+  });
+
+  const maxTrustLevel = Math.max(0, Math.min(monitorCapabilities?.max_trust_level ?? 3, 4)) as TrustLevel;
+  const visibleTrustLevels = useMemo(
+    () => TRUST_LEVELS.filter((level) => level.level <= maxTrustLevel),
+    [maxTrustLevel],
+  );
+  const supportedCategories = useMemo(
+    () => new Set(monitorCapabilities?.supported_auto_fix_categories ?? ['crashloop', 'workloads']),
+    [monitorCapabilities?.supported_auto_fix_categories],
+  );
+  const visibleCategories = useMemo(
+    () => AUTO_FIX_CATEGORIES.filter((category) => supportedCategories.has(category.id)),
+    [supportedCategories],
+  );
+
   const [scanning, setScanning] = useState(false);
   const prevLastScan = useRef(lastScanTime);
 
@@ -110,6 +134,20 @@ export default function IncidentCenterView() {
     triggerScan();
     setTimeout(() => setScanning(false), 30_000);
   };
+
+  useEffect(() => {
+    if (trustLevel > maxTrustLevel) {
+      setTrustLevel(maxTrustLevel);
+    }
+  }, [trustLevel, maxTrustLevel, setTrustLevel]);
+
+  useEffect(() => {
+    const filtered = Array.from(autoFixCategories).filter((category) => supportedCategories.has(category));
+    if (filtered.length !== autoFixCategories.size) {
+      setStoreAutoFixCategories(filtered);
+      setTrustAutoFixCategories(filtered);
+    }
+  }, [autoFixCategories, setStoreAutoFixCategories, setTrustAutoFixCategories, supportedCategories]);
 
   return (
     <div className="h-full overflow-auto bg-slate-950 p-6">
@@ -221,10 +259,14 @@ export default function IncidentCenterView() {
               </div>
             </Card>
 
+            <div className="px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-lg text-xs text-slate-400">
+              Trust controls are enforced server-side. Maximum trust available for this environment is Level {maxTrustLevel}.
+            </div>
+
             <div>
               <h3 className="text-sm font-semibold text-slate-300 mb-3">Trust Level</h3>
               <div className="grid gap-2">
-                {TRUST_LEVELS.map((tl) => (
+                {visibleTrustLevels.map((tl) => (
                   <button
                     key={tl.level}
                     onClick={() => setTrustLevel(tl.level)}
@@ -251,11 +293,11 @@ export default function IncidentCenterView() {
               </div>
             )}
 
-            {trustLevel >= 3 && (
+            {trustLevel >= 2 && (
               <div>
                 <h3 className="text-sm font-semibold text-slate-300 mb-3">Auto-fix Categories</h3>
                 <div className="grid gap-2">
-                  {AUTO_FIX_CATEGORIES.map((cat) => (
+                  {visibleCategories.map((cat) => (
                     <label
                       key={cat.id}
                       className={cn(

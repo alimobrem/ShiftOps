@@ -84,7 +84,7 @@ export class MonitorClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private _connected = false;
   private _disconnectedByUser = false;
-  private trustLevel = 'observe';
+  private trustLevel = '1';
   private autoFixCategories: string[] = [];
   private visibilityHandler: (() => void) | null = null;
 
@@ -109,7 +109,7 @@ export class MonitorClient {
   }
 
   /** Connect to the monitor WebSocket channel. */
-  connect(trustLevel = 'observe', autoFixCategories: string[] = []) {
+  connect(trustLevel = '1', autoFixCategories: string[] = []) {
     this._disconnectedByUser = false;
     this.trustLevel = trustLevel;
     this.autoFixCategories = autoFixCategories;
