@@ -64,7 +64,7 @@ describe('AIOnboarding', () => {
   it('try it button calls connectAndSend and dismisses', () => {
     render(<AIOnboarding />);
     fireEvent.click(screen.getByText('Try it now'));
-    expect(mockConnectAndSend).toHaveBeenCalledWith('Check overall cluster health');
+    expect(mockConnectAndSend).toHaveBeenCalledWith('Give me a safe read-only cluster health summary and top 3 risks.');
     expect(mockDismiss).toHaveBeenCalled();
   });
 });

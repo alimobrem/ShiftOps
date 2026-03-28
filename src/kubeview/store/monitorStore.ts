@@ -74,6 +74,8 @@ interface MonitorState {
 
 let client: MonitorClient | null = null;
 let unsubscribe: (() => void) | null = null;
+// H10: request counter to prevent stale fix history responses from overwriting newer data
+let _fixHistoryRequestId = 0;
 
 function capArray<T>(arr: T[], max: number): T[] {
   return arr.length > max ? arr.slice(-max) : arr;
@@ -105,7 +107,9 @@ export const useMonitorStore = create<MonitorState>()(
 
       // Preferences
       monitorEnabled: true,
-      autoFixCategories: [],
+      // H11: autoFixCategories reads from trustStore on connect/set; this field
+      // is kept for backward compat but trustStore is the source of truth.
+      autoFixCategories: useTrustStore.getState().autoFixCategories,
 
       // UI
       unreadCount: 0,
@@ -142,21 +146,30 @@ export const useMonitorStore = create<MonitorState>()(
             case 'action_report': {
               const { type: _, ...report } = event;
               if (report.status === 'proposed') {
-                set((s) => ({
-                  pendingActions: [...s.pendingActions, report],
-                  unreadCount: s.unreadCount + 1,
-                }));
+                // Only add if not already pending (dedup by ID)
+                set((s) => {
+                  if (s.pendingActions.some((a) => a.id === report.id)) return s;
+                  return {
+                    pendingActions: [...s.pendingActions, report],
+                    unreadCount: s.unreadCount + 1,
+                  };
+                });
               } else {
-                // Move from pending to recent on status change
-                set((s) => ({
-                  pendingActions: s.pendingActions.filter(
-                    (a) => a.id !== report.id,
-                  ),
-                  recentActions: capArray(
-                    [...s.recentActions, report],
-                    MAX_RECENT_ACTIONS,
-                  ),
-                }));
+                // Move from pending to recent on status change (dedup by ID)
+                set((s) => {
+                  const alreadyRecent = s.recentActions.some((a) => a.id === report.id);
+                  return {
+                    pendingActions: s.pendingActions.filter(
+                      (a) => a.id !== report.id,
+                    ),
+                    recentActions: alreadyRecent
+                      ? s.recentActions.map((a) => (a.id === report.id ? report : a))
+                      : capArray(
+                          [...s.recentActions, report],
+                          MAX_RECENT_ACTIONS,
+                        ),
+                  };
+                });
               }
               break;
             }
@@ -224,11 +237,11 @@ export const useMonitorStore = create<MonitorState>()(
           }
         });
 
-        const state = get();
-        const { trustLevel } = useTrustStore.getState();
+        // H11: read autoFixCategories from trustStore (single source of truth)
+        const { trustLevel, autoFixCategories } = useTrustStore.getState();
         client.connect(
           String(trustLevel),
-          state.autoFixCategories,
+          autoFixCategories,
         );
       },
 
@@ -276,13 +289,18 @@ export const useMonitorStore = create<MonitorState>()(
       },
 
       setAutoFixCategories: (categories) => {
+        // H11: delegate to trustStore (single source of truth) and sync local copy
+        useTrustStore.getState().setAutoFixCategories(categories);
         set({ autoFixCategories: categories });
       },
 
       loadFixHistory: async (page = 1, filters?) => {
+        // H10: track request ID to discard stale responses
+        const requestId = ++_fixHistoryRequestId;
         set({ fixHistoryLoading: true });
         try {
           const response = await fetchFixHistory({ page, filters });
+          if (requestId !== _fixHistoryRequestId) return; // stale response
           set({
             fixHistory: response.actions,
             fixHistoryTotal: response.total,
@@ -290,6 +308,7 @@ export const useMonitorStore = create<MonitorState>()(
             fixHistoryLoading: false,
           });
         } catch (err) {
+          if (requestId !== _fixHistoryRequestId) return; // stale
           console.error('Failed to load fix history:', err);
           set({ fixHistoryLoading: false });
         }
@@ -311,7 +330,7 @@ export const useMonitorStore = create<MonitorState>()(
       name: 'openshiftpulse-monitor',
       partialize: (state) => ({
         monitorEnabled: state.monitorEnabled,
-        autoFixCategories: state.autoFixCategories,
+        // H11: autoFixCategories persisted via trustStore, not here
         dismissedFindingIds: state.dismissedFindingIds,
         findings: state.findings.slice(-MAX_FINDINGS),
         predictions: state.predictions.slice(-MAX_PREDICTIONS),

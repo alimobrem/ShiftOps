@@ -257,7 +257,10 @@ function CorrelationGroupRow({
                 'flex items-center gap-3 p-2 rounded text-sm',
                 entry.resource && 'cursor-pointer hover:bg-slate-800/50',
               )}
+              role={entry.resource ? 'button' : undefined}
+              tabIndex={entry.resource ? 0 : undefined}
               onClick={() => entry.resource && onEntryClick(entry)}
+              onKeyDown={entry.resource ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEntryClick(entry); } } : undefined}
             >
               <span className="text-xs text-slate-600 w-16 shrink-0">
                 {new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}

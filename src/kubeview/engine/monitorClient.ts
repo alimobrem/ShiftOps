@@ -168,8 +168,13 @@ export class MonitorClient {
 
     this.ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data) as MonitorEvent;
-        this.emit(data);
+        const data = JSON.parse(event.data);
+        // H12: runtime validation — reject malformed events before emitting
+        if (!data || typeof data !== 'object' || !('type' in data) || typeof data.type !== 'string') {
+          console.warn('Invalid monitor event:', data);
+          return;
+        }
+        this.emit(data as MonitorEvent);
       } catch {
         console.error('Failed to parse monitor message:', event.data);
       }

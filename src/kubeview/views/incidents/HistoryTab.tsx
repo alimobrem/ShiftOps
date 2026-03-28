@@ -60,11 +60,35 @@ export function HistoryTab() {
   const entries = timeline.entries || [];
   const counts = timeline.counts || { alert: 0, event: 0, rollout: 0, config: 0 };
 
-  // Merge fix history actions into stream as well
+  // H8: Map fix history actions into timeline entries and merge with cluster events
   const mergedEntries = useMemo(() => {
     let all = [...entries];
 
-    // Filter timeline entries by search
+    // Merge fix history records as timeline entries
+    for (const action of fixHistory) {
+      all.push({
+        id: action.id,
+        timestamp: action.timestamp,
+        category: 'event' as TimelineCategory,
+        severity: action.status === 'failed' ? 'warning' : 'normal',
+        title: `Fix: ${action.tool || action.category} — ${action.status}`,
+        detail: action.reasoning || action.afterState || undefined,
+        namespace: action.resources?.[0]?.namespace,
+        resource: action.resources?.[0]
+          ? {
+              kind: action.resources[0].kind,
+              name: action.resources[0].name,
+              namespace: action.resources[0].namespace,
+              apiVersion: 'v1',
+            }
+          : undefined,
+      });
+    }
+
+    // Sort merged entries by timestamp descending
+    all.sort((a, b) => b.timestamp - a.timestamp);
+
+    // Filter by search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       all = all.filter(
@@ -76,7 +100,7 @@ export function HistoryTab() {
     }
 
     return all;
-  }, [entries, searchQuery]);
+  }, [entries, fixHistory, searchQuery]);
 
   // Group by date
   const groupedEntries = useMemo(() => {
@@ -224,7 +248,10 @@ function HistoryEntryCard({ entry, onClick }: { entry: TimelineEntry; onClick: (
         'relative bg-slate-900 rounded-lg border border-slate-800 p-4',
         hasResource && 'cursor-pointer hover:border-slate-700 transition-colors',
       )}
+      role={hasResource ? 'button' : undefined}
+      tabIndex={hasResource ? 0 : undefined}
       onClick={hasResource ? onClick : undefined}
+      onKeyDown={hasResource ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
     >
       {/* Timeline dot */}
       <div className={cn('absolute -left-[25px] top-5 w-3 h-3 rounded-full border-2 border-slate-950', severityDot[entry.severity] || 'bg-slate-500')} />

@@ -110,13 +110,13 @@ export default function IdentityView() {
 
   // Filter helpers
   const q = search.toLowerCase();
-  const filteredUsers = users.filter((u: any) => !q || u.metadata.name.toLowerCase().includes(q));
-  const filteredGroups = groups.filter((g: any) => !q || g.metadata.name.toLowerCase().includes(q));
-  const filteredSAs = serviceAccounts.filter((sa: any) => {
+  const filteredUsers = users.filter((u: K8sResource) => !q || u.metadata.name.toLowerCase().includes(q));
+  const filteredGroups = groups.filter((g: K8sResource) => !q || g.metadata.name.toLowerCase().includes(q));
+  const filteredSAs = serviceAccounts.filter((sa: K8sResource) => {
     if (!q) return true;
     return sa.metadata.name.toLowerCase().includes(q) || sa.metadata.namespace?.toLowerCase().includes(q);
   });
-  const appSAs = filteredSAs.filter((sa: any) => {
+  const appSAs = filteredSAs.filter((sa: K8sResource) => {
     const ns = sa.metadata.namespace || '';
     return !ns.startsWith('openshift-') && !ns.startsWith('kube-') && ns !== 'openshift' && sa.metadata.name !== 'default';
   });
@@ -233,12 +233,24 @@ export default function IdentityView() {
 
         {/* Tabs + Search */}
         <div className="flex items-center gap-3">
-          <div className="flex gap-1 bg-slate-900 rounded-lg p-1" role="tablist" aria-label="Identity tabs">
+          <div
+            className="flex gap-1 bg-slate-900 rounded-lg p-1"
+            role="tablist"
+            aria-label="Identity tabs"
+            onKeyDown={(e) => {
+              const ids = TABS.map((t) => t.id);
+              const idx = ids.indexOf(activeTab);
+              if (e.key === 'ArrowRight') { e.preventDefault(); setActiveTab(ids[(idx + 1) % ids.length]); }
+              if (e.key === 'ArrowLeft') { e.preventDefault(); setActiveTab(ids[(idx - 1 + ids.length) % ids.length]); }
+            }}
+          >
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 role="tab"
                 aria-selected={activeTab === tab.id}
+                aria-controls={`identity-panel-${tab.id}`}
+                tabIndex={activeTab === tab.id ? 0 : -1}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   'px-3 py-1.5 text-xs rounded-md transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500',
@@ -272,7 +284,7 @@ export default function IdentityView() {
               <div className="divide-y divide-slate-800 max-h-[500px] overflow-auto">
                 {filteredUsers.length === 0 ? (
                   <EmptyState icon={<User className="w-8 h-8" />} title="No users found" description="No OpenShift users match your search." />
-                ) : filteredUsers.map((user: any) => {
+                ) : filteredUsers.map((user: K8sResource) => {
                   const uRoles = userRoles.get(user.metadata.name) || [];
                   const isAdmin = uRoles.some((r) => r === 'cluster-admin');
                   const identities = user.identities || [];
@@ -346,7 +358,7 @@ export default function IdentityView() {
                 <div className="divide-y divide-slate-800 max-h-[500px] overflow-auto">
                   {filteredGroups.length === 0 ? (
                     <EmptyState icon={<Users className="w-8 h-8" />} title="No groups found" description="No OpenShift groups match your search." />
-                  ) : filteredGroups.map((group: any) => {
+                  ) : filteredGroups.map((group: K8sResource) => {
                     const members = group.users || [];
                     const gRoles = userRoles.get(`group:${group.metadata.name}`) || [];
                     return (
@@ -388,7 +400,7 @@ export default function IdentityView() {
                 <div className="divide-y divide-slate-800 max-h-[500px] overflow-auto">
                   {appSAs.length === 0 ? (
                     <EmptyState icon={<Key className="w-8 h-8" />} title="No application service accounts" description="No non-system service accounts match your search." />
-                  ) : appSAs.slice(0, 50).map((sa: any) => {
+                  ) : appSAs.slice(0, 50).map((sa: K8sResource) => {
                     const saName = `system:serviceaccount:${sa.metadata.namespace}:${sa.metadata.name}`;
                     const saRoles = userRoles.get(saName) || [];
                     return (
@@ -560,7 +572,7 @@ export default function IdentityView() {
               <div className="divide-y divide-slate-800 max-h-[400px] overflow-auto">
                 {filteredUsers.length === 0 ? (
                   <EmptyState icon={<User className="w-8 h-8" />} title="No users found" className="py-6" />
-                ) : filteredUsers.map((user: any) => (
+                ) : filteredUsers.map((user: K8sResource) => (
                   <div key={user.metadata.uid} className="px-4 py-2.5 flex items-center justify-between hover:bg-slate-800/30 transition-colors">
                     <div className="flex items-center gap-3">
                       <User className="w-4 h-4 text-slate-400" />
@@ -590,7 +602,7 @@ export default function IdentityView() {
               <div className="divide-y divide-slate-800 max-h-[400px] overflow-auto">
                 {appSAs.length === 0 ? (
                   <EmptyState icon={<Key className="w-8 h-8" />} title="No application service accounts" className="py-6" />
-                ) : appSAs.slice(0, 50).map((sa: any) => {
+                ) : appSAs.slice(0, 50).map((sa: K8sResource) => {
                   const saFullName = `system:serviceaccount:${sa.metadata.namespace}:${sa.metadata.name}`;
                   return (
                     <div key={sa.metadata.uid} className="px-4 py-2.5 flex items-center justify-between hover:bg-slate-800/30 transition-colors">
@@ -656,9 +668,9 @@ function RecentSessions({ accessTokens, go }: { accessTokens: K8sResource[]; go:
         <button onClick={() => go('/r/oauth.openshift.io~v1~oauthaccesstokens', 'OAuthAccessTokens')} className="text-xs text-violet-400 hover:text-violet-300">View all →</button>
       </div>
       <div className="divide-y divide-slate-800 max-h-80 overflow-auto">
-        {(accessTokens as K8sResource[]).sort((a: any, b: any) =>
+        {[...(accessTokens as K8sResource[])].sort((a: K8sResource, b: K8sResource) =>
           new Date(b.metadata.creationTimestamp || 0).getTime() - new Date(a.metadata.creationTimestamp || 0).getTime()
-        ).slice(0, 15).map((token: any) => {
+        ).slice(0, 15).map((token: K8sResource) => {
           const userName = token.userName || 'unknown';
           const clientName = token.clientName || '';
           const redirectURI = token.redirectURI || '';
@@ -914,7 +926,7 @@ users:
     });
 
     return allChecks;
-  }, [users, groups, clusterRoleBindings, oauthConfig, accessTokens, kubeadminExists]);
+  }, [users, groups, clusterRoleBindings, oauthConfig, accessTokens, kubeadminExists, currentUserIsKubeAdmin]);
 
   const totalPassing = checks.reduce((s, c) => s + (c.failing.length === 0 ? 1 : 0), 0);
   const score = Math.round((totalPassing / checks.length) * 100);

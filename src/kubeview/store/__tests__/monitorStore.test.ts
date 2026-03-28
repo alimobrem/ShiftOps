@@ -144,8 +144,15 @@ describe('monitorStore', () => {
     expect(useMonitorStore.getState().connected).toBe(true);
   });
 
-  it('setAutoFixCategories updates categories', () => {
+  it('setAutoFixCategories updates categories via trustStore', async () => {
+    const trustModule = await import('../trustStore');
     useMonitorStore.getState().setAutoFixCategories(['memory', 'disk']);
+    // H11: autoFixCategories is now stored in trustStore (single source of truth)
+    expect(trustModule.useTrustStore.getState().autoFixCategories).toEqual([
+      'memory',
+      'disk',
+    ]);
+    // monitorStore.autoFixCategories synced from trustStore
     expect(useMonitorStore.getState().autoFixCategories).toEqual([
       'memory',
       'disk',

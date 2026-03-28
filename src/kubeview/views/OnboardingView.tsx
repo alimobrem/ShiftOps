@@ -33,6 +33,7 @@ export default function OnboardingView() {
     hasCompletedOnboarding() ? 'checklist' : 'wizard',
   );
   const [report, setReport] = React.useState<ReadinessReport | null>(null);
+  const [evalError, setEvalError] = React.useState<Error | null>(null);
 
   // Evaluate all readiness gates against the live cluster
   React.useEffect(() => {
@@ -82,6 +83,11 @@ export default function OnboardingView() {
         categories,
         generatedAt: Date.now(),
       });
+    }).catch((err) => {
+      // H9: handle evaluation promise rejection
+      if (cancelled) return;
+      console.error('Evaluation failed:', err);
+      setEvalError(err instanceof Error ? err : new Error(String(err)));
     });
 
     return () => { cancelled = true; };
@@ -200,7 +206,17 @@ export default function OnboardingView() {
           }
         />
 
-        {!report ? (
+        {evalError ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <span className="text-sm text-red-400">Evaluation failed: {evalError.message}</span>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-1.5 text-xs bg-violet-600 hover:bg-violet-500 text-white rounded transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : !report ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-6 h-6 text-violet-400 animate-spin" />
             <span className="ml-3 text-sm text-slate-400">Evaluating cluster readiness...</span>
