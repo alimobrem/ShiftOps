@@ -427,14 +427,18 @@ if [[ "$NO_AGENT" == "false" ]]; then
     [[ $i -eq 12 ]] && warn "Agent health check failed after 120s"
   done
 
-  # Verify WS connectivity
+  # Verify WS connectivity and auto-fix token mismatch
   WS_TOKEN_AGENT=$(oc exec "deployment/$AGENT_DEPLOY" -n "$NAMESPACE" -- env 2>/dev/null | grep PULSE_AGENT_WS_TOKEN | cut -d= -f2 || echo "")
-  WS_TOKEN_NGINX=$(oc get configmap openshiftpulse-nginx -n "$NAMESPACE" -o jsonpath='{.data.nginx\.conf}' 2>/dev/null | grep -o 'token=[a-f0-9]*' | head -1 | cut -d= -f2 || echo "")
+  WS_TOKEN_NGINX=$(oc get configmap openshiftpulse-nginx -n "$NAMESPACE" -o jsonpath='{.data.nginx\.conf}' 2>/dev/null | grep -o 'token=[a-zA-Z0-9]*' | head -1 | cut -d= -f2 || echo "")
   if [[ -n "$WS_TOKEN_AGENT" && -n "$WS_TOKEN_NGINX" ]]; then
     if [[ "$WS_TOKEN_AGENT" == "$WS_TOKEN_NGINX" ]]; then
       info "WS token: synced"
     else
-      warn "WS token mismatch! Agent=$WS_TOKEN_AGENT Nginx=$WS_TOKEN_NGINX"
+      warn "WS token mismatch — auto-fixing..."
+      oc get configmap openshiftpulse-nginx -n "$NAMESPACE" -o json | \
+        sed "s/$WS_TOKEN_NGINX/$WS_TOKEN_AGENT/g" | oc replace -f -
+      oc rollout restart deployment/openshiftpulse -n "$NAMESPACE"
+      info "WS token: patched nginx config and restarted UI"
     fi
   fi
 fi
