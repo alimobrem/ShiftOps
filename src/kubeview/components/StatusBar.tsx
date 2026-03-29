@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Bot, Shield } from 'lucide-react';
+import { AlertTriangle, Bot } from 'lucide-react';
 import { DEGRADED_MESSAGES } from '../engine/degradedMode';
 import { useUIStore } from '../store/uiStore';
 import { useFleetStore } from '../store/fleetStore';
-import { useMonitorStore } from '../store/monitorStore';
+
 import { isMultiCluster } from '../engine/clusterConnection';
 import { cn } from '@/lib/utils';
 
@@ -27,10 +27,8 @@ export function StatusBar() {
   const closeDock = useUIStore((s) => s.closeDock);
   const location = useLocation();
   const activeCluster = useFleetStore((s) => s.clusters.find(c => c.id === s.activeClusterId));
-  const monitorConnected = useMonitorStore((s) => s.connected);
-  const monitorFindings = useMonitorStore((s) => s.findings);
+
   const degradedReasons = useUIStore((s) => s.degradedReasons);
-  const monitorCriticalCount = monitorFindings.filter((f) => f.severity === 'critical').length;
   const navigate = useNavigate();
 
   const [relativeTime, setRelativeTime] = useState(formatRelativeTime(lastSyncTime));
@@ -88,32 +86,6 @@ export function StatusBar() {
 
       {/* Right */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => navigate('/incidents')}
-          className={cn(
-            'flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors',
-            monitorCriticalCount > 0
-              ? 'text-red-400 hover:text-red-300'
-              : monitorFindings.length > 0
-                ? 'text-amber-400 hover:text-amber-300'
-                : 'text-slate-500 hover:text-slate-300',
-          )}
-          title="Incidents"
-          aria-label="Open Incidents"
-        >
-          <Shield className={cn(
-            'h-3 w-3',
-            monitorConnected
-              ? monitorCriticalCount > 0 ? 'text-red-500' : monitorFindings.length > 0 ? 'text-amber-500' : 'text-emerald-500'
-              : 'text-slate-500',
-          )} />
-          <span className="text-xs">Incidents</span>
-          {monitorFindings.length > 0 && (
-            <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white">
-              {monitorFindings.length}
-            </span>
-          )}
-        </button>
         {degradedReasons.size > 0 && (
           <span
             className="flex items-center gap-1 text-amber-400 px-1.5 py-0.5"
