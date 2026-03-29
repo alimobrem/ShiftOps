@@ -175,16 +175,27 @@ export function DockAgentPanel() {
             <Trash2 className="h-3 w-3" />
           </button>
         )}
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={connected ? 'Ask the agent...' : 'Connecting...'}
-          disabled={streaming || !connected}
-          rows={1}
-          className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 resize-none"
-        />
+        <div className="flex-1 relative">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={streaming ? 'Agent is thinking... press Stop to interrupt' : connected ? 'Ask the agent...' : 'Connecting...'}
+            disabled={streaming || !connected}
+            rows={1}
+            className={cn(
+              'w-full bg-slate-900 border rounded px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none resize-none',
+              streaming ? 'border-blue-500/50 opacity-60 cursor-not-allowed' : 'border-slate-700 focus:border-blue-500',
+              !connected && 'opacity-40',
+            )}
+          />
+          {streaming && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              <Loader2 className="h-3 w-3 text-blue-400 animate-spin" />
+            </div>
+          )}
+        </div>
         {streaming ? (
           <button
             onClick={cancelQuery}
