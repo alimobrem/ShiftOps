@@ -66,11 +66,11 @@ agent:
   wsTokenSecret: ""  # e.g. pulse-agent-openshift-sre-agent-ws-token
   wsTokenSecretKey: "token"
 
-# Quota for the namespace
+# Quota for the namespace — sized for UI (2 pods) + Agent (1 pod) + PostgreSQL (1 pod) + builds
 quota:
   enabled: true
-  pods: "10"
-  requestsCpu: "1"
-  requestsMemory: 1Gi
-  limitsCpu: "2"
-  limitsMemory: 2Gi
+  pods: "15"
+  requestsCpu: "2"
+  requestsMemory: 2Gi
+  limitsCpu: "4"
+  limitsMemory: 4Gi
