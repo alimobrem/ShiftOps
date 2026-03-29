@@ -71,6 +71,24 @@ subjects:
   name: openshiftpulse
   namespace: {{ include "openshiftpulse.namespace" . }}
 ---
+# Grant access to Prometheus/Thanos metrics for dashboard charts
+{{- if .Values.monitoring.prometheus.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: openshiftpulse-monitoring-view
+  labels:
+    {{- include "openshiftpulse.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+subjects:
+- kind: ServiceAccount
+  name: openshiftpulse
+  namespace: {{ include "openshiftpulse.namespace" . }}
+{{- end }}
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
