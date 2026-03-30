@@ -1,11 +1,11 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Brain, BookOpen, TrendingUp, Search, ChevronDown, ChevronRight, ThumbsUp, Zap, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card } from '../components/primitives/Card';
 import { EmptyState } from '../components/primitives/EmptyState';
 import { formatRelativeTime } from '../engine/formatters';
-import { fetchMemoryStats, type MemoryStats } from '../engine/fixHistory';
 
 const AGENT_BASE = '/api/agent';
 
@@ -55,15 +55,11 @@ async function fetchIncidents(search = ''): Promise<Incident[]> {
 type Tab = 'runbooks' | 'patterns' | 'incidents';
 
 export default function MemoryView() {
-  const [activeTab, setActiveTab] = useState<Tab>('incidents');
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as Tab) || 'incidents';
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [search, setSearch] = useState('');
   const [expandedRunbook, setExpandedRunbook] = useState<string | null>(null);
-
-  const { data: stats } = useQuery<MemoryStats>({
-    queryKey: ['memory-stats'],
-    queryFn: fetchMemoryStats,
-    staleTime: 30_000,
-  });
 
   const { data: runbooks = [], isLoading: rbLoading } = useQuery({
     queryKey: ['memory', 'runbooks'],
@@ -117,42 +113,6 @@ export default function MemoryView() {
             The agent learns from every interaction. Give thumbs up on helpful responses to teach it reusable runbooks.
           </p>
         </div>
-
-        {/* Stats summary */}
-        {stats && stats.enabled && (
-          <div className="grid grid-cols-3 gap-3">
-            <button
-              onClick={() => setActiveTab('incidents')}
-              className={cn(
-                'bg-slate-900 rounded-lg border p-4 text-center transition-colors',
-                activeTab === 'incidents' ? 'border-slate-600 bg-slate-800/50' : 'border-slate-800 hover:border-slate-700',
-              )}
-            >
-              <div className="text-2xl font-bold text-slate-100">{stats.incidents}</div>
-              <div className="text-xs text-slate-500 mt-1">interactions recorded</div>
-            </button>
-            <button
-              onClick={() => setActiveTab('runbooks')}
-              className={cn(
-                'bg-slate-900 rounded-lg border p-4 text-center transition-colors',
-                activeTab === 'runbooks' ? 'border-slate-600 bg-slate-800/50' : 'border-slate-800 hover:border-slate-700',
-              )}
-            >
-              <div className="text-2xl font-bold text-violet-400">{stats.runbooks}</div>
-              <div className="text-xs text-slate-500 mt-1">runbooks learned</div>
-            </button>
-            <button
-              onClick={() => setActiveTab('patterns')}
-              className={cn(
-                'bg-slate-900 rounded-lg border p-4 text-center transition-colors',
-                activeTab === 'patterns' ? 'border-slate-600 bg-slate-800/50' : 'border-slate-800 hover:border-slate-700',
-              )}
-            >
-              <div className="text-2xl font-bold text-blue-400">{stats.patterns}</div>
-              <div className="text-xs text-slate-500 mt-1">patterns detected</div>
-            </button>
-          </div>
-        )}
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-slate-800">
