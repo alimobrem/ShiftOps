@@ -9,7 +9,7 @@ import { ClusterTooltip } from './overlays/ClusterTooltip';
 import { ZoneTooltip } from './overlays/ZoneTooltip';
 import { NodeGrid } from './overlays/NodeGrid';
 import { PodGrid } from './overlays/PodGrid';
-import { Search, Filter, Cpu, MemoryStick, Server, Box, AlertTriangle, Activity } from 'lucide-react';
+import { Search, Filter, Cpu, MemoryStick, Server, Box, AlertTriangle, Activity, Maximize2, Minimize2 } from 'lucide-react';
 
 export interface MapStats {
   totalNodes: number;
@@ -70,9 +70,11 @@ export function WorldMap({ clusters, zones, nodes, pods, events = [], zoneUtiliz
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('all');
   const [filterOpen, setFilterOpen] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>('none');
+  const [fullscreen, setFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const width = 960;
-  const height = 420;
+  const height = fullscreen ? 700 : 420;
 
   // Auto-center
   const autoCenter = useMemo<Pick<ViewState, 'center' | 'scale'>>(() => {
@@ -103,7 +105,47 @@ export function WorldMap({ clusters, zones, nodes, pods, events = [], zoneUtiliz
   const fZones = useMemo(() => { let r = zones; if (healthFilter !== 'all') r = r.filter(z => z.healthGrade === healthFilter); if (searchQuery) { const q = searchQuery.toLowerCase(); r = r.filter(z => z.zone.toLowerCase().includes(q) || z.displayName.toLowerCase().includes(q) || z.provider.toLowerCase().includes(q)); } return r; }, [zones, healthFilter, searchQuery]);
 
   const cPos = useMemo(() => fClusters.map(c => { const p = projection([c.longitude, c.latitude]); return { c, x: p?.[0] ?? 0, y: p?.[1] ?? 0 }; }), [fClusters, projection]);
-  const zPos = useMemo(() => fZones.map(z => { const p = projection([z.longitude, z.latitude]); return { z, x: p?.[0] ?? 0, y: p?.[1] ?? 0 }; }), [fZones, projection]);
+  const rawZPos = useMemo(() => fZones.map(z => { const p = projection([z.longitude, z.latitude]); return { z, x: p?.[0] ?? 0, y: p?.[1] ?? 0 }; }), [fZones, projection]);
+
+  // Pin clustering: merge nearby zone pins when zoomed out with many pins
+  const zPos = useMemo(() => {
+    if (rawZPos.length <= 10 || cv.scale >= 2) return rawZPos;
+
+    const CLUSTER_DIST = 40; // pixel distance threshold
+    const clusters: Array<{ zones: typeof rawZPos; x: number; y: number }> = [];
+
+    for (const pin of rawZPos) {
+      const existing = clusters.find(cl => Math.hypot(cl.x - pin.x, cl.y - pin.y) < CLUSTER_DIST);
+      if (existing) {
+        existing.zones.push(pin);
+        existing.x = existing.zones.reduce((s, p) => s + p.x, 0) / existing.zones.length;
+        existing.y = existing.zones.reduce((s, p) => s + p.y, 0) / existing.zones.length;
+      } else {
+        clusters.push({ zones: [pin], x: pin.x, y: pin.y });
+      }
+    }
+
+    // For clusters with multiple zones, merge into a single pin
+    return clusters.map(cl => {
+      if (cl.zones.length === 1) return cl.zones[0];
+      // Create a merged zone
+      const merged: MapZone = {
+        id: cl.zones.map(p => p.z.id).join('+'),
+        region: cl.zones[0].z.region,
+        zone: `${cl.zones.length} zones`,
+        latitude: cl.zones.reduce((s, p) => s + p.z.latitude, 0) / cl.zones.length,
+        longitude: cl.zones.reduce((s, p) => s + p.z.longitude, 0) / cl.zones.length,
+        displayName: cl.zones[0].z.displayName,
+        provider: cl.zones.map(p => p.z.provider).filter((v, i, a) => a.indexOf(v) === i).join(', '),
+        nodeCount: cl.zones.reduce((s, p) => s + p.z.nodeCount, 0),
+        nodeNames: cl.zones.flatMap(p => p.z.nodeNames),
+        healthScore: Math.round(cl.zones.reduce((s, p) => s + p.z.healthScore, 0) / cl.zones.length),
+        healthGrade: (() => { const avg = cl.zones.reduce((s, p) => s + p.z.healthScore, 0) / cl.zones.length; return avg >= 90 ? 'healthy' : avg >= 70 ? 'warning' : avg >= 50 ? 'degraded' : 'critical'; })(),
+        podCount: cl.zones.reduce((s, p) => s + p.z.podCount, 0),
+      };
+      return { z: merged, x: cl.x, y: cl.y };
+    });
+  }, [rawZPos, cv.scale]);
   const utilMap = useMemo(() => { const m = new Map<string, ZoneUtilization>(); for (const u of zoneUtilization) m.set(u.zoneId, u); return m; }, [zoneUtilization]);
 
   const pinR = useCallback((n: number) => Math.min(PIN_RADIUS_MAX, Math.max(PIN_RADIUS_MIN, Math.log(n + 2) * 4)), []);
@@ -123,6 +165,69 @@ export function WorldMap({ clusters, zones, nodes, pods, events = [], zoneUtiliz
 
   const back = useCallback(() => { if (cv.zoom === 'node') setViewState(p => p ? { ...p, zoom: 'cluster', selectedNode: null } : p); else if (cv.zoom === 'cluster') fly({ ...autoCenter, zoom: 'world', selectedCluster: null, selectedZone: null, selectedNode: null }); }, [cv.zoom, fly, autoCenter]);
   const reset = useCallback(() => { fly({ ...autoCenter, zoom: 'world', selectedCluster: null, selectedZone: null, selectedNode: null }); }, [fly, autoCenter]);
+
+  // Double-click to zoom into a point on the map
+  const handleDblClick = useCallback((e: React.MouseEvent) => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const svgX = ((e.clientX - rect.left) / rect.width) * width;
+    const svgY = ((e.clientY - rect.top) / rect.height) * height;
+    const coords = projection.invert?.([svgX, svgY]);
+    if (coords) {
+      fly({ center: coords as [number, number], scale: Math.min(8, cv.scale * 2) });
+    }
+  }, [projection, fly, cv.scale, width, height]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Don't capture when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const PAN_STEP = 5 / cv.scale;
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault();
+          setViewState(p => { const b = p || defaultView; return { ...b, center: [b.center[0] - PAN_STEP, b.center[1]] as [number, number] }; });
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          setViewState(p => { const b = p || defaultView; return { ...b, center: [b.center[0] + PAN_STEP, b.center[1]] as [number, number] }; });
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setViewState(p => { const b = p || defaultView; return { ...b, center: [b.center[0], b.center[1] + PAN_STEP] as [number, number] }; });
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          setViewState(p => { const b = p || defaultView; return { ...b, center: [b.center[0], b.center[1] - PAN_STEP] as [number, number] }; });
+          break;
+        case '=': case '+':
+          e.preventDefault();
+          setViewState(p => { const b = p || defaultView; return { ...b, scale: Math.min(8, b.scale * 1.3) }; });
+          break;
+        case '-':
+          e.preventDefault();
+          setViewState(p => { const b = p || defaultView; return { ...b, scale: Math.max(0.5, b.scale / 1.3) }; });
+          break;
+        case 'Escape':
+          e.preventDefault();
+          if (fullscreen) setFullscreen(false);
+          else back();
+          break;
+        case '0':
+          e.preventDefault();
+          reset();
+          break;
+        case 'f':
+          if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); setFullscreen(v => !v); }
+          break;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [cv.scale, defaultView, back, reset, fullscreen]);
   const search = useCallback((q: string) => { setSearchQuery(q); if (!q) return; const ql = q.toLowerCase(); const mc = clusters.find(c => c.name.toLowerCase().includes(ql) || c.displayName.toLowerCase().includes(ql)); if (mc) { fly({ center: [mc.longitude, mc.latitude], scale: 3 }); return; } const mz = zones.find(z => z.zone.toLowerCase().includes(ql) || z.displayName.toLowerCase().includes(ql)); if (mz) fly({ center: [mz.longitude, mz.latitude], scale: 3 }); }, [clusters, zones, fly]);
 
   const breadcrumbs = useMemo(() => {
@@ -149,7 +254,7 @@ export function WorldMap({ clusters, zones, nodes, pods, events = [], zoneUtiliz
   const statColor = (val: number, warn: number, crit: number) => val >= crit ? 'text-red-400' : val >= warn ? 'text-amber-400' : 'text-emerald-400';
 
   return (
-    <div className="relative rounded-lg border border-slate-800 overflow-hidden bg-[#080e1a]" style={{ height: 520 }}>
+    <div ref={containerRef} className={`relative rounded-lg border border-slate-800 overflow-hidden bg-[#080e1a] transition-all duration-300 ${fullscreen ? 'fixed inset-0 z-50 rounded-none border-0' : ''}`} style={fullscreen ? undefined : { height: 520 }}>
       <style>{css}</style>
 
       {/* ═══ STATS HEADER ═══ */}
@@ -223,6 +328,10 @@ export function WorldMap({ clusters, zones, nodes, pods, events = [], zoneUtiliz
               </div>
             )}
           </div>
+
+          <button onClick={() => setFullscreen(v => !v)} className="p-1 text-slate-500 hover:text-slate-200 transition-colors" aria-label={fullscreen ? 'Exit fullscreen' : 'Fullscreen'} title={fullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen (F)'}>
+            {fullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
         </div>
       </div>
 
@@ -242,7 +351,7 @@ export function WorldMap({ clusters, zones, nodes, pods, events = [], zoneUtiliz
 
         {/* SVG */}
         <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className="w-full h-full" style={{ transition: animating ? `all ${FLY_DURATION}ms cubic-bezier(0.4,0,0.2,1)` : undefined, cursor: drag.current.on ? 'grabbing' : 'grab' }}
-          onWheel={handleWheel} onMouseDown={onMD} onMouseMove={onMM} onMouseUp={onMU}>
+          onWheel={handleWheel} onMouseDown={onMD} onMouseMove={onMM} onMouseUp={onMU} onDoubleClick={handleDblClick}>
 
           {/* SVG Defs for glow effects */}
           <defs>
