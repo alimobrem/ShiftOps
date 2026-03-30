@@ -55,7 +55,7 @@ async function fetchIncidents(search = ''): Promise<Incident[]> {
 type Tab = 'runbooks' | 'patterns' | 'incidents';
 
 export default function MemoryView() {
-  const [activeTab, setActiveTab] = useState<Tab>('runbooks');
+  const [activeTab, setActiveTab] = useState<Tab>('incidents');
   const [search, setSearch] = useState('');
   const [expandedRunbook, setExpandedRunbook] = useState<string | null>(null);
 
@@ -125,7 +125,7 @@ export default function MemoryView() {
               onClick={() => setActiveTab('incidents')}
               className={cn(
                 'bg-slate-900 rounded-lg border p-4 text-center transition-colors',
-                activeTab === 'incidents' ? 'border-violet-600' : 'border-slate-800 hover:border-slate-700',
+                activeTab === 'incidents' ? 'border-slate-600 bg-slate-800/50' : 'border-slate-800 hover:border-slate-700',
               )}
             >
               <div className="text-2xl font-bold text-slate-100">{stats.incidents}</div>
@@ -135,7 +135,7 @@ export default function MemoryView() {
               onClick={() => setActiveTab('runbooks')}
               className={cn(
                 'bg-slate-900 rounded-lg border p-4 text-center transition-colors',
-                activeTab === 'runbooks' ? 'border-violet-600' : 'border-slate-800 hover:border-slate-700',
+                activeTab === 'runbooks' ? 'border-slate-600 bg-slate-800/50' : 'border-slate-800 hover:border-slate-700',
               )}
             >
               <div className="text-2xl font-bold text-violet-400">{stats.runbooks}</div>
@@ -145,7 +145,7 @@ export default function MemoryView() {
               onClick={() => setActiveTab('patterns')}
               className={cn(
                 'bg-slate-900 rounded-lg border p-4 text-center transition-colors',
-                activeTab === 'patterns' ? 'border-violet-600' : 'border-slate-800 hover:border-slate-700',
+                activeTab === 'patterns' ? 'border-slate-600 bg-slate-800/50' : 'border-slate-800 hover:border-slate-700',
               )}
             >
               <div className="text-2xl font-bold text-blue-400">{stats.patterns}</div>
