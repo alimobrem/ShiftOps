@@ -1,9 +1,11 @@
 import React from 'react';
 import {
   CheckCircle2, XCircle, AlertTriangle, HelpCircle, ShieldOff,
-  Loader2, RefreshCw, ShieldCheck,
+  Loader2, RefreshCw, ShieldCheck, Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '../../store/uiStore';
+import { useAgentStore } from '../../store/agentStore';
 import type { GateStatus, ReadinessGate, GateResult } from '../../engine/readiness/types';
 
 interface GateCardProps {
@@ -88,6 +90,19 @@ export function GateCard({ gate, result, waived, waiverReason, onReVerify, onWai
           )}
 
           <div className="flex items-center gap-2 pt-1">
+            {(status === 'failed' || status === 'needs_attention') && (
+              <button
+                onClick={() => {
+                  useUIStore.getState().openDock('agent');
+                  useAgentStore.getState().connectAndSend(
+                    `Fix this production readiness issue:\n\n"${gate.title}": ${result?.detail || gate.whyItMatters}\n\n${result?.fixGuidance || ''}\n\nPlease fix this or generate the required YAML configuration.`
+                  );
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-violet-600 hover:bg-violet-500 rounded-md transition-colors"
+              >
+                <Bot className="w-3 h-3" /> Fix with AI
+              </button>
+            )}
             {onReVerify && (
               <button
                 onClick={() => onReVerify(gate.id)}
