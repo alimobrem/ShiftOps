@@ -8,6 +8,7 @@ import { useMonitorStore } from '../../store/monitorStore';
 import { MessageBubble } from './MessageBubble';
 import { AgentComponentRenderer } from './AgentComponentRenderer';
 import { ConfirmationCard } from './ConfirmationCard';
+import { ConfirmDialog } from '../feedback/ConfirmDialog';
 import { PromptPill } from './AIBranding';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +31,7 @@ export function DockAgentPanel() {
   const monitorFindings = useMonitorStore((s) => s.findings);
   const monitorCritical = monitorFindings.filter((f) => f.severity === 'critical').length;
   const [input, setInput] = useState('');
+  const [confirmClear, setConfirmClear] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -208,7 +210,7 @@ export function DockAgentPanel() {
         </div>
         {messages.length > 0 && !streaming && (
           <button
-            onClick={clearChat}
+            onClick={() => setConfirmClear(true)}
             className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
             title="Clear chat"
             aria-label="Clear agent chat"
@@ -261,6 +263,16 @@ export function DockAgentPanel() {
           </button>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        onConfirm={() => { clearChat(); setConfirmClear(false); }}
+        title="Clear Conversation"
+        description="Clear the conversation? The agent will lose context about the current incident."
+        confirmLabel="Clear"
+        variant="warning"
+      />
     </div>
   );
 }

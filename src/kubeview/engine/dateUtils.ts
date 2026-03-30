@@ -16,15 +16,6 @@ export function formatDuration(start: string, end?: string): string {
   return `${hrs}h ${mins % 60}m`;
 }
 
-/** Format a duration from seconds */
-export function formatDurationSeconds(seconds: number): string {
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${mins}m`;
-}
-
 /** Format a timestamp as relative time (e.g., "5m ago", "2d ago") */
 export function timeAgo(ts: string): string {
   if (!ts) return '—';
