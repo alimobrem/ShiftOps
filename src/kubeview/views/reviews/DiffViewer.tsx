@@ -49,7 +49,6 @@ export function DiffViewer({ diff }: DiffViewerProps) {
 
   return (
     <div className="rounded-lg border border-slate-700 overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-4 px-4 py-2 bg-slate-800/80 border-b border-slate-700 text-xs text-slate-400">
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm bg-red-500/30 border border-red-500/50" />
@@ -61,7 +60,6 @@ export function DiffViewer({ diff }: DiffViewerProps) {
         </span>
       </div>
 
-      {/* Diff content */}
       <div className="overflow-x-auto">
         <pre className="text-xs leading-5 font-mono">
           {unifiedDiff.map((line, i) => (

@@ -1,35 +1,23 @@
 import React from 'react';
-import { Lightbulb, ArrowRight, Shield, Zap, BarChart3 } from 'lucide-react';
+import { Lightbulb, ArrowRight, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CostTrendSparkline } from './CostTrendSparkline';
+import { useIncidentFeed, type IncidentSeverity } from '../../hooks/useIncidentFeed';
 
-interface Insight {
-  id: string;
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-}
-
-const insights: Insight[] = [
-  {
-    id: 'ins-1',
-    icon: <Shield className="h-4 w-4 text-violet-400" />,
-    title: 'Security posture',
-    body: 'No new critical CVEs detected. 2 medium findings from last scan — review recommended.',
+const severityConfig: Record<IncidentSeverity, { icon: React.ReactNode; borderClass: string }> = {
+  critical: {
+    icon: <AlertCircle className="h-4 w-4 text-red-400" />,
+    borderClass: 'border-red-500/30',
   },
-  {
-    id: 'ins-2',
-    icon: <Zap className="h-4 w-4 text-amber-400" />,
-    title: 'Resource efficiency',
-    body: '3 deployments in staging have < 5% CPU utilization over 24h. Consider scaling down.',
+  warning: {
+    icon: <AlertTriangle className="h-4 w-4 text-amber-400" />,
+    borderClass: 'border-amber-500/30',
   },
-  {
-    id: 'ins-3',
-    icon: <BarChart3 className="h-4 w-4 text-blue-400" />,
-    title: 'Capacity forecast',
-    body: 'At current growth, worker node memory will reach 85% in ~12 days.',
+  info: {
+    icon: <Info className="h-4 w-4 text-blue-400" />,
+    borderClass: 'border-slate-800',
   },
-];
+};
 
 interface QuickAction {
   label: string;
@@ -44,29 +32,50 @@ const quickActions: QuickAction[] = [
 ];
 
 export function InsightsRail({ className, onNavigate }: { className?: string; onNavigate?: (route: string, title: string) => void }) {
+  const { incidents, isLoading } = useIncidentFeed({ limit: 3 });
+
   return (
     <aside className={cn('space-y-4', className)}>
-      {/* Cost trend card */}
       <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
         <h3 className="text-sm font-semibold text-slate-100 mb-3">7-day Cost Trend</h3>
         <CostTrendSparkline />
       </div>
 
-      {/* Insight cards */}
-      {insights.map((ins) => (
-        <div
-          key={ins.id}
-          className="rounded-lg border border-slate-800 bg-slate-900 p-4"
-        >
+      {isLoading ? (
+        <>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg border border-slate-800 bg-slate-900 p-4 animate-pulse">
+              <div className="h-4 w-32 bg-slate-700 rounded mb-2" />
+              <div className="h-3 w-full bg-slate-700 rounded" />
+            </div>
+          ))}
+        </>
+      ) : incidents.length === 0 ? (
+        <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
           <div className="flex items-center gap-2 mb-2">
-            {ins.icon}
-            <h4 className="text-sm font-medium text-slate-100">{ins.title}</h4>
+            <Info className="h-4 w-4 text-blue-400" />
+            <h4 className="text-sm font-medium text-slate-100">All clear</h4>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed">{ins.body}</p>
+          <p className="text-xs text-slate-400 leading-relaxed">No active incidents right now.</p>
         </div>
-      ))}
+      ) : (
+        incidents.map((inc) => {
+          const cfg = severityConfig[inc.severity];
+          return (
+            <div
+              key={inc.id}
+              className={cn('rounded-lg border bg-slate-900 p-4', cfg.borderClass)}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {cfg.icon}
+                <h4 className="text-sm font-medium text-slate-100">{inc.title}</h4>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">{inc.detail}</p>
+            </div>
+          );
+        })
+      )}
 
-      {/* Quick action pills */}
       <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Lightbulb className="h-4 w-4 text-yellow-400" />

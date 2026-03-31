@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, MessageSquare, AlertTriangle, Info } from 'lucide-react';
+import { Check, X, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ReviewItem } from '../../store/reviewStore';
 import { useReviewStore } from '../../store/reviewStore';
@@ -12,16 +12,13 @@ interface ReviewDetailProps {
 export function ReviewDetail({ review }: ReviewDetailProps) {
   const approveReview = useReviewStore((s) => s.approveReview);
   const rejectReview = useReviewStore((s) => s.rejectReview);
-  const requestChanges = useReviewStore((s) => s.requestChanges);
 
   const isPending = review.status === 'pending' || review.status === 'changes_requested';
 
   return (
     <div className="space-y-4 pt-3 border-t border-slate-800">
-      {/* Description */}
       <p className="text-sm text-slate-300 leading-relaxed">{review.description}</p>
 
-      {/* Changed fields summary */}
       {review.diff.fields.length > 0 && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
           <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Changed Fields</h4>
@@ -38,10 +35,8 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
         </div>
       )}
 
-      {/* Diff viewer */}
       <DiffViewer diff={review.diff} />
 
-      {/* Business impact */}
       <div className={cn(
         'flex items-start gap-2.5 rounded-lg border p-3 text-sm',
         review.riskLevel === 'critical'
@@ -61,7 +56,6 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
         </div>
       </div>
 
-      {/* Action buttons */}
       {isPending && (
         <div className="flex items-center gap-2 pt-1">
           <button
@@ -78,17 +72,9 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
             <X className="w-4 h-4" />
             Reject
           </button>
-          <button
-            onClick={() => requestChanges(review.id)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium transition-colors"
-          >
-            <MessageSquare className="w-4 h-4" />
-            Request Changes
-          </button>
         </div>
       )}
 
-      {/* Status badge for already reviewed */}
       {!isPending && review.reviewedAt && (
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <span className={cn(

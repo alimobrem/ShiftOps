@@ -1,4 +1,4 @@
-import { Sparkles, ArrowRight, MessageSquare } from 'lucide-react';
+import { Sparkles, ArrowRight, MessageSquare, Bot, AlertTriangle, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getResourceIcon } from '../engine/iconRegistry';
 import { useNavigateTab } from '../hooks/useNavigateTab';
@@ -11,6 +11,10 @@ interface AskPulsePanelProps {
   response: AskPulseResponse | null;
   isLoading: boolean;
   onSuggestionClick: (suggestion: string) => void;
+  /** Whether the agent backend is reachable */
+  agentAvailable?: boolean;
+  /** Callback to send the query to the dock agent panel */
+  onOpenInAgent?: () => void;
 }
 
 function LoadingDots() {
@@ -27,7 +31,7 @@ function LoadingDots() {
   );
 }
 
-export function AskPulsePanel({ query, response, isLoading, onSuggestionClick }: AskPulsePanelProps) {
+export function AskPulsePanel({ query, response, isLoading, onSuggestionClick, agentAvailable = true, onOpenInAgent }: AskPulsePanelProps) {
   const go = useNavigateTab();
   const closeCommandPalette = useUIStore((s) => s.closeCommandPalette);
 
@@ -44,6 +48,12 @@ export function AskPulsePanel({ query, response, isLoading, onSuggestionClick }:
         <span className="text-xs font-semibold uppercase tracking-wider text-violet-400">
           Ask Pulse
         </span>
+        {!agentAvailable && (
+          <span className="flex items-center gap-1 text-xs text-amber-400/80 ml-auto" title="Agent unavailable — showing sample responses">
+            <AlertTriangle className="h-3 w-3" />
+            Agent offline
+          </span>
+        )}
       </div>
 
       {isLoading && <LoadingDots />}
@@ -52,9 +62,37 @@ export function AskPulsePanel({ query, response, isLoading, onSuggestionClick }:
         <div className="space-y-3">
           <div className="rounded-md bg-slate-700/50 px-3 py-2.5">
             <div className="flex gap-2">
-              <MessageSquare className="h-4 w-4 mt-0.5 shrink-0 text-violet-400" />
-              <p className="text-sm text-slate-200 leading-relaxed">{response.text}</p>
+              {response.fromAgent ? (
+                <Bot className="h-4 w-4 mt-0.5 shrink-0 text-violet-400" />
+              ) : (
+                <MessageSquare className="h-4 w-4 mt-0.5 shrink-0 text-violet-400" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{response.text}</p>
+              </div>
             </div>
+          </div>
+
+          {/* Source indicator + Open in Agent */}
+          <div className="flex items-center justify-between px-1">
+            <span className={cn(
+              'text-[10px] uppercase tracking-wider font-medium',
+              response.fromAgent ? 'text-violet-400/70' : 'text-slate-500',
+            )}>
+              {response.fromAgent ? 'Powered by Pulse Agent' : 'Sample response'}
+            </span>
+            {onOpenInAgent && (
+              <button
+                onClick={onOpenInAgent}
+                className={cn(
+                  'flex items-center gap-1 text-[11px] font-medium',
+                  'text-violet-400 hover:text-violet-300 transition-colors',
+                )}
+              >
+                <ExternalLink className="h-3 w-3" />
+                Open in Agent
+              </button>
+            )}
           </div>
 
           {response.suggestions.length > 0 && (

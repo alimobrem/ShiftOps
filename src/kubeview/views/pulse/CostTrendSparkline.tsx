@@ -52,6 +52,7 @@ export function CostTrendSparkline({ className }: { className?: string }) {
           {changePercent > 0 ? '+' : ''}{changePercent}%
         </span>
       </div>
+      <span className="ml-auto text-[10px] text-slate-600 italic">Sample data</span>
     </div>
   );
 }

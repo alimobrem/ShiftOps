@@ -35,23 +35,19 @@ export function ReviewCard({ review }: ReviewCardProps) {
         isExpanded ? 'border-slate-600' : 'border-slate-800 hover:border-slate-700',
       )}
     >
-      {/* Header — always visible */}
       <button
         onClick={() => setExpanded(isExpanded ? null : review.id)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left"
         aria-expanded={isExpanded}
       >
-        {/* Expand chevron */}
         <span className="text-slate-500 shrink-0" aria-hidden="true">
           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </span>
 
-        {/* Risk badge */}
         <span className={cn('px-2 py-0.5 rounded-full text-xs font-semibold shrink-0', risk.bg, risk.text)}>
           {risk.label}
         </span>
 
-        {/* Title + resource info */}
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium text-slate-100 truncate">{review.title}</div>
           <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
@@ -61,20 +57,17 @@ export function ReviewCard({ review }: ReviewCardProps) {
           </div>
         </div>
 
-        {/* Agent info */}
         <div className="flex items-center gap-1.5 shrink-0 text-xs text-slate-500">
           <AgentIcon icon={review.agentIcon} />
           <span className="hidden sm:inline">{review.agentName}</span>
         </div>
 
-        {/* Time */}
         <div className="flex items-center gap-1 shrink-0 text-xs text-slate-600">
           <Clock className="w-3 h-3" />
           <span>{formatAge(new Date(review.createdAt))}</span>
         </div>
       </button>
 
-      {/* Expanded detail */}
       {isExpanded && (
         <div className="px-4 pb-4">
           <ReviewDetail review={review} />

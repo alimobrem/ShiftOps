@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Globe, Sparkles } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
@@ -83,7 +83,7 @@ export function CommandPalette() {
   const askPulseEnabled = isFeatureEnabled('askPulse');
   const askPulse = useAskPulse(askPulseEnabled ? query : '');
   const showAskPulse = askPulseEnabled && askPulse.isNaturalLanguage && query.trim() && mode === 'default';
-  const recentAskQueries = askPulseEnabled ? getRecentQueries() : [];
+  const recentAskQueries = useMemo(() => askPulseEnabled ? getRecentQueries() : [], [askPulseEnabled, open]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const multiCluster = isMultiCluster();
@@ -280,23 +280,23 @@ export function CommandPalette() {
                 ))}
               </div>
             )}
-            {/* Ask Pulse natural language panel */}
             {showAskPulse && !searchAllClusters && (
               <AskPulsePanel
                 query={query}
                 response={askPulse.response}
                 isLoading={askPulse.isLoading}
                 onSuggestionClick={(suggestion) => setQuery(suggestion)}
+                agentAvailable={askPulse.agentAvailable}
+                onOpenInAgent={askPulse.openInAgent}
               />
             )}
-            {/* Recent Ask Pulse queries when empty */}
             {!query.trim() && askPulseEnabled && !searchAllClusters && recentAskQueries.length > 0 && (
               <div className="mb-2">
                 <div className="mb-1 px-2 text-xs font-semibold uppercase tracking-wider text-violet-400 flex items-center gap-1.5">
                   <Sparkles className="h-3 w-3" />
                   Recent Questions
                 </div>
-                {recentAskQueries.map((q) => (
+                {recentAskQueries.map((q: string) => (
                   <button
                     key={q}
                     onClick={() => setQuery(q)}
@@ -308,7 +308,6 @@ export function CommandPalette() {
                 ))}
               </div>
             )}
-            {/* Standard results (hidden when Ask Pulse panel is showing) */}
             {!showAskPulse && (!searchAllClusters || fleetResults.length === 0) && !fleetLoading && (
               items.length === 0 ? (
                 <div className="py-8 text-center text-sm text-slate-500">
