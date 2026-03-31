@@ -7,9 +7,10 @@
 # Usage:
 #   ./deploy/deploy.sh                                  # UI only (no agent)
 #   ./deploy/deploy.sh --agent-repo /path/to/pulse-agent # UI + Agent
-#   ANTHROPIC_API_KEY=sk-ant-... ./deploy/deploy.sh --agent-repo ../pulse-agent
+#   ./deploy/deploy.sh --uninstall                       # Remove everything
+#   ./deploy/deploy.sh --dry-run --agent-repo ../pulse-agent  # Preview
 #
-# Prerequisites: oc (logged in), helm, npm, podman
+# Prerequisites: oc (logged in), helm, npm, podman (logged in to quay.io)
 
 set -euo pipefail
 
@@ -23,10 +24,13 @@ NAMESPACE="openshiftpulse"
 AGENT_RELEASE="pulse-agent"
 UI_IMAGE="quay.io/amobrem/openshiftpulse"
 AGENT_IMAGE="quay.io/amobrem/pulse-agent"
-UI_TAG="latest"
-AGENT_TAG="latest"
+UI_TAG=""
+AGENT_TAG=""
 _WS_TOKEN_OVERRIDE="${PULSE_AGENT_WS_TOKEN:-}"
 GCP_KEY_FILE=""
+DRY_RUN=false
+UNINSTALL=false
+SKIP_BUILD=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -37,29 +41,34 @@ while [[ $# -gt 0 ]]; do
     --gcp-key)    GCP_KEY_FILE="$2"; shift 2 ;;
     --ui-tag)     UI_TAG="$2"; shift 2 ;;
     --agent-tag)  AGENT_TAG="$2"; shift 2 ;;
+    --dry-run)    DRY_RUN=true; shift ;;
+    --uninstall)  UNINSTALL=true; shift ;;
+    --skip-build) SKIP_BUILD=true; shift ;;
     --help|-h)
-      echo "Usage: $0 [--agent-repo /path/to/pulse-agent] [options]"
-      echo ""
-      echo "Options:"
-      echo "  --agent-repo PATH   Path to pulse-agent repo (deploys UI + Agent)"
-      echo "  --no-agent          Deploy UI only, skip agent"
-      echo "  --namespace NS      Target namespace (default: openshiftpulse)"
-      echo "  --gcp-key PATH      GCP service account JSON for Vertex AI"
-      echo "  --ws-token TOKEN    WebSocket auth token (auto-generated if unset)"
-      echo "  --ui-tag TAG        UI image tag (default: latest)"
-      echo "  --agent-tag TAG     Agent image tag (default: latest)"
-      echo ""
-      echo "Images (built locally, pushed to Quay.io):"
-      echo "  UI:    $UI_IMAGE:<tag>"
-      echo "  Agent: $AGENT_IMAGE:<tag>"
-      echo ""
-      echo "AI Backend (pick one):"
-      echo "  Option A — Vertex AI (recommended for GCP):"
-      echo "    ANTHROPIC_VERTEX_PROJECT_ID=proj CLOUD_ML_REGION=us-east5 \\"
-      echo "      $0 --agent-repo ../pulse-agent --gcp-key ~/sa-key.json"
-      echo ""
-      echo "  Option B — Anthropic API directly:"
-      echo "    ANTHROPIC_API_KEY=sk-ant-... $0 --agent-repo ../pulse-agent"
+      cat <<HELP
+Usage: $0 [--agent-repo /path/to/pulse-agent] [options]
+
+Options:
+  --agent-repo PATH   Path to pulse-agent repo (deploys UI + Agent)
+  --no-agent          Deploy UI only, skip agent
+  --namespace NS      Target namespace (default: openshiftpulse)
+  --gcp-key PATH      GCP service account JSON for Vertex AI
+  --ws-token TOKEN    WebSocket auth token (auto-generated if unset)
+  --ui-tag TAG        UI image tag (default: git SHA short)
+  --agent-tag TAG     Agent image tag (default: git SHA short)
+  --dry-run           Preview what will be deployed without deploying
+  --uninstall         Remove all Pulse resources from the cluster
+  --skip-build        Skip image builds, use existing images
+
+Images (built locally, pushed to Quay.io):
+  UI:    $UI_IMAGE:<tag>
+  Agent: $AGENT_IMAGE:<tag>
+
+AI Backend (pick one):
+  Vertex AI:     ANTHROPIC_VERTEX_PROJECT_ID=proj CLOUD_ML_REGION=us-east5 \\
+                   $0 --agent-repo ../pulse-agent --gcp-key ~/sa-key.json
+  Anthropic API: ANTHROPIC_API_KEY=sk-ant-... $0 --agent-repo ../pulse-agent
+HELP
       exit 0 ;;
     *) echo "ERROR: Unknown argument: $1. Use --help for usage."; exit 1 ;;
   esac
@@ -92,6 +101,46 @@ wait_for_route() {
   echo ""
 }
 
+# Compute git-based image tag: short SHA + dirty suffix
+git_tag() {
+  local dir="$1"
+  local sha
+  sha=$(git -C "$dir" rev-parse --short=8 HEAD 2>/dev/null || echo "unknown")
+  if ! git -C "$dir" diff --quiet HEAD 2>/dev/null; then
+    echo "${sha}-dirty"
+  else
+    echo "$sha"
+  fi
+}
+
+# ─── Uninstall Mode ─────────────────────────────────────────────────────────
+
+if [[ "$UNINSTALL" == "true" ]]; then
+  step "Uninstalling OpenShift Pulse"
+
+  oc whoami &>/dev/null || { error "Not logged in to OpenShift. Run 'oc login' first."; exit 1; }
+
+  info "Removing Helm releases..."
+  helm uninstall "$AGENT_RELEASE" -n "$NAMESPACE" 2>/dev/null && info "Removed: $AGENT_RELEASE" || info "Not found: $AGENT_RELEASE"
+  helm uninstall openshiftpulse -n "$NAMESPACE" 2>/dev/null && info "Removed: openshiftpulse" || info "Not found: openshiftpulse"
+
+  info "Removing cluster-scoped resources..."
+  oc delete clusterrole openshiftpulse-reader 2>/dev/null || true
+  oc delete clusterrolebinding openshiftpulse-reader 2>/dev/null || true
+  oc delete clusterrole "${AGENT_RELEASE}-openshift-sre-agent" 2>/dev/null || true
+  oc delete clusterrolebinding "${AGENT_RELEASE}-openshift-sre-agent" 2>/dev/null || true
+  oc delete oauthclient openshiftpulse 2>/dev/null || true
+
+  info "Removing namespace..."
+  oc delete namespace "$NAMESPACE" 2>/dev/null && info "Removed: $NAMESPACE" || info "Not found: $NAMESPACE"
+
+  echo ""
+  echo "════════════════════════════════════════════"
+  info "Uninstall complete"
+  echo "════════════════════════════════════════════"
+  exit 0
+fi
+
 # ─── Phase 0: Preflight Checks ──────────────────────────────────────────────
 
 step "Preflight checks"
@@ -101,16 +150,15 @@ for cmd in oc helm npm podman; do
 done
 oc whoami &>/dev/null || { error "Not logged in to OpenShift. Run 'oc login' first."; exit 1; }
 
-# Verify podman machine is running
-if ! podman info &>/dev/null; then
-  error "Podman machine not running. Start it: podman machine start"
-  exit 1
-fi
-
-# Verify Quay.io login
-if ! podman login --get-login quay.io &>/dev/null; then
-  error "Not logged in to Quay.io. Run: podman login quay.io"
-  exit 1
+if [[ "$SKIP_BUILD" == "false" ]]; then
+  if ! podman info &>/dev/null; then
+    error "Podman machine not running. Start it: podman machine start"
+    exit 1
+  fi
+  if ! podman login --get-login quay.io &>/dev/null; then
+    error "Not logged in to Quay.io. Run: podman login quay.io"
+    exit 1
+  fi
 fi
 
 info "Tools: oc, helm, npm, podman — OK"
@@ -148,6 +196,16 @@ if [[ -n "${ANTHROPIC_VERTEX_PROJECT_ID:-}" ]]; then
   info "GCP credentials: $GCP_KEY"
 fi
 
+# Resolve image tags (git SHA if not overridden)
+if [[ -z "$UI_TAG" ]]; then
+  UI_TAG=$(git_tag "$PROJECT_DIR")
+fi
+if [[ -z "$AGENT_TAG" && "$NO_AGENT" == "false" ]]; then
+  AGENT_TAG=$(git_tag "$AGENT_REPO")
+fi
+
+info "UI tag: $UI_TAG"
+[[ "$NO_AGENT" == "false" ]] && info "Agent tag: $AGENT_TAG"
 info "All preflight checks passed"
 
 # ─── Phase 1: Detect Cluster Configuration ──────────────────────────────────
@@ -186,35 +244,107 @@ AGENT_DEPLOY="${AGENT_RELEASE}-openshift-sre-agent"
 
 info "Namespace: $NAMESPACE"
 
-# ─── Phase 2: Build & Push Images (parallel-ready) ──────────────────────────
+# ─── Dry Run Mode ───────────────────────────────────────────────────────────
 
-step "Building & pushing UI image"
+if [[ "$DRY_RUN" == "true" ]]; then
+  step "Dry Run Summary"
+  echo ""
+  echo "  Cluster:       $CLUSTER_API"
+  echo "  Namespace:     $NAMESPACE"
+  echo "  UI image:      ${UI_IMAGE}:${UI_TAG}"
+  if [[ "$NO_AGENT" == "false" ]]; then
+    echo "  Agent image:   ${AGENT_IMAGE}:${AGENT_TAG}"
+    if [[ -n "${ANTHROPIC_VERTEX_PROJECT_ID:-}" ]]; then
+      echo "  AI backend:    Vertex AI (${ANTHROPIC_VERTEX_PROJECT_ID} / ${CLOUD_ML_REGION:-us-east5})"
+    elif [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+      echo "  AI backend:    Anthropic API (direct)"
+    fi
+  else
+    echo "  Agent:         not deployed"
+  fi
+  echo "  OAuth proxy:   $OAUTH_IMAGE"
+  echo "  Monitoring:    $MONITORING_ENABLED"
+  echo "  Apps domain:   $CLUSTER_DOMAIN"
+  echo ""
+  echo "  Deploy order:"
+  echo "    1. Build UI image (npm build + podman)"
+  [[ "$NO_AGENT" == "false" ]] && echo "    2. Build Agent image (podman) — parallel with UI"
+  [[ "$NO_AGENT" == "false" ]] && echo "    3. Helm install Agent (creates WS token)"
+  [[ "$NO_AGENT" == "false" ]] && echo "    4. Read WS token from agent secret"
+  echo "    5. Helm install UI (with agent token)"
+  echo "    6. Restart + health check + token sync verify"
+  echo ""
+  info "Dry run complete — no changes made"
+  exit 0
+fi
 
-cd "$PROJECT_DIR"
-npm run build --silent
-info "UI built (dist/)"
+# ─── Phase 2: Build & Push Images (parallel) ────────────────────────────────
 
-podman build --platform linux/amd64 -t "${UI_IMAGE}:${UI_TAG}" .
-podman push "${UI_IMAGE}:${UI_TAG}"
-info "Pushed ${UI_IMAGE}:${UI_TAG}"
+if [[ "$SKIP_BUILD" == "false" ]]; then
+  step "Building & pushing images"
 
-if [[ "$NO_AGENT" == "false" ]]; then
-  step "Building & pushing Agent image"
-  cd "$AGENT_REPO"
+  # Build UI: npm first (must complete before podman), then podman
+  cd "$PROJECT_DIR"
+  npm run build --silent
+  info "UI built (dist/)"
 
-  # Use Dockerfile.full for a clean single-stage build
-  AGENT_DOCKERFILE="Dockerfile"
-  [[ -f "Dockerfile.full" ]] && AGENT_DOCKERFILE="Dockerfile.full"
+  if [[ "$NO_AGENT" == "false" ]]; then
+    # Build UI and Agent images in parallel
+    info "Building UI and Agent images in parallel..."
 
-  podman build --platform linux/amd64 -t "${AGENT_IMAGE}:${AGENT_TAG}" -f "$AGENT_DOCKERFILE" .
-  podman push "${AGENT_IMAGE}:${AGENT_TAG}"
-  info "Pushed ${AGENT_IMAGE}:${AGENT_TAG}"
+    # UI image build in background
+    podman build --platform linux/amd64 -t "${UI_IMAGE}:${UI_TAG}" "$PROJECT_DIR" &>/tmp/pulse-ui-build.log &
+    UI_BUILD_PID=$!
+
+    # Agent image build in foreground (shows progress)
+    cd "$AGENT_REPO"
+    AGENT_DOCKERFILE="Dockerfile"
+    [[ -f "Dockerfile.full" ]] && AGENT_DOCKERFILE="Dockerfile.full"
+    podman build --platform linux/amd64 -t "${AGENT_IMAGE}:${AGENT_TAG}" -f "$AGENT_DOCKERFILE" .
+    info "Agent image built"
+
+    # Wait for UI build
+    if wait $UI_BUILD_PID; then
+      info "UI image built"
+    else
+      error "UI image build failed. Logs:"
+      cat /tmp/pulse-ui-build.log
+      exit 1
+    fi
+
+    # Push both (also tag as latest for convenience)
+    info "Pushing images..."
+    podman tag "${UI_IMAGE}:${UI_TAG}" "${UI_IMAGE}:latest"
+    podman tag "${AGENT_IMAGE}:${AGENT_TAG}" "${AGENT_IMAGE}:latest"
+
+    podman push "${UI_IMAGE}:${UI_TAG}" &>/tmp/pulse-ui-push.log &
+    UI_PUSH_PID=$!
+
+    podman push "${AGENT_IMAGE}:${AGENT_TAG}"
+    podman push "${AGENT_IMAGE}:latest"
+    info "Pushed ${AGENT_IMAGE}:${AGENT_TAG} + latest"
+
+    if wait $UI_PUSH_PID; then
+      podman push "${UI_IMAGE}:latest"
+      info "Pushed ${UI_IMAGE}:${UI_TAG} + latest"
+    else
+      error "UI image push failed"
+      cat /tmp/pulse-ui-push.log
+      exit 1
+    fi
+  else
+    # UI only — sequential
+    podman build --platform linux/amd64 -t "${UI_IMAGE}:${UI_TAG}" .
+    podman tag "${UI_IMAGE}:${UI_TAG}" "${UI_IMAGE}:latest"
+    podman push "${UI_IMAGE}:${UI_TAG}"
+    podman push "${UI_IMAGE}:latest"
+    info "Pushed ${UI_IMAGE}:${UI_TAG} + latest"
+  fi
+else
+  info "Skipping image builds (--skip-build)"
 fi
 
 # ─── Phase 3: Deploy Agent FIRST (it generates the WS token) ────────────────
-# The agent Helm chart auto-generates a WS token secret on first install.
-# We deploy the agent first, then read its token for the UI Helm install.
-# This eliminates token mismatch issues.
 
 WS_TOKEN=""
 
@@ -260,7 +390,6 @@ if [[ "$NO_AGENT" == "false" ]]; then
   # Read the token the agent chart generated
   WS_TOKEN_SECRET="${AGENT_RELEASE}-openshift-sre-agent-ws-token"
   step "Reading WS token from agent secret"
-  # Wait briefly for the secret to be created
   for i in $(seq 1 5); do
     EXISTING_TOKEN=$(oc get secret "$WS_TOKEN_SECRET" -n "$NAMESPACE" -o jsonpath='{.data.token}' 2>/dev/null || echo "")
     if [[ -n "$EXISTING_TOKEN" ]]; then
@@ -271,7 +400,6 @@ if [[ "$NO_AGENT" == "false" ]]; then
     sleep 2
   done
   if [[ -z "$WS_TOKEN" ]]; then
-    # Fallback: use override or generate
     if [[ -n "$_WS_TOKEN_OVERRIDE" ]]; then
       WS_TOKEN="$_WS_TOKEN_OVERRIDE"
       info "WS token: from environment/flag override"
@@ -405,5 +533,6 @@ if [[ "$NO_AGENT" == "false" ]]; then
   echo "  Agent:     $VERSION"
 fi
 echo ""
-echo "  Run integration tests: ./deploy/integration-test.sh --namespace $NAMESPACE"
+echo "  Uninstall:         $0 --uninstall"
+echo "  Integration tests: ./deploy/integration-test.sh --namespace $NAMESPACE"
 echo "════════════════════════════════════════════"
