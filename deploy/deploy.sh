@@ -199,12 +199,20 @@ if [[ -n "${ANTHROPIC_VERTEX_PROJECT_ID:-}" ]]; then
   info "GCP credentials: $GCP_KEY"
 fi
 
-# Resolve image tags (git SHA if not overridden)
+# Resolve image tags: git SHA for builds, "latest" for --skip-build
 if [[ -z "$UI_TAG" ]]; then
-  UI_TAG=$(git_tag "$PROJECT_DIR")
+  if [[ "$SKIP_BUILD" == "true" ]]; then
+    UI_TAG="latest"
+  else
+    UI_TAG=$(git_tag "$PROJECT_DIR")
+  fi
 fi
 if [[ -z "$AGENT_TAG" && "$NO_AGENT" == "false" ]]; then
-  AGENT_TAG=$(git_tag "$AGENT_REPO")
+  if [[ "$SKIP_BUILD" == "true" ]]; then
+    AGENT_TAG="latest"
+  else
+    AGENT_TAG=$(git_tag "$AGENT_REPO")
+  fi
 fi
 
 info "UI tag: $UI_TAG"
@@ -373,7 +381,9 @@ if [[ "$NO_AGENT" == "false" ]]; then
       app.kubernetes.io/part-of=pulse \
       app.kubernetes.io/managed-by=Helm
     oc annotate secret "$WS_SECRET" -n "$NAMESPACE" \
-      "helm.sh/resource-policy=keep"
+      "helm.sh/resource-policy=keep" \
+      "meta.helm.sh/release-name=$RELEASE" \
+      "meta.helm.sh/release-namespace=$NAMESPACE"
     info "WS token secret: pre-created for Helm"
   fi
 fi
