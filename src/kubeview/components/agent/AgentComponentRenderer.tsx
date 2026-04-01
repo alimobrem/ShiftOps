@@ -117,9 +117,20 @@ function AgentDataTable({ spec, onAddToView }: { spec: DataTableSpec; onAddToVie
   );
 }
 
-/** Render cell values with status coloring for known patterns */
+/** Render cell values with status coloring, links, and known patterns */
 function CellValue({ value, columnId }: { value: unknown; columnId: string }) {
   const str = String(value ?? '');
+
+  // Render links — values starting with / or http become clickable
+  if (str.startsWith('/') || str.startsWith('http')) {
+    const label = columnId === 'logs' ? 'View Logs' : columnId === 'link' ? 'Open' : str.split('/').pop() || str;
+    return (
+      <a href={str} className="text-violet-400 hover:text-violet-300 underline underline-offset-2" title={str}>
+        {label}
+      </a>
+    );
+  }
+
   // Auto-color status-like columns
   if (columnId === 'status' || columnId === 'phase' || columnId === 'state') {
     const lower = str.toLowerCase();
