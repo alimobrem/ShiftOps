@@ -95,6 +95,9 @@ const API_GROUPS = {
   ],
 };
 
+// Pre-compiled regex for namespace-scoped path matching
+const NS_PATH_RE = /^(\/api[s]?\/[^/]+(?:\/[^/]+)?)\/namespaces\/[^/]+\/(.+)$/;
+
 const server = createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const path = url.pathname;
@@ -107,7 +110,7 @@ const server = createServer((req, res) => {
 
   if (!response) {
     // Try matching namespace-scoped paths: /api/v1/namespaces/{ns}/pods
-    const nsMatch = routePath.match(/^(\/api[s]?\/[^/]+(?:\/[^/]+)?)\/namespaces\/[^/]+\/(.+)$/);
+    const nsMatch = routePath.match(NS_PATH_RE);
     if (nsMatch) {
       const basePath = `${nsMatch[1]}/${nsMatch[2]}`;
       response = ROUTES[basePath];
