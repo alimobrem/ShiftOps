@@ -315,4 +315,41 @@ test.describe('View UI: Render & Edit', () => {
     await page.goto('/custom/cv-nonexistent-id');
     await expect(page.locator('text=View not found')).toBeVisible({ timeout: 10_000 });
   });
+
+  test('widgets render full-width (not crammed left)', async ({ page }) => {
+    if (!testViewId) { test.skip(true, 'Agent unavailable'); return; }
+    await page.goto(`/custom/${testViewId}`);
+    await expect(page.locator('text=E2E UI Test View')).toBeVisible({ timeout: 10_000 });
+
+    // Get the grid container and first widget widths
+    const container = page.locator('.react-grid-layout').first();
+    const widget = page.locator('[class*="border-slate-800"]').first();
+    await expect(widget).toBeVisible({ timeout: 5_000 });
+
+    const containerBox = await container.boundingBox();
+    const widgetBox = await widget.boundingBox();
+
+    if (containerBox && widgetBox) {
+      // Widget should be at least 80% of container width (full-width = w:4/4)
+      const widthRatio = widgetBox.width / containerBox.width;
+      expect(widthRatio).toBeGreaterThan(0.8);
+    }
+  });
+
+  test('multiple widgets stack vertically, not side by side', async ({ page }) => {
+    if (!testViewId) { test.skip(true, 'Agent unavailable'); return; }
+    await page.goto(`/custom/${testViewId}`);
+    await expect(page.locator('text=E2E UI Test View')).toBeVisible({ timeout: 10_000 });
+
+    const widgets = page.locator('[class*="border-slate-800"]');
+    const count = await widgets.count();
+    if (count >= 2) {
+      const first = await widgets.nth(0).boundingBox();
+      const second = await widgets.nth(1).boundingBox();
+      if (first && second) {
+        // Second widget should be BELOW the first (y > first.y + first.height - margin)
+        expect(second.y).toBeGreaterThan(first.y + first.height * 0.5);
+      }
+    }
+  });
 });
