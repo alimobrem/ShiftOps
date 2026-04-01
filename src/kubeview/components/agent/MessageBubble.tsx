@@ -60,7 +60,7 @@ export function riskLevel(tool: string, input: Record<string, unknown>): { level
 }
 
 /** Detect HTML documents in content and render them in a sandboxed iframe */
-export function RichContent({ content, components }: { content: string; components?: ComponentSpec[] }) {
+export function RichContent({ content, components, onAddToView }: { content: string; components?: ComponentSpec[]; onAddToView?: (spec: ComponentSpec) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   const htmlMatch = content.match(/<!DOCTYPE html[\s\S]*<\/html>/i)
@@ -107,7 +107,7 @@ export function RichContent({ content, components }: { content: string; componen
       {components && components.length > 0 && (
         <div className="mt-2 space-y-1">
           {components.map((spec, i) => (
-            <AgentComponentRenderer key={i} spec={spec} />
+            <AgentComponentRenderer key={i} spec={spec} onAddToView={onAddToView} />
           ))}
         </div>
       )}
@@ -115,7 +115,7 @@ export function RichContent({ content, components }: { content: string; componen
   );
 }
 
-export const MessageBubble = memo(function MessageBubble({ message, mode }: { message: AgentMessage; mode: AgentMode }) {
+export const MessageBubble = memo(function MessageBubble({ message, mode, onAddToView }: { message: AgentMessage; mode: AgentMode; onAddToView?: (spec: ComponentSpec) => void }) {
   const isUser = message.role === 'user';
   const Icon = isUser ? undefined : MODE_ICON[mode];
   const [copied, setCopied] = useState(false);
@@ -154,7 +154,7 @@ export const MessageBubble = memo(function MessageBubble({ message, mode }: { me
         {isUser ? (
           <pre className="whitespace-pre-wrap font-sans">{message.content}</pre>
         ) : (
-          <RichContent content={message.content} components={message.components} />
+          <RichContent content={message.content} components={message.components} onAddToView={onAddToView} />
         )}
         <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-700/50">
           <span className="text-xs text-slate-500 flex items-center gap-1">

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Send, StopCircle, Bot, Loader2, Wrench, Brain, AlertTriangle, Trash2, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAgentStore } from '../../store/agentStore';
+import { useCustomViewStore } from '../../store/customViewStore';
+import { useUIStore } from '../../store/uiStore';
 import { useTrustStore } from '../../store/trustStore';
 import { useSmartPrompts } from '../../hooks/useSmartPrompts';
 import { useMonitorStore } from '../../store/monitorStore';
@@ -27,10 +30,19 @@ export function DockAgentPanel() {
   const monitorConnected = useMonitorStore((s) => s.connected);
   const monitorFindings = useMonitorStore((s) => s.findings);
   const monitorCritical = monitorFindings.filter((f) => f.severity === 'critical').length;
+  const navigate = useNavigate();
   const [input, setInput] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleAddToView = async (spec: import('../../engine/agentComponents').ComponentSpec) => {
+    const viewId = await useCustomViewStore.getState().createAndAddWidget(spec);
+    if (viewId) {
+      useUIStore.getState().enterViewBuilder(viewId);
+      navigate(`/custom/${viewId}`);
+    }
+  };
 
   // Connect on mount if not already connected
   useEffect(() => {
@@ -108,7 +120,7 @@ export function DockAgentPanel() {
         )}
 
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} mode={mode} />
+          <MessageBubble key={msg.id} message={msg} mode={mode} onAddToView={handleAddToView} />
         ))}
 
         {/* Streaming indicators */}
@@ -129,7 +141,7 @@ export function DockAgentPanel() {
             {streamingComponents.length > 0 && (
               <div className="max-w-full">
                 {streamingComponents.map((spec, i) => (
-                  <AgentComponentRenderer key={i} spec={spec} />
+                  <AgentComponentRenderer key={i} spec={spec} onAddToView={handleAddToView} />
                 ))}
               </div>
             )}

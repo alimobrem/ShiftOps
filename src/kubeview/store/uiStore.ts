@@ -71,6 +71,12 @@ interface UIState {
   setDockContext: (ctx: { namespace: string; podName: string; containerName?: string } | null) => void;
   openTerminal: (ctx: { namespace: string; podName: string; containerName: string; isNode?: boolean }) => void;
 
+  // View Builder (split-screen mode)
+  viewBuilderMode: boolean;
+  viewBuilderId: string | null;
+  enterViewBuilder: (viewId: string) => void;
+  exitViewBuilder: () => void;
+
   // Toasts
   toasts: ToastData[];
   addToast: (toast: Omit<ToastData, 'id'>) => string;
@@ -279,6 +285,18 @@ export const useUIStore = create<UIState>()(
 
       openTerminal: (ctx) => {
         set({ terminalContext: ctx, dockPanel: 'terminal' });
+      },
+
+      // View Builder
+      viewBuilderMode: false,
+      viewBuilderId: null,
+
+      enterViewBuilder: (viewId) => {
+        set({ viewBuilderMode: true, viewBuilderId: viewId, dockPanel: 'agent' });
+      },
+
+      exitViewBuilder: () => {
+        set({ viewBuilderMode: false, viewBuilderId: null });
       },
 
       // Toasts

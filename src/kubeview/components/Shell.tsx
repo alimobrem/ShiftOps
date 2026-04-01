@@ -40,6 +40,8 @@ export function Shell() {
   const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen);
   const browserOpen = useUIStore((s) => s.browserOpen);
   const dockPanel = useUIStore((s) => s.dockPanel);
+  const viewBuilderMode = useUIStore((s) => s.viewBuilderMode);
+  const exitViewBuilder = useUIStore((s) => s.exitViewBuilder);
   const impersonateUser = useUIStore((s) => s.impersonateUser);
   const clearImpersonation = useUIStore((s) => s.clearImpersonation);
   return (
@@ -58,6 +60,14 @@ export function Shell() {
       {/* Tab bar */}
       <TabBar />
 
+      {/* Builder mode banner */}
+      {viewBuilderMode && (
+        <div className="flex items-center justify-between px-4 py-1.5 bg-violet-900/50 border-b border-violet-700 text-xs">
+          <span className="text-violet-200">Building View — add widgets from the chat, drag to arrange, resize to fit</span>
+          <button onClick={exitViewBuilder} className="px-3 py-1 text-white bg-violet-700 hover:bg-violet-600 rounded font-medium transition-colors">Done</button>
+        </div>
+      )}
+
       {/* Main content area + right dock */}
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 overflow-auto">
@@ -66,8 +76,8 @@ export function Shell() {
           </ErrorBoundary>
         </main>
 
-        {/* Dock (right-side panel) */}
-        {dockPanel && <Dock />}
+        {/* Dock (right-side panel) — forced open in builder mode */}
+        {(dockPanel || viewBuilderMode) && <Dock />}
       </div>
 
       {/* Status bar at bottom */}

@@ -20,6 +20,8 @@ interface CustomViewState {
   views: ViewSpec[];
   loading: boolean;
   currentUser: string | null;
+  /** The view currently being built in canvas mode */
+  activeBuilderId: string | null;
 
   /** Fetch all views from backend for the current user */
   loadViews: () => Promise<void>;
@@ -33,8 +35,14 @@ interface CustomViewState {
   addWidget: (viewId: string, widget: ComponentSpec) => Promise<void>;
   /** Remove a widget by index */
   removeWidget: (viewId: string, widgetIndex: number) => Promise<void>;
+  /** Update a specific widget's properties (e.g. chartType) */
+  updateWidget: (viewId: string, widgetIndex: number, updates: Partial<ComponentSpec>) => Promise<void>;
   /** Get a view by ID from local state */
   getView: (id: string) => ViewSpec | undefined;
+  /** Create a new view and add a widget — returns the view ID */
+  createAndAddWidget: (widget: ComponentSpec) => Promise<string | null>;
+  /** Set the active builder view */
+  setActiveBuilderId: (id: string | null) => void;
   /** Clone a view to the current user (from share link) */
   claimSharedView: (shareToken: string) => Promise<string | null>;
   /** Generate a share link for a view */
@@ -61,6 +69,7 @@ export const useCustomViewStore = create<CustomViewState>()(
     views: [],
     loading: false,
     currentUser: null,
+    activeBuilderId: null,
 
     loadViews: async () => {
       set({ loading: true });
@@ -157,7 +166,38 @@ export const useCustomViewStore = create<CustomViewState>()(
       await get().updateView(viewId, { layout: newLayout });
     },
 
+    updateWidget: async (viewId, widgetIndex, updates) => {
+      const view = get().getView(viewId);
+      if (!view) return;
+      const newLayout = view.layout.map((spec, i) =>
+        i === widgetIndex ? { ...spec, ...updates } as ComponentSpec : spec,
+      );
+      await get().updateView(viewId, { layout: newLayout });
+    },
+
     getView: (id) => get().views.find((v) => v.id === id),
+
+    createAndAddWidget: async (widget) => {
+      const { activeBuilderId } = get();
+      if (activeBuilderId) {
+        await get().addWidget(activeBuilderId, widget);
+        return activeBuilderId;
+      }
+      // Create a new view with auto-generated name
+      const title = `View — ${new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(Date.now())}`;
+      const newView: ViewSpec = {
+        id: `cv-${Date.now().toString(36)}`,
+        title,
+        description: '',
+        layout: [truncateForPersistence(widget)],
+        generatedAt: Date.now(),
+      };
+      await get().saveView(newView);
+      set({ activeBuilderId: newView.id });
+      return newView.id;
+    },
+
+    setActiveBuilderId: (id) => set({ activeBuilderId: id }),
 
     claimSharedView: async (shareToken) => {
       try {
