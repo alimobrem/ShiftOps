@@ -90,6 +90,19 @@ export default function CustomView() {
     if (editingDesc && descRef.current) descRef.current.focus();
   }, [editingDesc]);
 
+  // Inject resize handle styles when in edit mode
+  useEffect(() => {
+    if (!editMode) return;
+    const style = document.createElement('style');
+    style.textContent = `
+      .react-resizable-handle { background: none !important; width: 20px !important; height: 20px !important; }
+      .react-resizable-handle::after { content: ''; position: absolute; right: 6px; bottom: 6px; width: 8px; height: 8px; border-right: 2px solid #7c3aed; border-bottom: 2px solid #7c3aed; }
+      .react-grid-item.react-grid-placeholder { background: rgba(124,58,237,0.15) !important; border: 1px dashed #7c3aed !important; border-radius: 8px; }
+    `;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
+  }, [editMode]);
+
   const currentLayout = useMemo(() => {
     if (!view) return [];
     if (view.positions && Object.keys(view.positions).length > 0) {
@@ -283,7 +296,7 @@ export default function CustomView() {
             margin={[16, 16]}
           >
             {view.layout.map((spec, i) => (
-              <div key={String(i)} className="rounded-lg border border-slate-800 bg-slate-900 p-4 relative group overflow-auto">
+              <div key={String(i)} className={`rounded-lg border bg-slate-900 p-4 relative group overflow-auto ${editMode ? 'border-slate-700 border-dashed' : 'border-slate-800'}`}>
                 {editMode && (
                   <>
                     <div className="widget-drag-handle absolute top-2 left-2 p-1 cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 transition-colors">
