@@ -7,8 +7,10 @@ import { CommandPalette } from './CommandPalette';
 import { ResourceBrowser } from './ResourceBrowser';
 import { ToastContainer } from './feedback/Toast';
 import { ErrorBoundary, CssHealthCheck } from './ErrorBoundary';
+import { SaveViewWatcher } from './agent/SaveViewWatcher';
 import { useKeyboardShortcuts, useDiscovery } from '../hooks';
 import { useUIStore } from '../store/uiStore';
+import { useCustomViewStore } from '../store/customViewStore';
 import { registerBuiltinEnhancers } from '../engine/enhancers/register';
 import { startAgentNotifications, stopAgentNotifications } from '../engine/agentNotifications';
 import { useEffect } from 'react';
@@ -27,6 +29,11 @@ export function Shell() {
   useEffect(() => {
     startAgentNotifications();
     return () => stopAgentNotifications();
+  }, []);
+
+  // Load custom views from backend on mount
+  useEffect(() => {
+    useCustomViewStore.getState().loadViews();
   }, []);
 
   // Get overlay state
@@ -70,6 +77,7 @@ export function Shell() {
       {commandPaletteOpen && <CommandPalette />}
       {browserOpen && <ResourceBrowser />}
       <ToastContainer />
+      <SaveViewWatcher />
       <CssHealthCheck />
     </div>
   );

@@ -91,7 +91,9 @@ export interface ViewSpec {
   icon?: string;
   description?: string;
   layout: ComponentSpec[];
+  positions?: Record<number, { x: number; y: number; w: number; h: number }>;
   generatedAt: number;
+  owner?: string;
 }
 
 /** Max rows persisted to localStorage to prevent bloat */

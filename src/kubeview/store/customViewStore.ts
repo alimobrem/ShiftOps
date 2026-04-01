@@ -1,86 +1,188 @@
 /**
- * Custom View Store — persists user-created dashboards built through
- * natural language conversation with the agent.
+ * Custom View Store — persists user-created dashboards through the
+ * Pulse Agent backend API (PostgreSQL, user-scoped).
  *
  * User says "create a dashboard showing node health and crashlooping pods"
  * → agent returns component specs → user saves as a named view → view
  * appears in sidebar and persists across sessions.
+ *
+ * Views are scoped per user (via OpenShift OAuth token). Sharing clones
+ * the view to the target user's account.
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { ViewSpec, ComponentSpec } from '../engine/agentComponents';
 import { truncateForPersistence } from '../engine/agentComponents';
 
-const MAX_VIEWS = 20;
+const AGENT_BASE = '/api/agent';
 
 interface CustomViewState {
   views: ViewSpec[];
+  loading: boolean;
+  currentUser: string | null;
 
-  saveView: (view: ViewSpec) => void;
-  deleteView: (id: string) => void;
-  updateView: (id: string, updates: Partial<ViewSpec>) => void;
-  addWidget: (viewId: string, widget: ComponentSpec) => void;
-  removeWidget: (viewId: string, widgetIndex: number) => void;
+  /** Fetch all views from backend for the current user */
+  loadViews: () => Promise<void>;
+  /** Save a new view to backend */
+  saveView: (view: ViewSpec) => Promise<void>;
+  /** Delete a view from backend */
+  deleteView: (id: string) => Promise<void>;
+  /** Update view fields (title, description, layout, positions) */
+  updateView: (id: string, updates: Partial<ViewSpec>) => Promise<void>;
+  /** Add a widget to an existing view */
+  addWidget: (viewId: string, widget: ComponentSpec) => Promise<void>;
+  /** Remove a widget by index */
+  removeWidget: (viewId: string, widgetIndex: number) => Promise<void>;
+  /** Get a view by ID from local state */
   getView: (id: string) => ViewSpec | undefined;
+  /** Clone a view to the current user (from share link) */
+  claimSharedView: (shareToken: string) => Promise<string | null>;
+  /** Generate a share link for a view */
+  shareView: (id: string) => Promise<string | null>;
+}
+
+async function apiFetch(path: string, options?: RequestInit) {
+  const res = await fetch(`${AGENT_BASE}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(error.error || res.statusText);
+  }
+  return res.json();
 }
 
 export const useCustomViewStore = create<CustomViewState>()(
-  persist(
-    (set, get) => ({
-      views: [],
+  (set, get) => ({
+    views: [],
+    loading: false,
+    currentUser: null,
 
-      saveView: (view) => {
-        const truncated: ViewSpec = {
-          ...view,
-          layout: view.layout.map(truncateForPersistence),
-        };
-        set((s) => {
-          const existing = s.views.findIndex((v) => v.id === view.id);
-          if (existing >= 0) {
-            const updated = [...s.views];
-            updated[existing] = truncated;
-            return { views: updated };
-          }
-          return { views: [...s.views, truncated].slice(-MAX_VIEWS) };
-        });
-      },
-
-      deleteView: (id) => {
-        set((s) => ({ views: s.views.filter((v) => v.id !== id) }));
-      },
-
-      updateView: (id, updates) => {
-        set((s) => ({
-          views: s.views.map((v) => (v.id === id ? { ...v, ...updates } : v)),
+    loadViews: async () => {
+      set({ loading: true });
+      try {
+        const data = await apiFetch('/views');
+        const views: ViewSpec[] = (data.views || []).map((v: any) => ({
+          id: v.id,
+          title: v.title,
+          description: v.description || '',
+          icon: v.icon || '',
+          layout: v.layout || [],
+          positions: v.positions || {},
+          generatedAt: new Date(v.created_at).getTime(),
+          owner: v.owner,
         }));
-      },
-
-      addWidget: (viewId, widget) => {
-        set((s) => ({
-          views: s.views.map((v) =>
-            v.id === viewId
-              ? { ...v, layout: [...v.layout, truncateForPersistence(widget)] }
-              : v,
-          ),
-        }));
-      },
-
-      removeWidget: (viewId, widgetIndex) => {
-        set((s) => ({
-          views: s.views.map((v) =>
-            v.id === viewId
-              ? { ...v, layout: v.layout.filter((_, i) => i !== widgetIndex) }
-              : v,
-          ),
-        }));
-      },
-
-      getView: (id) => get().views.find((v) => v.id === id),
-    }),
-    {
-      name: 'openshiftpulse-custom-views',
-      partialize: (state) => ({ views: state.views }),
+        set({ views, currentUser: data.owner, loading: false });
+      } catch {
+        set({ loading: false });
+      }
     },
-  ),
+
+    saveView: async (view) => {
+      const truncated = {
+        ...view,
+        layout: view.layout.map(truncateForPersistence),
+      };
+      try {
+        const result = await apiFetch('/views', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: truncated.id,
+            title: truncated.title,
+            description: truncated.description,
+            icon: truncated.icon,
+            layout: truncated.layout,
+            positions: truncated.positions || {},
+          }),
+        });
+        // Add to local state
+        set((s) => ({
+          views: [...s.views, { ...truncated, owner: result.owner }],
+          currentUser: result.owner,
+        }));
+      } catch (e) {
+        console.error('Failed to save view:', e);
+      }
+    },
+
+    deleteView: async (id) => {
+      try {
+        await apiFetch(`/views/${id}`, { method: 'DELETE' });
+        set((s) => ({ views: s.views.filter((v) => v.id !== id) }));
+      } catch (e) {
+        console.error('Failed to delete view:', e);
+      }
+    },
+
+    updateView: async (id, updates) => {
+      const payload: Record<string, any> = {};
+      if (updates.title !== undefined) payload.title = updates.title;
+      if (updates.description !== undefined) payload.description = updates.description;
+      if (updates.icon !== undefined) payload.icon = updates.icon;
+      if (updates.layout !== undefined) {
+        payload.layout = updates.layout.map(truncateForPersistence);
+      }
+      if (updates.positions !== undefined) payload.positions = updates.positions;
+
+      try {
+        await apiFetch(`/views/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+        set((s) => ({
+          views: s.views.map((v) =>
+            v.id === id ? { ...v, ...updates } : v,
+          ),
+        }));
+      } catch (e) {
+        console.error('Failed to update view:', e);
+      }
+    },
+
+    addWidget: async (viewId, widget) => {
+      const view = get().getView(viewId);
+      if (!view) return;
+      const newLayout = [...view.layout, truncateForPersistence(widget)];
+      await get().updateView(viewId, { layout: newLayout });
+    },
+
+    removeWidget: async (viewId, widgetIndex) => {
+      const view = get().getView(viewId);
+      if (!view) return;
+      const newLayout = view.layout.filter((_, i) => i !== widgetIndex);
+      await get().updateView(viewId, { layout: newLayout });
+    },
+
+    getView: (id) => get().views.find((v) => v.id === id),
+
+    claimSharedView: async (shareToken) => {
+      try {
+        const result = await apiFetch(`/views/claim/${shareToken}`, {
+          method: 'POST',
+        });
+        // Reload views to include the clone
+        await get().loadViews();
+        return result.id;
+      } catch (e) {
+        console.error('Failed to claim shared view:', e);
+        return null;
+      }
+    },
+
+    shareView: async (id) => {
+      try {
+        const result = await apiFetch(`/views/${id}/share`, {
+          method: 'POST',
+        });
+        return result.share_token;
+      } catch (e) {
+        console.error('Failed to share view:', e);
+        return null;
+      }
+    },
+  }),
 );

@@ -4,6 +4,7 @@ import { Shell } from './components/Shell';
 import PulseView from './views/PulseView';
 import WelcomeView from './views/WelcomeView';
 import CustomView from './views/CustomView';
+import ClaimView from './views/ClaimView';
 import MemoryView from './views/MemoryView';
 import ProjectDashboard from './views/ProjectDashboard';
 import { resourceRoutes, domainRoutes, redirectRoutes } from './routes';
@@ -35,6 +36,7 @@ export default function OpenshiftPulseApp() {
 
             {/* Custom views and memory */}
             <Route path="custom/:viewId" element={<CustomView />} />
+            <Route path="share/:shareToken" element={<ClaimView />} />
             <Route path="memory" element={<MemoryView />} />
             <Route path="project/:namespace" element={<ProjectDashboard />} />
 
