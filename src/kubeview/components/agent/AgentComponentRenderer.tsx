@@ -66,7 +66,12 @@ export function AgentComponentRenderer({ spec, depth = 0, onAddToView }: Props) 
 function AgentDataTable({ spec, onAddToView }: { spec: DataTableSpec; onAddToView?: (spec: ComponentSpec) => void }) {
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
+  // Auto-hide columns beyond 6 to prevent horizontal scrollbar
+  const [hiddenCols, setHiddenCols] = useState<Set<string>>(() => {
+    const MAX_DEFAULT_COLS = 6;
+    if (spec.columns.length <= MAX_DEFAULT_COLS) return new Set<string>();
+    return new Set(spec.columns.slice(MAX_DEFAULT_COLS).map((c) => c.id));
+  });
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showSettings, setShowSettings] = useState(false);
 
@@ -187,7 +192,7 @@ function AgentDataTable({ spec, onAddToView }: { spec: DataTableSpec; onAddToVie
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto max-h-64">
+      <div className="overflow-x-auto max-h-[50vh]">
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-slate-800/30">
