@@ -70,6 +70,7 @@ export function DockAgentPanel() {
     if (!text || streaming || !connected) return;
     sendMessage(text);
     setInput('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -77,6 +78,13 @@ export function DockAgentPanel() {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   };
 
   return (
@@ -202,13 +210,13 @@ export function DockAgentPanel() {
           <textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder={streaming ? 'Agent is thinking... press Stop to interrupt' : connected ? 'Ask the agent...' : 'Connecting...'}
             disabled={streaming || !connected}
             rows={1}
             className={cn(
-              'w-full bg-slate-900 border rounded px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none resize-none',
+              'w-full bg-slate-900 border rounded px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none resize-none overflow-y-auto',
               streaming ? 'border-blue-500/50 opacity-60 cursor-not-allowed' : 'border-slate-700 focus:border-blue-500',
               !connected && 'opacity-40',
             )}
