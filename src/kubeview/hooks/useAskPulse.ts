@@ -123,59 +123,22 @@ export function useAskPulse(query: string): UseAskPulseResult {
 
   const isNaturalLanguage = useMemo(() => detectNaturalLanguage(query), [query]);
 
-  // Manage dedicated client lifecycle
+  // No dedicated WebSocket — show prompt to open in agent dock instead.
+  // The main agentStore connection handles all AI interactions.
   useEffect(() => {
-    retainAskClient();
-    return () => releaseAskClient();
-  }, []);
-
-  useEffect(() => {
-    // Clear previous debounce timer and abort in-flight request
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (abortRef.current) abortRef.current.abort();
-
     if (!isNaturalLanguage || !query.trim()) {
       setResponse(null);
       setIsLoading(false);
       return;
     }
-
-    setIsLoading(true);
-    setResponse(null);
-
-    timerRef.current = setTimeout(() => {
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      const client = getAskClient();
-
-      queryAgent(client, query, controller.signal)
-        .then((text) => {
-          if (!controller.signal.aborted) {
-            setAgentAvailable(true);
-            setResponse({
-              text,
-              suggestions: [],
-              actions: [],
-              fromAgent: true,
-            });
-            setIsLoading(false);
-          }
-        })
-        .catch((err) => {
-          if (controller.signal.aborted) return;
-          // Don't mark agent as offline — the main agent dock still works.
-          // Quick-query may time out but full agent chat is available.
-          setAgentAvailable(true);
-          setResponse(null);
-          setIsLoading(false);
-        });
-    }, DEBOUNCE_MS);
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (abortRef.current) abortRef.current.abort();
-    };
+    // Show a helpful response directing the user to the agent
+    setResponse({
+      text: `Press **Enter** or click **Open in Agent** to ask the AI about: "${query.slice(0, 80)}"`,
+      suggestions: [],
+      actions: [],
+      fromAgent: false,
+    });
+    setIsLoading(false);
   }, [query, isNaturalLanguage]);
 
   const openInAgent = useCallback(() => {

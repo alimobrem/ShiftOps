@@ -90,11 +90,13 @@ describe('useAskPulse', () => {
     expect(result.current.response).toBeNull();
   });
 
-  it('sets isLoading true for NL queries', () => {
+  it('shows response immediately for NL queries (no WebSocket)', () => {
     detectNaturalLanguageMock.mockReturnValue(true);
     const { result } = renderHook(() => useAskPulse('why are my pods crashing?'));
 
-    expect(result.current.isLoading).toBe(true);
+    // No longer loading — response is set synchronously (no WebSocket call)
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.response).not.toBeNull();
   });
 
   it('clears response when query becomes non-NL', () => {
@@ -104,7 +106,8 @@ describe('useAskPulse', () => {
       { initialProps: { query: 'show me failing pods' } },
     );
 
-    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.response).not.toBeNull();
 
     detectNaturalLanguageMock.mockReturnValue(false);
     rerender({ query: 'pod' });
