@@ -126,7 +126,7 @@ function AgentDataTable({ spec, onAddToView }: { spec: DataTableSpec; onAddToVie
   }, [spec.rows, filters, sortCol, sortDir]);
 
   return (
-    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden">
+    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden min-w-0">
       {/* Header */}
       <div className="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs font-medium text-slate-300 flex items-center justify-between">
         <div className="truncate">
@@ -464,7 +464,7 @@ const STATUS_LIST_COLORS: Record<string, string> = {
 
 function AgentStatusList({ spec }: { spec: StatusListSpec }) {
   return (
-    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden">
+    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden min-w-0">
       {spec.title && (
         <div className="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs font-medium text-slate-300">
           {spec.title}
@@ -488,7 +488,7 @@ function AgentStatusList({ spec }: { spec: StatusListSpec }) {
 
 function AgentKeyValue({ spec }: { spec: KeyValueSpec }) {
   return (
-    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden">
+    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden min-w-0">
       {spec.title && (
         <div className="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs font-medium text-slate-300">
           {spec.title}
@@ -727,7 +727,7 @@ function AgentTabs({ spec, depth = 0 }: { spec: TabsSpec; depth?: number }) {
   if (!spec.tabs.length) return null;
 
   return (
-    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden">
+    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden min-w-0">
       <div className="flex border-b border-slate-700 bg-slate-800/50 overflow-x-auto">
         {spec.tabs.map((tab, i) => (
           <button
@@ -775,7 +775,7 @@ function AgentSection({ spec, depth = 0 }: { spec: SectionSpec; depth?: number }
   const Toggle = open ? ChevronUp : ChevronDown;
 
   return (
-    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden">
+    <div className="my-2 border border-slate-700 rounded-lg overflow-hidden min-w-0">
       <button
         onClick={() => spec.collapsible !== false && setOpen(!open)}
         className={cn(

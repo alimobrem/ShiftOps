@@ -102,7 +102,7 @@ export function DockAgentPanel() {
       </a>
 
       {/* Messages area */}
-      <div className="flex-1 overflow-auto px-3 py-2 space-y-3" role="log" aria-label="Agent messages">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 space-y-3" role="log" aria-label="Agent messages">
         {messages.length === 0 && !streaming && (
           <div className="flex flex-col items-center justify-center h-full gap-4">
             <div className="flex items-center gap-2 text-sm text-slate-500">

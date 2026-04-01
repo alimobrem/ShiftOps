@@ -27,7 +27,7 @@ function titleCase(s: string): string {
 }
 
 interface CommandItem {
-  type: 'resource' | 'action' | 'recent' | 'nav' | 'ai';
+  type: 'resource' | 'action' | 'recent' | 'nav' | 'ai' | 'custom_view';
   id: string;
   title: string;
   subtitle?: string;
@@ -407,10 +407,10 @@ function getCommandItems(
     const matchingCustom: CommandItem[] = customViews
       .filter((v) => !cleanQuery || v.title.toLowerCase().includes(cleanQuery) || (v.description || '').toLowerCase().includes(cleanQuery))
       .map((v) => ({
-        type: 'nav' as const,
+        type: 'custom_view' as const,
         id: `custom-${v.id}`,
         title: v.title,
-        subtitle: v.description || 'Custom dashboard',
+        subtitle: v.description || `${v.layout?.length || 0} widgets`,
         icon: 'LayoutDashboard',
         path: `/custom/${v.id}`,
       }));
@@ -576,6 +576,7 @@ function renderGroups(
 
   for (const item of items) {
     const group = item.type === 'recent' ? 'FAVORITES' :
+                  item.type === 'custom_view' ? 'YOUR VIEWS' :
                   item.type === 'resource' ? 'RESOURCES' :
                   item.type === 'action' ? 'ACTIONS' :
                   item.type === 'ai' ? 'PULSE AI' : 'VIEWS';
