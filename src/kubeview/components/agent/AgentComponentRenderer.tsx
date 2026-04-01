@@ -225,8 +225,9 @@ function AgentKeyValue({ spec }: { spec: KeyValueSpec }) {
 
 const CHART_COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#38bdf8', '#fb923c', '#e879f9'];
 
+const _chartTimeFmt = new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit' });
 function formatTimestamp(ts: number) {
-  return new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit' }).format(ts);
+  return _chartTimeFmt.format(ts);
 }
 
 function AgentChart({ spec, onAddToView }: { spec: ChartSpec; onAddToView?: (spec: ComponentSpec) => void }) {

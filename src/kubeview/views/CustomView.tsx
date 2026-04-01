@@ -299,7 +299,7 @@ export default function CustomView() {
                             return (
                               <button
                                 key={type}
-                                onClick={() => updateWidget(view.id, i, { chartType: type } as any)}
+                                onClick={() => updateWidget(view.id, i, { kind: 'chart', chartType: type } as ComponentSpec)}
                                 className={`p-1 rounded transition-colors ${isActive ? 'bg-violet-700 text-white' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`}
                                 title={`${type.charAt(0).toUpperCase() + type.slice(1)} chart`}
                               >

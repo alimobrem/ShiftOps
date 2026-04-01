@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Send, StopCircle, Bot, Loader2, Wrench, Brain, AlertTriangle, Trash2, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import type { ComponentSpec } from '../../engine/agentComponents';
 import { useAgentStore } from '../../store/agentStore';
 import { useCustomViewStore } from '../../store/customViewStore';
 import { useUIStore } from '../../store/uiStore';
@@ -36,13 +37,14 @@ export function DockAgentPanel() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleAddToView = async (spec: import('../../engine/agentComponents').ComponentSpec) => {
+  const handleAddToView = useCallback(async (spec: ComponentSpec) => {
     const viewId = await useCustomViewStore.getState().createAndAddWidget(spec);
     if (viewId) {
       useUIStore.getState().enterViewBuilder(viewId);
+      useCustomViewStore.getState().setActiveBuilderId(viewId);
       navigate(`/custom/${viewId}`);
     }
-  };
+  }, [navigate]);
 
   // Connect on mount if not already connected
   useEffect(() => {

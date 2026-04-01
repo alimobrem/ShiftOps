@@ -64,7 +64,7 @@ export function Shell() {
       {viewBuilderMode && (
         <div className="flex items-center justify-between px-4 py-1.5 bg-violet-900/50 border-b border-violet-700 text-xs">
           <span className="text-violet-200">Building View — add widgets from the chat, drag to arrange, resize to fit</span>
-          <button onClick={exitViewBuilder} className="px-3 py-1 text-white bg-violet-700 hover:bg-violet-600 rounded font-medium transition-colors">Done</button>
+          <button onClick={() => { exitViewBuilder(); useCustomViewStore.getState().setActiveBuilderId(null); }} className="px-3 py-1 text-white bg-violet-700 hover:bg-violet-600 rounded font-medium transition-colors">Done</button>
         </div>
       )}
 
