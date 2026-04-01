@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-OpenShift Pulse — a React/TypeScript dashboard for OpenShift Day-2 operations. All data comes from live Kubernetes APIs (no mock data in production code). v5.16.2, ~200 source files, 1882 tests.
+OpenShift Pulse — a React/TypeScript dashboard for OpenShift Day-2 operations. All data comes from live Kubernetes APIs (no mock data in production code). v5.18.0, ~190 source files, 1778 unit tests + 28 E2E scenarios.
 
 ## Commands
 
@@ -25,6 +25,11 @@ npm run type-check       # tsc --noEmit
 
 # Full verify
 npm run verify           # type-check + strict + lint + test + build
+
+# E2E tests (auto-starts mock K8s + dev server)
+npm run e2e              # headless Playwright
+npm run e2e:headed       # visible browser
+npm run e2e:ui           # Playwright UI mode
 
 # Lint & format
 npm run lint             # eslint with --fix
@@ -161,9 +166,13 @@ Platform: Admin (+CRDs tab, 10 tabs total), Onboarding
 
 ### Testing
 - **Framework**: vitest + jsdom + @testing-library/react
-- **Config**: `vitest.config.ts` — excludes `.claude/worktrees/**`
+- **Config**: `vitest.config.ts` — excludes `.claude/worktrees/**` and `e2e/`
+- **Coverage thresholds**: 40% statements, 30% branches, 35% functions, 40% lines (enforced in vitest.config.ts)
 - **Setup**: `src/kubeview/__tests__/setup.tsx` — factories, mock server, renderWithProviders
-- **1882 tests** across 141 files
+- **1,778 unit tests** across 153 files (~8s)
+- **E2E**: Playwright (28 scenarios) — `npm run e2e` auto-starts mock K8s + dev server
+- **E2E config**: `e2e/playwright.config.ts`, mock K8s in `e2e/mock-k8s-server.mjs`
+- **Integration stack**: `docker compose -f e2e/docker-compose.yml up` for full UI + Agent + mock K8s
 
 ### Key Conventions
 - Path alias: `@/` maps to `src/`
