@@ -14,7 +14,26 @@ export type ComponentSpec =
   | ChartSpec
   | TabsSpec
   | GridSpec
-  | SectionSpec;
+  | SectionSpec
+  | RelationshipTreeSpec;
+
+export interface RelationshipTreeSpec {
+  kind: 'relationship_tree';
+  title?: string;
+  description?: string;
+  nodes: Array<{
+    id: string;
+    label: string;        // e.g. "Deployment/nginx"
+    kind: string;         // e.g. "Deployment"
+    name: string;         // e.g. "nginx"
+    namespace?: string;
+    status?: 'healthy' | 'warning' | 'error' | 'pending' | 'unknown';
+    gvr?: string;         // for clickable links
+    children?: string[];  // IDs of child nodes
+    detail?: string;      // extra info
+  }>;
+  rootId: string;         // which node is the root
+}
 
 export interface DataTableSpec {
   kind: 'data_table';
