@@ -141,7 +141,7 @@ fi
 # 6. Nginx proxy config
 echo ""
 echo "[Nginx Proxy]"
-NGINX_CONF=$(timeout 10 oc exec deployment/openshiftpulse -n "$NAMESPACE" -- cat /etc/nginx/nginx.conf 2>/dev/null || echo "")
+NGINX_CONF=$(timeout 10 oc exec deployment/openshiftpulse -n "$NAMESPACE" -c openshiftpulse -- cat /etc/nginx/nginx.conf 2>/dev/null || echo "")
 if [[ -n "$NGINX_CONF" ]]; then
   [[ "$NGINX_CONF" == *"/api/agent/"* ]] && pass "nginx proxies /api/agent/" || fail "nginx missing /api/agent/ proxy"
   [[ "$NGINX_CONF" == *"ws/sre"* ]] && pass "nginx has /ws/sre location" || fail "nginx missing /ws/sre location"
