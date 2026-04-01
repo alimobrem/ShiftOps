@@ -79,7 +79,7 @@ export interface KeyValueSpec {
 
 export interface ChartSpec {
   kind: 'chart';
-  chartType?: 'line' | 'bar' | 'area';  // default 'line'
+  chartType?: 'line' | 'bar' | 'area' | 'pie' | 'donut' | 'stacked_bar' | 'stacked_area' | 'scatter' | 'radar' | 'treemap';
   title?: string;
   description?: string;
   series: Array<{
