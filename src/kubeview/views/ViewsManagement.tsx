@@ -7,7 +7,7 @@ import { ConfirmDialog } from '../components/feedback/ConfirmDialog';
 import { formatRelativeTime } from '../engine/formatters';
 import type { ViewSpec } from '../engine/agentComponents';
 
-export default function ViewsManagement() {
+export default function ViewsManagement({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const views = useCustomViewStore((s) => s.views);
   const loading = useCustomViewStore((s) => s.loading);
@@ -38,18 +38,20 @@ export default function ViewsManagement() {
   const sortedViews = [...views].sort((a, b) => b.generatedAt - a.generatedAt);
 
   return (
-    <div className="h-full overflow-auto bg-slate-950 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-            <LayoutDashboard className="w-6 h-6 text-violet-500" />
-            Your Views
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            AI-generated dashboards saved to your account.
-          </p>
-        </div>
+    <div className={embedded ? '' : 'h-full overflow-auto bg-slate-950 p-6'}>
+      <div className={embedded ? '' : 'max-w-6xl mx-auto'}>
+        {/* Header — hidden when embedded as a tab */}
+        {!embedded && (
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+              <LayoutDashboard className="w-6 h-6 text-violet-500" />
+              Your Views
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              AI-generated dashboards saved to your account.
+            </p>
+          </div>
+        )}
 
         {/* Loading state */}
         {loading && views.length === 0 && (

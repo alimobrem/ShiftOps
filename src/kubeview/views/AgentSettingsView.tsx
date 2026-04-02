@@ -96,12 +96,12 @@ export default function AgentSettingsView() {
         {activeTab === 'settings' && <SettingsTabContent />}
         {activeTab === 'memory' && (
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="kv-skeleton w-8 h-8 rounded-full" /></div>}>
-            <MemoryView />
+            <MemoryView embedded />
           </Suspense>
         )}
         {activeTab === 'views' && (
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="kv-skeleton w-8 h-8 rounded-full" /></div>}>
-            <ViewsManagement />
+            <ViewsManagement embedded />
           </Suspense>
         )}
       </div>

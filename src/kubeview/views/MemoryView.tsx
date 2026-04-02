@@ -53,7 +53,7 @@ async function fetchIncidents(search = ''): Promise<Incident[]> {
 
 type Tab = 'runbooks' | 'patterns' | 'incidents';
 
-export default function MemoryView() {
+export default function MemoryView({ embedded = false }: { embedded?: boolean }) {
   const [activeTab, setActiveTab] = useState<Tab>('incidents');
   const [search, setSearch] = useState('');
   const [expandedRunbook, setExpandedRunbook] = useState<string | null>(null);
@@ -98,18 +98,20 @@ export default function MemoryView() {
   };
 
   return (
-    <div className="h-full overflow-auto bg-slate-950 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-            <Brain className="w-6 h-6 text-violet-500" />
-            What I've Learned
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            The agent learns from every interaction. Give thumbs up on helpful responses to teach it reusable runbooks.
-          </p>
-        </div>
+    <div className={embedded ? '' : 'h-full overflow-auto bg-slate-950 p-6'}>
+      <div className={embedded ? 'space-y-6' : 'max-w-5xl mx-auto space-y-6'}>
+        {/* Header — hidden when embedded as a tab */}
+        {!embedded && (
+          <div>
+            <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+              <Brain className="w-6 h-6 text-violet-500" />
+              What I've Learned
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              The agent learns from every interaction. Give thumbs up on helpful responses to teach it reusable runbooks.
+            </p>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-slate-800">
