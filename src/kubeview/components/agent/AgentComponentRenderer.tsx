@@ -20,6 +20,9 @@ import type {
   GridSpec,
   SectionSpec,
   RelationshipTreeSpec,
+  LogViewerSpec,
+  YamlViewerSpec,
+  MetricCardSpec,
 } from '../../engine/agentComponents';
 import { Badge } from '../primitives/Badge';
 import { InfoCard } from '../primitives/InfoCard';
@@ -57,6 +60,12 @@ export function AgentComponentRenderer({ spec, depth = 0, onAddToView }: Props) 
       return <AgentSection spec={spec} depth={depth} />;
     case 'relationship_tree':
       return <AgentRelationshipTree spec={spec} onAddToView={onAddToView} />;
+    case 'log_viewer':
+      return <AgentLogViewer spec={spec} />;
+    case 'yaml_viewer':
+      return <AgentYamlViewer spec={spec} />;
+    case 'metric_card':
+      return <AgentMetricCard spec={spec} />;
     default:
       return null;
   }
@@ -684,6 +693,121 @@ function AgentSection({ spec, depth = 0 }: { spec: SectionSpec; depth?: number }
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Log Viewer ──────────────────────────────────────────────────────────────
+
+const LOG_LEVEL_STYLES: Record<string, string> = {
+  error: 'text-red-400',
+  warn: 'text-amber-400',
+  info: 'text-blue-400',
+  debug: 'text-slate-500',
+};
+
+function AgentLogViewer({ spec }: { spec: LogViewerSpec }) {
+  const [search, setSearch] = useState('');
+  const [levelFilter, setLevelFilter] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    let lines = spec.lines;
+    if (levelFilter) lines = lines.filter((l) => l.level === levelFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      lines = lines.filter((l) => l.message.toLowerCase().includes(q) || l.source?.toLowerCase().includes(q));
+    }
+    return lines;
+  }, [spec.lines, search, levelFilter]);
+
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950 overflow-hidden">
+      {spec.title && (
+        <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
+          <span className="text-xs font-medium text-slate-300">{spec.title}</span>
+          <span className="text-xs text-slate-500">{spec.lines.length} lines</span>
+        </div>
+      )}
+      <div className="px-3 py-1.5 border-b border-slate-800 flex items-center gap-2">
+        <input
+          type="text"
+          placeholder="Search logs..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 bg-transparent text-xs text-slate-300 placeholder-slate-600 outline-none"
+        />
+        {['error', 'warn', 'info', 'debug'].map((lvl) => (
+          <button
+            key={lvl}
+            onClick={() => setLevelFilter(levelFilter === lvl ? null : lvl)}
+            className={cn('text-xs px-1.5 py-0.5 rounded', levelFilter === lvl ? 'bg-slate-700 text-slate-200' : 'text-slate-500 hover:text-slate-300')}
+          >
+            {lvl}
+          </button>
+        ))}
+      </div>
+      <div className="max-h-80 overflow-auto font-mono text-xs">
+        {filtered.map((line, i) => (
+          <div key={i} className="px-3 py-0.5 hover:bg-slate-900 flex gap-2 border-b border-slate-800/50">
+            {line.timestamp && <span className="text-slate-600 whitespace-nowrap shrink-0">{line.timestamp}</span>}
+            {line.level && <span className={cn('uppercase w-5 shrink-0', LOG_LEVEL_STYLES[line.level] || 'text-slate-500')}>{line.level.charAt(0)}</span>}
+            {line.source && <span className="text-violet-400 shrink-0">[{line.source}]</span>}
+            <span className={cn('flex-1', line.level === 'error' ? 'text-red-300' : 'text-slate-300')}>{line.message}</span>
+          </div>
+        ))}
+        {filtered.length === 0 && <div className="px-3 py-4 text-center text-slate-600">No matching log lines</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─── YAML Viewer ─────────────────────────────────────────────────────────────
+
+function AgentYamlViewer({ spec }: { spec: YamlViewerSpec }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(spec.content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [spec.content]);
+
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950 overflow-hidden">
+      {(spec.title || true) && (
+        <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
+          <span className="text-xs font-medium text-slate-300">{spec.title || (spec.language === 'json' ? 'JSON' : 'YAML')}</span>
+          <button onClick={handleCopy} className="text-xs text-slate-500 hover:text-slate-300">
+            {copied ? '✓ Copied' : 'Copy'}
+          </button>
+        </div>
+      )}
+      <pre className="p-3 overflow-auto max-h-96 text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap">{spec.content}</pre>
+    </div>
+  );
+}
+
+// ─── Metric Card ─────────────────────────────────────────────────────────────
+
+const TREND_ICONS: Record<string, string> = { up: '↑', down: '↓', stable: '→' };
+const TREND_COLORS: Record<string, string> = { up: 'text-red-400', down: 'text-emerald-400', stable: 'text-slate-400' };
+const STATUS_RING: Record<string, string> = { healthy: 'border-emerald-500', warning: 'border-amber-500', error: 'border-red-500' };
+
+function AgentMetricCard({ spec }: { spec: MetricCardSpec }) {
+  return (
+    <div className={cn('rounded-lg border bg-slate-900/60 p-4', STATUS_RING[spec.status || ''] || 'border-slate-800')}>
+      <div className="text-xs text-slate-400">{spec.title}</div>
+      <div className="flex items-baseline gap-2 mt-1">
+        <span className="text-2xl font-bold text-slate-100">{spec.value}</span>
+        {spec.unit && <span className="text-sm text-slate-500">{spec.unit}</span>}
+        {spec.trend && (
+          <span className={cn('text-sm font-medium', TREND_COLORS[spec.trend])}>
+            {TREND_ICONS[spec.trend]} {spec.trendValue || ''}
+          </span>
+        )}
+      </div>
+      {spec.description && <div className="text-xs text-slate-500 mt-1">{spec.description}</div>}
     </div>
   );
 }

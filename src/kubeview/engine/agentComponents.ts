@@ -15,7 +15,10 @@ export type ComponentSpec =
   | TabsSpec
   | GridSpec
   | SectionSpec
-  | RelationshipTreeSpec;
+  | RelationshipTreeSpec
+  | LogViewerSpec
+  | YamlViewerSpec
+  | MetricCardSpec;
 
 export interface RelationshipTreeSpec {
   kind: 'relationship_tree';
@@ -118,6 +121,39 @@ export interface SectionSpec {
   components: ComponentSpec[];
 }
 
+export interface LogViewerSpec {
+  kind: 'log_viewer';
+  title?: string;
+  description?: string;
+  lines: Array<{
+    timestamp?: string;
+    level?: 'info' | 'warn' | 'error' | 'debug';
+    message: string;
+    source?: string;
+  }>;
+  /** Pod/container name for context */
+  source?: string;
+}
+
+export interface YamlViewerSpec {
+  kind: 'yaml_viewer';
+  title?: string;
+  description?: string;
+  content: string;
+  language?: 'yaml' | 'json';
+}
+
+export interface MetricCardSpec {
+  kind: 'metric_card';
+  title: string;
+  value: string;
+  unit?: string;
+  trend?: 'up' | 'down' | 'stable';
+  trendValue?: string;
+  status?: 'healthy' | 'warning' | 'error';
+  description?: string;
+}
+
 export interface ViewSpec {
   id: string;
   title: string;
@@ -136,6 +172,9 @@ export const MAX_PERSISTED_ROWS = 50;
 export function truncateForPersistence(spec: ComponentSpec): ComponentSpec {
   if (spec.kind === 'data_table' && spec.rows.length > MAX_PERSISTED_ROWS) {
     return { ...spec, rows: spec.rows.slice(0, MAX_PERSISTED_ROWS) };
+  }
+  if (spec.kind === 'log_viewer' && spec.lines.length > MAX_PERSISTED_ROWS) {
+    return { ...spec, lines: spec.lines.slice(-MAX_PERSISTED_ROWS) };
   }
   if (spec.kind === 'tabs') {
     return {
