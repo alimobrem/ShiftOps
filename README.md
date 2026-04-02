@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alimobrem/OpenshiftPulse/releases/tag/v5.19.0"><img src="https://img.shields.io/badge/release-v5.19.0-2563eb?style=for-the-badge" alt="Version"></a>
-  <img src="https://img.shields.io/badge/tests-1778%20unit%20%2B%2028%20E2E-10b981?style=for-the-badge" alt="Tests">
+  <a href="https://github.com/alimobrem/OpenshiftPulse/releases/tag/v5.19.1"><img src="https://img.shields.io/badge/release-v5.19.1-2563eb?style=for-the-badge" alt="Version"></a>
+  <img src="https://img.shields.io/badge/tests-1866%20unit%20%2B%2014%20Helm%20%2B%2028%20E2E-10b981?style=for-the-badge" alt="Tests">
   <img src="https://img.shields.io/badge/health%20checks-77-f59e0b?style=for-the-badge" alt="Health Checks">
   <img src="https://img.shields.io/badge/CVEs-0-10b981?style=for-the-badge" alt="CVEs">
   <img src="https://img.shields.io/badge/license-MIT-6366f1?style=for-the-badge" alt="License">
@@ -107,6 +107,9 @@ npm run dev    # http://localhost:9000
 | **HyperShift** | Auto-detects hosted control planes, adapts checks, hides irrelevant Machine API panels |
 | **Production Readiness Program** | 30 gates across 6 categories (infrastructure, security, observability, reliability, operations, compliance). Wizard + checklist modes, blocking gates, waiver workflow, continuous re-checks on schedule |
 | **Degraded Mode UX** | Standardized failure handling across all views — graceful degradation with inline error states, retry actions, and partial data rendering when APIs are unavailable |
+| **Trust Escalation** | Confirmation dialog for agent trust level 3/4 escalation, preventing accidental grant of destructive capabilities |
+| **Version History** | Custom view version history panel — browse, compare, and restore previous versions of agent-generated views |
+| **Live Chart Refresh** | Charts auto-refresh with Live/Paused toggle indicator. Visual feedback for real-time vs. static data |
 | **Feature Flags** | localStorage-based feature flag system with toggle UI in Admin. Gate unreleased features, A/B test surfaces, disable features without redeployment |
 | **Security** | 10 audit checks incl. ACS/StackRox detection, HyperShift-adapted. [Full details](SECURITY.md) |
 
@@ -170,7 +173,7 @@ npm run dev    # http://localhost:9000
 | **State** | Zustand + TanStack Query | Client + server state separation |
 | **Real-time** | WebSocket watches | Instant updates, 60s polling fallback |
 | **Styling** | Tailwind CSS 3.4 + Radix UI | Utility-first, headless components, CVA variants |
-| **Testing** | Vitest + Playwright | 1,778 unit + 28 E2E in ~8s |
+| **Testing** | Vitest + Playwright + Helm | 1,866 unit + 14 Helm + 28 E2E in ~8s |
 | **Charts** | Pure SVG sparklines | Zero chart library dependency |
 | **Security** | Red Hat UBI images | 0 CVEs, all images from Red Hat registries |
 
@@ -194,13 +197,23 @@ ANTHROPIC_API_KEY=sk-ant-... ./deploy/deploy.sh
 ./deploy/integration-test.sh
 ```
 
-**How it works**: Uses an **umbrella Helm chart** (`deploy/helm/pulse/`) that deploys both UI and agent as subcharts in a single `helm upgrade --install`. The deploy script auto-detects the agent repo (looks for `../pulse-agent` by default). Builds images locally with Podman, pushes to Quay.io, deploys atomically. Never uses S2I or on-cluster builds.
+**How it works**: Uses an **umbrella Helm chart** (`deploy/helm/pulse/`) that deploys both UI and agent as subcharts in a single `helm upgrade --install --atomic`. The deploy script auto-detects the agent repo (looks for `../pulse-agent` by default). Builds images locally with Podman, pushes to Quay.io, deploys atomically with auto-rollback on failure. A values file replaces 20+ `--set` flags. Never uses S2I or on-cluster builds.
 
-**Session persistence**: OAuth cookie and client secrets are generated once and persisted in-cluster. Subsequent `helm upgrade` runs reuse existing secrets via `lookup()`, so users are never logged out on redeploy.
+**Deploy tracking**: Every deploy records duration timing and writes to a local history log (`~/.pulse-deploy-history.jsonl`). A ConfigMap with deploy metadata is written to the cluster. Optional `--slack-webhook` sends notifications on success/failure.
 
-**WS token**: The umbrella chart owns a shared WS token secret. Both the agent (via `secretKeyRef`) and the UI nginx proxy (via Helm `lookup()`) reference the same secret. No manual token management, no post-deploy sync verification.
+**Startup probes**: All 4 containers (oauth-proxy, nginx, agent, postgresql) have startup probes for reliable rollout detection.
 
-**Other features**: `--dry-run` to preview, `--uninstall` to clean up, `--skip-build` to redeploy with existing images. Images tagged with git SHA for rollback safety.
+**Self-monitoring**: A ServiceMonitor and 4 PrometheusRules (UIDown, AgentDown, AgentHighRestarts, PostgreSQLDown) are deployed by default.
+
+**Rollback**: `--rollback` flag reverts to the previous Helm release. Failed health checks trigger automatic rollback.
+
+**Session persistence**: OAuth cookie (168h TTL) and client secrets are generated once and persisted in-cluster. Subsequent `helm upgrade` runs reuse existing secrets via `lookup()`, so users are never logged out on redeploy.
+
+**WS token**: Stored as a Kubernetes Secret (not ConfigMap). The umbrella chart owns the shared WS token secret. Both the agent (via `secretKeyRef`) and the UI nginx proxy (via Helm `lookup()`) reference the same secret. No manual token management.
+
+**Build context**: `.dockerignore` reduces frontend build context from ~500MB to ~5MB.
+
+**Other features**: `--dry-run` to preview, `--uninstall` to clean up, `--skip-build` to redeploy with existing images. Images tagged with git SHA for rollback safety. Proxy chain health check validates connectivity end-to-end.
 
 **Prerequisites**: `oc` (logged in), `helm`, `npm`, `podman` (logged in to `quay.io`).
 
@@ -232,7 +245,7 @@ npm run build && podman build --platform linux/amd64 -t quay.io/amobrem/openshif
 
 ### Security
 
-OAuth proxy with per-user auth. Non-root containers, read-only filesystem, CSP headers, TLS verification. 15/15 audit findings resolved. 0 npm CVEs. All images from Red Hat registries. See **[SECURITY.md](SECURITY.md)** for full details.
+OAuth proxy with per-user auth. Non-root containers, read-only filesystem, CSP headers, TLS verification. 15/15 audit findings resolved. 0 npm CVEs. All images from Red Hat registries. Secret rotation procedures documented. See **[SECURITY.md](SECURITY.md)** for full details.
 
 <details>
 <summary><strong>Troubleshooting</strong></summary>
@@ -309,7 +322,7 @@ Browser --> OAuth Proxy (8443/TLS) --> nginx (8080) --> K8s API / Prometheus / A
 ---
 
 <p align="center">
-  <strong>1,778 unit + 28 E2E tests</strong> &bull; <strong>77 health checks</strong> &bull; <strong>~1s builds</strong> &bull; <strong>0 CVEs</strong> &bull; <strong>14 views</strong> &bull; <strong>112 AI tools</strong> &bull; <strong>500+ operators</strong>
+  <strong>1,866 unit + 14 Helm + 28 E2E tests</strong> &bull; <strong>77 health checks</strong> &bull; <strong>~1s builds</strong> &bull; <strong>0 CVEs</strong> &bull; <strong>14 views</strong> &bull; <strong>112 AI tools</strong> &bull; <strong>500+ operators</strong>
 </p>
 
 <p align="center">

@@ -339,7 +339,7 @@
   <section class="hero">
     <img src="logo.svg" alt="OpenShift Pulse">
     <h1>OPENSHIFT PULSE</h1>
-    <div class="version">v5.19.0 // OPERATIONAL</div>
+    <div class="version">v5.19.1 // OPERATIONAL</div>
     <p class="tagline">AI-powered platform operations. Built for the engineer who checks their cluster at <em>0800 Monday</em>.</p>
     <div class="hero-buttons">
       <a href="https://github.com/alimobrem/OpenshiftPulse" class="btn btn-primary">[ DEPLOY ]</a>
@@ -351,7 +351,7 @@
   <div class="neon-divider"></div>
 
   <div class="stats-bar">
-    <div class="stat"><div class="stat-value">1877</div><div class="stat-label">Tests</div></div>
+    <div class="stat"><div class="stat-value">1908</div><div class="stat-label">Tests</div></div>
     <div class="stat"><div class="stat-value magenta">14</div><div class="stat-label">Views</div></div>
     <div class="stat"><div class="stat-value">112</div><div class="stat-label">AI Tools</div></div>
     <div class="stat"><div class="stat-value magenta">77</div><div class="stat-label">Health Checks</div></div>
@@ -400,6 +400,18 @@
       <div class="feature-card">
         <h3>YAML Editor</h3>
         <p>CodeMirror with K8s autocomplete, 71 snippets, inline diff. Server-side dry-run before applying.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Deploy Hardening <span class="badge badge-new">NEW</span></h3>
+        <p>Values file replaces 20+ --set flags. --atomic Helm upgrade with auto-rollback. Startup probes on all containers. Deploy history log.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Self-Monitoring <span class="badge badge-new">NEW</span></h3>
+        <p>ServiceMonitor + 4 PrometheusRules: UIDown, AgentDown, AgentHighRestarts, PostgreSQLDown. Alerts on your alerts.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Helm Test Suite <span class="badge badge-new">NEW</span></h3>
+        <p>14 Helm chart tests run in CI without a cluster. 88 new scanner unit tests. E2E tests now run on every PR.</p>
       </div>
     </div>
   </section>
