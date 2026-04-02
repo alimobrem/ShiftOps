@@ -199,23 +199,25 @@ export default defineConfig({
           Authorization: `Bearer ${getOCToken()}`,
         },
       }] : []),
-      {
-        context: ['/api/agent'],
-        target: process.env.PULSE_AGENT_URL || 'http://localhost:8080',
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-        pathRewrite: (path: string) => {
-          const stripped = path.replace(/^\/api\/agent/, '');
-          const token = process.env.PULSE_AGENT_WS_TOKEN;
-          if (!token) return stripped;
-          const sep = stripped.includes('?') ? '&' : '?';
-          return `${stripped}${sep}token=${token}`;
-        },
-        ...(process.env.PULSE_AGENT_WS_TOKEN ? {
-          headers: { 'X-Forwarded-Access-Token': 'e2e-test-user' },
-        } : {}),
-      },
+      ...(() => {
+        const agentToken = process.env.PULSE_AGENT_WS_TOKEN;
+        return [{
+          context: ['/api/agent'],
+          target: process.env.PULSE_AGENT_URL || 'http://localhost:8080',
+          changeOrigin: true,
+          secure: false,
+          ws: true,
+          pathRewrite: (path: string) => {
+            const stripped = path.replace(/^\/api\/agent/, '');
+            if (!agentToken) return stripped;
+            const sep = stripped.includes('?') ? '&' : '?';
+            return `${stripped}${sep}token=${agentToken}`;
+          },
+          ...(agentToken ? {
+            headers: { 'X-Forwarded-Access-Token': 'e2e-test-user' },
+          } : {}),
+        }];
+      })(),
       ...(process.env.ALERTMANAGER_URL ? [{
         context: ['/api/alertmanager'],
         target: process.env.ALERTMANAGER_URL,

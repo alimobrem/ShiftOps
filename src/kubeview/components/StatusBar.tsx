@@ -8,6 +8,7 @@ import { useMonitorStore } from '../store/monitorStore';
 import { isMultiCluster } from '../engine/clusterConnection';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '../engine/formatters';
+import { getNavByPath } from '../engine/navRegistry';
 
 
 export function StatusBar() {
@@ -38,23 +39,8 @@ export function StatusBar() {
   const pageInfo = (() => {
     const path = location.pathname;
     if (path === '/welcome') return 'Welcome';
-    if (path === '/pulse') return 'Cluster Pulse';
-    if (path === '/workloads') return 'Workloads';
-    if (path === '/networking') return 'Networking';
-    if (path === '/storage') return 'Storage';
-    if (path === '/builds') return 'Builds';
-    if (path === '/crds') return 'Custom Resources';
-    if (path === '/identity') return 'Identity & Access';
-    if (path === '/admin') return 'Administration';
-    if (path === '/alerts') return 'Alerts';
-    if (path === '/incidents') return 'Incident Center';
-    if (path === '/reviews') return 'Review Queue';
-    if (path === '/security') return 'Security';
-    if (path === '/gitops') return 'GitOps';
-    if (path === '/fleet') return 'Fleet';
-    if (path === '/readiness') return 'Production Readiness';
-    if (path === '/memory') return 'Memory';
-    if (path === '/compute') return 'Compute';
+    const nav = getNavByPath(path);
+    if (nav) return nav.label;
     if (path.startsWith('/r/')) {
       const parts = path.split('/').filter(Boolean);
       if (parts.length === 2) {

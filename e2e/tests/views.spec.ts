@@ -269,7 +269,7 @@ test.describe('View API: Share & Clone', () => {
 /** Navigate to a custom view and wait for it to load */
 async function gotoView(page: Page, viewId: string, expectedTitle: string) {
   // Navigate and wait for network to settle before checking UI
-  await page.goto(`/custom/${viewId}`, { waitUntil: 'networkidle' });
+  await page.goto(`/custom/${viewId}`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator(`text=${expectedTitle}`).first()).toBeVisible({ timeout: 20_000 });
 }
 

@@ -72,10 +72,12 @@ export default function CustomView() {
   const updateWidget = useCustomViewStore((s) => s.updateWidget);
   const shareView = useCustomViewStore((s) => s.shareView);
 
-  // Load views if the requested view isn't in the store yet
+  // Load views if the requested view isn't in the store yet (once per viewId)
   const loadViews = useCustomViewStore((s) => s.loadViews);
+  const attemptedLoad = useRef<string | null>(null);
   useEffect(() => {
-    if (viewId && !view) {
+    if (viewId && !view && attemptedLoad.current !== viewId) {
+      attemptedLoad.current = viewId;
       loadViews();
     }
   }, [viewId, view, loadViews]);

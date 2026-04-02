@@ -34,10 +34,7 @@ async function listItems<T = any>(ctx: GateContext, path: string): Promise<T[]> 
   return res?.items ?? [];
 }
 
-function isSystemNs(ns: string | undefined): boolean {
-  if (!ns) return true;
-  return ns.startsWith('openshift-') || ns.startsWith('kube-');
-}
+import { isSystemNamespace as isSystemNs } from '../namespace';
 
 // ---------------------------------------------------------------------------
 // Gate definitions

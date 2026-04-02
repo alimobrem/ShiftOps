@@ -77,9 +77,7 @@ function detectIssuer(secret: any): string {
   return 'manual';
 }
 
-function isSystemNamespace(ns: string): boolean {
-  return ns.startsWith('openshift-') || ns.startsWith('kube-') || ns === 'openshift' || ns === 'default';
-}
+import { isSystemNamespace } from '../../engine/namespace';
 
 function extractCertInfo(secret: any): CertInfo {
   const annotations = secret.metadata?.annotations || {};

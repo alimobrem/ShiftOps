@@ -31,11 +31,7 @@ interface ResourceQuota extends K8sResource {
   status?: { hard?: Record<string, string>; used?: Record<string, string>; [key: string]: unknown };
 }
 
-const SYSTEM_NS_PREFIXES = ['openshift-', 'kube-', 'default', 'openshift'];
-function isSystemNamespace(ns?: string): boolean {
-  if (!ns) return false;
-  return SYSTEM_NS_PREFIXES.some((p) => ns === p || ns.startsWith(p + '-') || ns === p);
-}
+import { isSystemNamespace } from '../../engine/namespace';
 
 function formatTimeAgo(timestamp: string): string {
   const diff = Date.now() - new Date(timestamp).getTime();
