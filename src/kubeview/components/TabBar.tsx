@@ -59,6 +59,11 @@ export function getTabTitle(path: string): string {
   return last.charAt(0).toUpperCase() + last.slice(1);
 }
 
+const REDIRECT_PATHS = new Set([
+  '/', '/dashboard', '/software', '/operators', '/operatorhub',
+  '/morning-report', '/troubleshoot', '/config-compare', '/timeline',
+]);
+
 const ROUTE_ICONS: Record<string, string> = {
   '/agent': 'Bot',
   '/pulse': 'Activity',
@@ -125,11 +130,7 @@ export function TabBar() {
     }
   };
 
-  // Paths that redirect to other routes — don't create tabs for these
-  const REDIRECT_PATHS = new Set([
-    '/', '/dashboard', '/software', '/operators', '/operatorhub',
-    '/morning-report', '/troubleshoot', '/config-compare', '/timeline',
-  ]);
+  // (REDIRECT_PATHS hoisted to module scope)
 
   // Sync active tab with current route
   useEffect(() => {

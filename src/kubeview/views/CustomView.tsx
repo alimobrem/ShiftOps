@@ -97,8 +97,8 @@ export default function CustomView() {
     };
   }, [viewId]);
 
-  // Subscribe directly to the view's layout to ensure re-renders on widget changes
-  const viewLayout = useCustomViewStore((s) => s.getView(viewId || '')?.layout);
+  // Derive layout from already-subscribed view to avoid redundant selector
+  const viewLayout = view?.layout;
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [widgetToRemove, setWidgetToRemove] = useState<number | null>(null);

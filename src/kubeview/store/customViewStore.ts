@@ -103,6 +103,7 @@ export const useCustomViewStore = create<CustomViewState>()(
           });
         set({ views, currentUser: data.owner, loading: false });
       } catch (err) {
+        _lastLoadAttempt = 0; // Allow immediate retry on error
         set({ loading: false, error: err instanceof Error ? err.message : 'Failed to load views' });
       }
     },
