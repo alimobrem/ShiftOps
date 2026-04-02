@@ -10,6 +10,7 @@ import { Card } from '../components/primitives/Card';
 import { useMonitorStore } from '../store/monitorStore';
 import { useTrustStore, TRUST_LABELS, TRUST_DESCRIPTIONS, type TrustLevel, type CommunicationStyle } from '../store/trustStore';
 import { useAgentStore } from '../store/agentStore';
+import { fetchAgentEvalStatus } from '../engine/evalStatus';
 
 const MemoryView = lazy(() => import('./MemoryView'));
 const ViewsManagement = lazy(() => import('./ViewsManagement'));
@@ -149,6 +150,12 @@ function SettingsTabContent() {
     staleTime: 300_000,
   });
 
+  const { data: evalStatus } = useQuery({
+    queryKey: ['agent', 'eval-status'],
+    queryFn: () => fetchAgentEvalStatus().catch(() => null),
+    refetchInterval: 60_000,
+  });
+
   const handleScanNow = async () => {
     setScanning(true);
     try { await triggerScan(); } finally { setScanning(false); }
@@ -171,11 +178,16 @@ function SettingsTabContent() {
             </span>
           )}
         </div>
-        {versionInfo && (
+        {(versionInfo || evalStatus !== undefined) && (
           <div className="flex items-center gap-4 text-xs text-slate-500">
-            <span>Agent v{versionInfo.agent}</span>
-            <span>Protocol {versionInfo.protocol}</span>
-            <span>{versionInfo.tools} tools</span>
+            {versionInfo && <span>Agent v{versionInfo.agent}</span>}
+            {versionInfo && <span>Protocol {versionInfo.protocol}</span>}
+            {versionInfo && <span>{versionInfo.tools} tools</span>}
+            <span className={cn(
+              evalStatus?.quality_gate_passed ? 'text-emerald-400' : evalStatus ? 'text-amber-400' : 'text-slate-500',
+            )} title="Eval score from static fixtures. Use 'pulse-eval replay' for live agent testing.">
+              Eval: {evalStatus ? (evalStatus.quality_gate_passed ? 'PASS' : 'FAIL') : 'n/a'}
+            </span>
           </div>
         )}
       </div>

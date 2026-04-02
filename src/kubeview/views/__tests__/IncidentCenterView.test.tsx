@@ -124,8 +124,8 @@ describe('IncidentCenterView', () => {
     expect(screen.getByRole('tablist', { name: /Incident Center tabs/ })).toBeDefined();
   });
 
-  it('shows eval score section', () => {
+  it('has settings button linking to agent page', () => {
     renderView();
-    expect(screen.getByText('Eval Score')).toBeDefined();
+    expect(screen.getByTitle('Agent Settings')).toBeDefined();
   });
 });

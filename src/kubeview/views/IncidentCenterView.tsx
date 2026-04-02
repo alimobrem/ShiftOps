@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import {
-  Siren, Zap, Search, Clock, Cpu, Bell, Settings,
+  Siren, Zap, Search, Clock, Bell, Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { fetchAgentEvalStatus } from '../engine/evalStatus';
 import { useMonitorStore } from '../store/monitorStore';
 import { useUIStore } from '../store/uiStore';
 import { NowTab } from './incidents/NowTab';
@@ -39,21 +37,6 @@ export default function IncidentCenterView() {
   const navigate = useNavigate();
   const connected = useMonitorStore((s) => s.connected);
 
-  const { data: agentInfo } = useQuery<{ protocol: string; agent: string; tools: number }>({
-    queryKey: ['agent', 'version'],
-    queryFn: async () => {
-      const res = await fetch('/api/agent/version');
-      if (!res.ok) return null;
-      return res.json();
-    },
-    refetchInterval: 60000,
-  });
-
-  const { data: evalStatus, isLoading: evalLoading } = useQuery({
-    queryKey: ['agent', 'eval-status'],
-    queryFn: () => fetchAgentEvalStatus().catch(() => null),
-    refetchInterval: 60000,
-  });
 
   return (
     <div className="h-full overflow-auto bg-slate-950 p-6">
@@ -70,35 +53,6 @@ export default function IncidentCenterView() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-xs text-slate-400"
-              title="Eval score from static fixtures. Use 'pulse-eval replay' for live agent testing."
-            >
-              <span className="text-slate-300">Eval Score</span>
-              <span className="text-slate-600">·</span>
-              <span className={cn(
-                evalLoading
-                  ? 'text-slate-300'
-                  : evalStatus?.quality_gate_passed
-                    ? 'text-green-300'
-                    : evalStatus
-                      ? 'text-amber-300'
-                      : 'text-slate-300',
-              )}
-              >
-                {evalLoading ? 'Checking' : evalStatus ? (evalStatus.quality_gate_passed ? 'PASS' : 'FAIL') : 'Unavailable'}
-              </span>
-            </div>
-            {agentInfo && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-800 bg-slate-900 text-xs text-slate-400">
-                <Cpu className="w-3.5 h-3.5 text-violet-400" />
-                <span>Agent v{agentInfo.agent}</span>
-                <span className="text-slate-600">·</span>
-                <span>Protocol {agentInfo.protocol}</span>
-                <span className="text-slate-600">·</span>
-                <span>{agentInfo.tools} tools</span>
-              </div>
-            )}
             <div
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-lg border',
