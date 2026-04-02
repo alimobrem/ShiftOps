@@ -26,7 +26,7 @@ openshiftpulse:
 
   agent:
     enabled: true
-    # Set by deploy.sh: <release>-openshift-sre-agent
+    # Auto-derived from release name if empty: <release>-openshift-sre-agent
     serviceName: ""
     # Literal fallback for fresh installs (set by deploy.sh)
     wsToken: ""

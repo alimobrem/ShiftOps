@@ -82,7 +82,7 @@ data:
 
         {{- if .Values.agent.enabled }}
         location ~ ^/api/agent/ws/(sre|security|monitor|agent)$ {
-          proxy_pass http://{{ .Values.agent.serviceName }}:8080/ws/$1?token=__AGENT_TOKEN__;
+          proxy_pass http://{{ .Values.agent.serviceName | default (printf "%s-openshift-sre-agent" .Release.Name) }}:8080/ws/$1?token=__AGENT_TOKEN__;
           proxy_set_header Upgrade $http_upgrade;
           proxy_set_header Connection $connection_upgrade;
           proxy_set_header X-Forwarded-Access-Token $http_x_forwarded_access_token;
@@ -91,7 +91,7 @@ data:
         }
 
         location /api/agent/ {
-          proxy_pass http://{{ .Values.agent.serviceName }}:8080/;
+          proxy_pass http://{{ .Values.agent.serviceName | default (printf "%s-openshift-sre-agent" .Release.Name) }}:8080/;
           proxy_set_header Authorization "Bearer __AGENT_TOKEN__";
           proxy_set_header X-Forwarded-Access-Token $http_x_forwarded_access_token;
           proxy_read_timeout 60s;

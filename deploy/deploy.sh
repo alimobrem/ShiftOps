@@ -273,13 +273,19 @@ step "Detecting cluster configuration"
 # Ensure namespace exists
 oc get namespace "$NAMESPACE" &>/dev/null || oc create namespace "$NAMESPACE"
 
-# OAuth proxy image
+# OAuth proxy image — prefer internal registry, fallback to Red Hat registry
 OAUTH_TAG=$(oc get imagestream oauth-proxy -n openshift -o jsonpath='{.status.tags[0].tag}' 2>/dev/null || echo "")
-if [[ -z "$OAUTH_TAG" ]]; then
-  warn "oauth-proxy ImageStream not found — using registry.redhat.io fallback"
-  OAUTH_IMAGE="registry.redhat.io/openshift4/ose-oauth-proxy:v4.17"
-else
+if [[ -n "$OAUTH_TAG" ]]; then
   OAUTH_IMAGE="image-registry.openshift-image-registry.svc:5000/openshift/oauth-proxy:${OAUTH_TAG}"
+else
+  # Internal ImageStream not found — try Red Hat registry with version detection
+  OCP_MINOR=$(oc get clusterversion version -o jsonpath='{.status.desired.version}' 2>/dev/null | grep -oE '^[0-9]+\.[0-9]+' || echo "")
+  if [[ -n "$OCP_MINOR" ]]; then
+    OAUTH_IMAGE="registry.redhat.io/openshift4/ose-oauth-proxy:v${OCP_MINOR}"
+  else
+    OAUTH_IMAGE="registry.redhat.io/openshift4/ose-oauth-proxy:v4.14"
+  fi
+  warn "oauth-proxy ImageStream not found — using $OAUTH_IMAGE"
 fi
 info "OAuth proxy: $OAUTH_IMAGE"
 
@@ -479,8 +485,8 @@ chmod 600 "$VALUES_FILE"
 helm upgrade --install "$RELEASE" deploy/helm/pulse/ \
   -n "$NAMESPACE" --create-namespace \
   --values "$VALUES_FILE" \
-  --timeout 180s \
-  --atomic
+  --timeout 300s \
+  --rollback-on-failure
 info "Helm release: $RELEASE (umbrella)"
 
 # Fix OAuth redirect URI
