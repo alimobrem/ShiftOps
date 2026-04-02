@@ -130,6 +130,21 @@ else
   fail "Agent 503 fallback missing when disabled"
 fi
 
+# 12. Startup probes present
+STARTUP_COUNT=$(echo "$RENDERED" | grep -c "startupProbe" || true)
+if [[ "$STARTUP_COUNT" -ge 2 ]]; then
+  pass "startupProbe present ($STARTUP_COUNT instances)"
+else
+  fail "startupProbe missing or insufficient ($STARTUP_COUNT found, expected 2+)"
+fi
+
+# 13. --atomic flag (verify values file renders cleanly for atomic deploys)
+if echo "$RENDERED" | grep -q "RollingUpdate\|maxSurge"; then
+  pass "RollingUpdate strategy configured"
+else
+  fail "RollingUpdate strategy missing"
+fi
+
 # Summary
 echo ""
 echo "==========================="

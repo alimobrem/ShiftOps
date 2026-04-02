@@ -14,7 +14,9 @@
 # Prerequisites: oc (logged in), helm, npm, podman (logged in to quay.io)
 
 set -euo pipefail
-trap 'rm -f /tmp/pulse-ui-build.log /tmp/pulse-ui-push.log' EXIT
+DEPLOY_START=$(date +%s)
+VALUES_FILE="/tmp/pulse-deploy-values-$$.yaml"
+trap 'rm -f /tmp/pulse-ui-build.log /tmp/pulse-ui-push.log "$VALUES_FILE"' EXIT
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -22,8 +24,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 NAMESPACE="openshiftpulse"
 RELEASE="pulse"
-UI_IMAGE="quay.io/amobrem/openshiftpulse"
-AGENT_IMAGE="quay.io/amobrem/pulse-agent"
+UI_IMAGE="${PULSE_UI_IMAGE:-quay.io/amobrem/openshiftpulse}"
+AGENT_IMAGE="${PULSE_AGENT_IMAGE:-quay.io/amobrem/pulse-agent}"
 UI_TAG=""
 AGENT_TAG=""
 _WS_TOKEN_OVERRIDE="${PULSE_AGENT_WS_TOKEN:-}"
@@ -426,43 +428,59 @@ PREV_REVISION=$(helm history "$RELEASE" -n "$NAMESPACE" --max 1 -o json 2>/dev/n
 # Build Helm dependencies
 helm dependency build deploy/helm/pulse/ 2>/dev/null
 
-# Helm values — UI and agent always deployed together
+# Generate values file (keeps secrets out of process listings)
 AI_BACKEND="none"
-HELM_ARGS=""
-# UI subchart
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.image.repository=$UI_IMAGE"
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.image.tag=$UI_TAG"
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.oauthProxy.image=$OAUTH_IMAGE"
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.route.clusterDomain=$CLUSTER_DOMAIN"
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.monitoring.prometheus.enabled=$MONITORING_ENABLED"
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.monitoring.alertmanager.enabled=$MONITORING_ENABLED"
-# Wire UI → agent
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.agent.enabled=true"
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.agent.serviceName=$AGENT_DEPLOY"
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.agent.wsToken=$WS_TOKEN"
-HELM_ARGS="$HELM_ARGS --set openshiftpulse.agent.wsTokenSecret=$WS_SECRET"
-# Agent subchart
-HELM_ARGS="$HELM_ARGS --set agent.enabled=true"
-HELM_ARGS="$HELM_ARGS --set agent.image.repository=$AGENT_IMAGE"
-HELM_ARGS="$HELM_ARGS --set agent.image.tag=$AGENT_TAG"
-HELM_ARGS="$HELM_ARGS --set agent.rbac.allowWriteOperations=true"
-HELM_ARGS="$HELM_ARGS --set agent.rbac.allowSecretAccess=true"
-HELM_ARGS="$HELM_ARGS --set agent.wsAuth.existingSecret=$WS_SECRET"
-
+AI_VALUES=""
 if [[ -n "${ANTHROPIC_VERTEX_PROJECT_ID:-}" ]]; then
-  HELM_ARGS="$HELM_ARGS --set agent.vertexAI.projectId=${ANTHROPIC_VERTEX_PROJECT_ID}"
-  HELM_ARGS="$HELM_ARGS --set agent.vertexAI.region=${CLOUD_ML_REGION:-us-east5}"
-  HELM_ARGS="$HELM_ARGS --set agent.vertexAI.existingSecret=gcp-sa-key"
+  AI_VALUES="  vertexAI:
+    projectId: ${ANTHROPIC_VERTEX_PROJECT_ID}
+    region: ${CLOUD_ML_REGION:-us-east5}
+    existingSecret: gcp-sa-key"
   AI_BACKEND="vertex"
 elif [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
-  HELM_ARGS="$HELM_ARGS --set agent.anthropicApiKey.existingSecret=anthropic-api-key"
+  AI_VALUES="  anthropicApiKey:
+    existingSecret: anthropic-api-key"
   AI_BACKEND="anthropic"
 fi
 
+cat > "$VALUES_FILE" <<YAML
+openshiftpulse:
+  image:
+    repository: $UI_IMAGE
+    tag: "$UI_TAG"
+  oauthProxy:
+    image: $OAUTH_IMAGE
+  route:
+    clusterDomain: $CLUSTER_DOMAIN
+  monitoring:
+    prometheus:
+      enabled: $MONITORING_ENABLED
+    alertmanager:
+      enabled: $MONITORING_ENABLED
+  agent:
+    enabled: true
+    serviceName: $AGENT_DEPLOY
+    wsToken: "$WS_TOKEN"
+    wsTokenSecret: $WS_SECRET
+agent:
+  enabled: true
+  image:
+    repository: $AGENT_IMAGE
+    tag: "$AGENT_TAG"
+  rbac:
+    allowWriteOperations: true
+    allowSecretAccess: true
+  wsAuth:
+    existingSecret: $WS_SECRET
+$AI_VALUES
+YAML
+chmod 600 "$VALUES_FILE"
+
 helm upgrade --install "$RELEASE" deploy/helm/pulse/ \
   -n "$NAMESPACE" --create-namespace \
-  $HELM_ARGS \
-  --timeout 180s
+  --values "$VALUES_FILE" \
+  --timeout 180s \
+  --atomic
 info "Helm release: $RELEASE (umbrella)"
 
 # Fix OAuth redirect URI
@@ -507,8 +525,65 @@ else
   done
 fi
 
-# Auto-rollback on failed health check
+# ─── Deploy Tracking Helpers ────────────────────────────────────────────────
+
+DEPLOY_END=$(date +%s)
+DEPLOY_DURATION=$(( DEPLOY_END - DEPLOY_START ))
+DEPLOY_MINUTES=$(( DEPLOY_DURATION / 60 ))
+DEPLOY_SECONDS=$(( DEPLOY_DURATION % 60 ))
+NEW_REVISION=$(helm history "$RELEASE" -n "$NAMESPACE" --max 1 -o json 2>/dev/null \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['revision'])" 2>/dev/null || echo "unknown")
+
+log_deploy() {
+  local status="$1"
+  local log_file="$HOME/.pulse-deploy-history.jsonl"
+  python3 -c "
+import json, datetime
+entry = {
+    'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
+    'status': '$status',
+    'release': '$RELEASE',
+    'namespace': '$NAMESPACE',
+    'revision': '$NEW_REVISION',
+    'ui_image': '${UI_IMAGE}:${UI_TAG}',
+    'agent_image': '${AGENT_IMAGE}:${AGENT_TAG}',
+    'cluster': '$CLUSTER_API',
+    'ai_backend': '$AI_BACKEND',
+    'duration_seconds': $DEPLOY_DURATION,
+    'deployer': '$(whoami)'
+}
+with open('$log_file', 'a') as f:
+    f.write(json.dumps(entry) + '\n')
+" 2>/dev/null || true
+}
+
+save_deploy_metadata() {
+  oc create configmap pulse-deploy-metadata \
+    --from-literal=deployer="$(whoami)" \
+    --from-literal=timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --from-literal=revision="$NEW_REVISION" \
+    --from-literal=ui-image="${UI_IMAGE}:${UI_TAG}" \
+    --from-literal=agent-image="${AGENT_IMAGE}:${AGENT_TAG}" \
+    --from-literal=ai-backend="$AI_BACKEND" \
+    --from-literal=duration="${DEPLOY_DURATION}s" \
+    -n "$NAMESPACE" \
+    --dry-run=client -o yaml | oc apply -f - 2>/dev/null || true
+}
+
+notify_slack() {
+  local status="$1" color="$2"
+  [[ -z "${PULSE_SLACK_WEBHOOK:-}" ]] && return 0
+  curl -sf -X POST "$PULSE_SLACK_WEBHOOK" \
+    -H 'Content-type: application/json' \
+    -d "{\"attachments\":[{\"color\":\"$color\",\"title\":\"Pulse Deploy: $status\",\"fields\":[{\"title\":\"Cluster\",\"value\":\"$CLUSTER_API\",\"short\":true},{\"title\":\"Revision\",\"value\":\"$NEW_REVISION\",\"short\":true},{\"title\":\"UI\",\"value\":\"${UI_TAG}\",\"short\":true},{\"title\":\"Agent\",\"value\":\"${AGENT_TAG}\",\"short\":true},{\"title\":\"Duration\",\"value\":\"${DEPLOY_MINUTES}m${DEPLOY_SECONDS}s\",\"short\":true},{\"title\":\"Deployer\",\"value\":\"$(whoami)\",\"short\":true}]}]}" \
+    2>/dev/null || warn "Slack notification failed"
+}
+
+# ─── Handle Results ─────────────────────────────────────────────────────────
+
 if [[ "$HEALTHY" != "true" && -n "$PREV_REVISION" ]]; then
+  log_deploy "rolled_back"
+  notify_slack "ROLLED BACK" "danger"
   warn "Health check failed — rolling back to revision $PREV_REVISION"
   helm rollback "$RELEASE" "$PREV_REVISION" -n "$NAMESPACE" --timeout 120s 2>/dev/null
   wait_for_rollout "openshiftpulse" "$NAMESPACE" 60
@@ -525,20 +600,28 @@ if [[ "$HEALTHY" != "true" && -n "$PREV_REVISION" ]]; then
   exit 1
 fi
 
+# Success
+log_deploy "success"
+save_deploy_metadata
+notify_slack "Success" "good"
+
 # ─── Summary ─────────────────────────────────────────────────────────────────
 
 echo ""
 echo "════════════════════════════════════════════"
-info "Deploy complete!"
+info "Deploy complete! (${DEPLOY_MINUTES}m${DEPLOY_SECONDS}s)"
 echo ""
 echo "  URL:       https://$ROUTE"
 echo "  Cluster:   $CLUSTER_API"
 echo "  NS:        $NAMESPACE"
+echo "  Revision:  $NEW_REVISION"
 echo "  UI image:  ${UI_IMAGE}:${UI_TAG}"
 echo "  Agent img: ${AGENT_IMAGE}:${AGENT_TAG}"
 echo "  AI:        $AI_BACKEND"
 echo "  Agent:     ${VERSION:-unknown}"
 echo ""
 echo "  Uninstall:         $0 --uninstall"
+echo "  Rollback:          $0 --rollback"
 echo "  Integration tests: ./deploy/integration-test.sh --namespace $NAMESPACE"
+echo "  Deploy history:    cat ~/.pulse-deploy-history.jsonl"
 echo "════════════════════════════════════════════"

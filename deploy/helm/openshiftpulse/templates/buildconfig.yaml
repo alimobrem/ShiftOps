@@ -1,2 +1,0 @@
-# S2I BuildConfig removed — images are built locally and pushed to Quay.io.
-# See deploy.sh for the build workflow.

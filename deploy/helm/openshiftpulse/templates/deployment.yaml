@@ -80,6 +80,13 @@ spec:
             scheme: HTTPS
           initialDelaySeconds: 5
           periodSeconds: 10
+        startupProbe:
+          httpGet:
+            path: /oauth/healthz
+            port: 8443
+            scheme: HTTPS
+          failureThreshold: 10
+          periodSeconds: 5
       - name: openshiftpulse
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -126,6 +133,12 @@ spec:
             port: 8080
           initialDelaySeconds: 3
           periodSeconds: 10
+        startupProbe:
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 6
+          periodSeconds: 5
       volumes:
       - name: proxy-tls
         secret:
