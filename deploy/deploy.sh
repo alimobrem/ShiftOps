@@ -525,6 +525,29 @@ else
   done
 fi
 
+# Verify proxy chain: UI pod → agent (catches token mismatches, nginx config errors)
+if [[ "$HEALTHY" == "true" ]]; then
+  UI_POD=$(oc get pods -n "$NAMESPACE" -l app=openshiftpulse --field-selector=status.phase=Running --no-headers 2>/dev/null | head -1 | awk '{print $1}')
+  if [[ -n "$UI_POD" ]]; then
+    PROXY_HEALTH=$(oc exec "$UI_POD" -c openshiftpulse -n "$NAMESPACE" -- curl -sf "http://${AGENT_DEPLOY}:8080/healthz" 2>/dev/null || echo "")
+    if [[ "$PROXY_HEALTH" == *"ok"* ]]; then
+      info "Proxy chain verified (UI → Agent)"
+    else
+      warn "UI pod cannot reach agent — check nginx config and WS token"
+      HEALTHY=false
+    fi
+
+    # Verify token substitution in nginx config
+    TOKEN_CHECK=$(oc exec "$UI_POD" -c openshiftpulse -n "$NAMESPACE" -- grep -c "__AGENT_TOKEN__" /tmp/nginx.conf 2>/dev/null || echo "0")
+    if [[ "$TOKEN_CHECK" != "0" ]]; then
+      warn "Token placeholder __AGENT_TOKEN__ not substituted in nginx config"
+      HEALTHY=false
+    else
+      info "Token substitution verified"
+    fi
+  fi
+fi
+
 # ─── Deploy Tracking Helpers ────────────────────────────────────────────────
 
 DEPLOY_END=$(date +%s)
