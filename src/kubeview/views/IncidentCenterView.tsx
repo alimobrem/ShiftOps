@@ -15,10 +15,10 @@ const AlertsView = lazy(() => import('./AlertsView'));
 type IncidentTab = 'now' | 'investigate' | 'history' | 'alerts';
 
 const TABS = [
-  { id: 'now' as IncidentTab, label: 'Now', icon: Zap },
-  { id: 'investigate' as IncidentTab, label: 'Investigate', icon: Search },
-  { id: 'history' as IncidentTab, label: 'History', icon: Clock },
-  { id: 'alerts' as IncidentTab, label: 'Alerts', icon: Bell },
+  { id: 'now' as IncidentTab, label: 'Now', icon: Zap, color: 'text-amber-400' },
+  { id: 'investigate' as IncidentTab, label: 'Investigate', icon: Search, color: 'text-blue-400' },
+  { id: 'history' as IncidentTab, label: 'History', icon: Clock, color: 'text-slate-400' },
+  { id: 'alerts' as IncidentTab, label: 'Alerts', icon: Bell, color: 'text-red-400' },
 ] as const;
 
 
@@ -106,7 +106,7 @@ export default function IncidentCenterView() {
                 activeTab === tab.id ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-slate-200',
               )}
             >
-              <tab.icon className="w-3.5 h-3.5" />
+              <tab.icon className={cn('w-3.5 h-3.5', activeTab !== tab.id && tab.color)} />
               {tab.label}
             </button>
           ))}

@@ -43,11 +43,11 @@ type K8sResourceExt = K8sResource & {
 // ---------------------------------------------------------------------------
 type TabId = 'users' | 'groups-sa' | 'rbac' | 'impersonation';
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: 'users', label: 'Users', icon: <User className="w-3.5 h-3.5" /> },
-  { id: 'groups-sa', label: 'Groups & Service Accounts', icon: <Key className="w-3.5 h-3.5" /> },
-  { id: 'rbac', label: 'RBAC', icon: <Shield className="w-3.5 h-3.5" /> },
-  { id: 'impersonation', label: 'Impersonation', icon: <UserCheck className="w-3.5 h-3.5" /> },
+const TABS: { id: TabId; label: string; icon: React.ReactNode; iconActive: React.ReactNode }[] = [
+  { id: 'users', label: 'Users', icon: <User className="w-3.5 h-3.5 text-blue-400" />, iconActive: <User className="w-3.5 h-3.5" /> },
+  { id: 'groups-sa', label: 'Groups & Service Accounts', icon: <Key className="w-3.5 h-3.5 text-amber-400" />, iconActive: <Key className="w-3.5 h-3.5" /> },
+  { id: 'rbac', label: 'RBAC', icon: <Shield className="w-3.5 h-3.5 text-red-400" />, iconActive: <Shield className="w-3.5 h-3.5" /> },
+  { id: 'impersonation', label: 'Impersonation', icon: <UserCheck className="w-3.5 h-3.5 text-green-400" />, iconActive: <UserCheck className="w-3.5 h-3.5" /> },
 ];
 
 // ---------------------------------------------------------------------------
@@ -280,7 +280,7 @@ export default function IdentityView() {
                   activeTab === tab.id ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-slate-200',
                 )}
               >
-                {tab.icon}
+                {activeTab === tab.id ? tab.iconActive : tab.icon}
                 {tab.label}
               </button>
             ))}

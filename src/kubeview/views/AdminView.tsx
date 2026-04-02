@@ -378,14 +378,14 @@ export default function AdminView() {
 
   // --- Tab definitions (7 tabs after merging Certificates into Config, Snapshots into Updates) ---
 
-  const tabs: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
-    { id: 'overview', label: 'Overview', icon: <Settings className="w-3.5 h-3.5" /> },
-    { id: 'operators', label: `Operators (${operators.length})${opDegraded > 0 ? ` \u00b7 ${opDegraded} degraded` : ''}`, icon: <Puzzle className="w-3.5 h-3.5" /> },
-    { id: 'config', label: 'Cluster Config', icon: <Database className="w-3.5 h-3.5" /> },
-    { id: 'updates', label: `Updates${availableUpdates.length > 0 ? ` (${availableUpdates.length})` : ''}`, icon: <ArrowUpCircle className="w-3.5 h-3.5" /> },
-    { id: 'snapshots', label: `Snapshots (${savedSnapshots.length})`, icon: <GitCompare className="w-3.5 h-3.5" /> },
-    { id: 'quotas', label: `Quotas (${quotas.length})`, icon: <Shield className="w-3.5 h-3.5" /> },
-    { id: 'certificates', label: 'Certificates', icon: <Shield className="w-3.5 h-3.5" /> },
+  const tabs: Array<{ id: Tab; label: string; icon: React.ReactNode; activeIcon: React.ReactNode }> = [
+    { id: 'overview', label: 'Overview', icon: <Settings className="w-3.5 h-3.5 text-slate-400" />, activeIcon: <Settings className="w-3.5 h-3.5" /> },
+    { id: 'operators', label: `Operators (${operators.length})${opDegraded > 0 ? ` \u00b7 ${opDegraded} degraded` : ''}`, icon: <Puzzle className="w-3.5 h-3.5 text-purple-400" />, activeIcon: <Puzzle className="w-3.5 h-3.5" /> },
+    { id: 'config', label: 'Cluster Config', icon: <Database className="w-3.5 h-3.5 text-cyan-400" />, activeIcon: <Database className="w-3.5 h-3.5" /> },
+    { id: 'updates', label: `Updates${availableUpdates.length > 0 ? ` (${availableUpdates.length})` : ''}`, icon: <ArrowUpCircle className="w-3.5 h-3.5 text-green-400" />, activeIcon: <ArrowUpCircle className="w-3.5 h-3.5" /> },
+    { id: 'snapshots', label: `Snapshots (${savedSnapshots.length})`, icon: <GitCompare className="w-3.5 h-3.5 text-blue-400" />, activeIcon: <GitCompare className="w-3.5 h-3.5" /> },
+    { id: 'quotas', label: `Quotas (${quotas.length})`, icon: <Shield className="w-3.5 h-3.5 text-amber-400" />, activeIcon: <Shield className="w-3.5 h-3.5" /> },
+    { id: 'certificates', label: 'Certificates', icon: <Shield className="w-3.5 h-3.5 text-red-400" />, activeIcon: <Shield className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -466,7 +466,7 @@ export default function AdminView() {
         >
           {tabs.map((t) => (
             <button key={t.id} role="tab" aria-selected={activeTab === t.id} aria-controls={`admin-panel-${t.id}`} tabIndex={activeTab === t.id ? 0 : -1} onClick={() => setActiveTab(t.id)} className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500', activeTab === t.id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200')}>
-              {t.icon}{t.label}
+              {activeTab === t.id ? t.activeIcon : t.icon}{t.label}
             </button>
           ))}
         </div>

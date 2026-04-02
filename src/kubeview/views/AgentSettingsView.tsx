@@ -48,10 +48,10 @@ export default function AgentSettingsView() {
     setSearchParams(next, { replace: true });
   };
 
-  const agentTabs: Array<{ id: AgentTab; label: string; icon: React.ReactNode }> = [
-    { id: 'settings', label: 'Settings', icon: <Settings className="w-3.5 h-3.5" /> },
-    { id: 'memory', label: 'Memory', icon: <Brain className="w-3.5 h-3.5" /> },
-    { id: 'views', label: 'Views', icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
+  const agentTabs: Array<{ id: AgentTab; label: string; icon: React.ReactNode; activeIcon: React.ReactNode }> = [
+    { id: 'settings', label: 'Settings', icon: <Settings className="w-3.5 h-3.5 text-violet-400" />, activeIcon: <Settings className="w-3.5 h-3.5" /> },
+    { id: 'memory', label: 'Memory', icon: <Brain className="w-3.5 h-3.5 text-pink-400" />, activeIcon: <Brain className="w-3.5 h-3.5" /> },
+    { id: 'views', label: 'Views', icon: <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400" />, activeIcon: <LayoutDashboard className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -86,7 +86,7 @@ export default function AgentSettingsView() {
                 activeTab === t.id ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200',
               )}
             >
-              {t.icon}{t.label}
+              {activeTab === t.id ? t.activeIcon : t.icon}{t.label}
             </button>
           ))}
         </div>
