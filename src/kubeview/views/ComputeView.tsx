@@ -286,7 +286,7 @@ export default function ComputeView() {
         <NodeAlerts unreadyNodes={unreadyNodes} pressureNodes={pressureNodes} go={go} />
 
         {/* Node hex map */}
-        <NodeHexMap nodes={nodeDetails} onNodeClick={(name) => go(`/r/v1~nodes/_/${name}`, name)} />
+        <NodeHexMap nodes={nodeDetails} onNodeClick={(name) => go(`/r/v1~nodes/_/${name}`, name)} onViewAll={() => go('/r/v1~nodes', 'Nodes')} />
 
         {/* Node table */}
         <NodeTable nodeDetails={nodeDetails} totalCount={nodes.length} go={go} />
