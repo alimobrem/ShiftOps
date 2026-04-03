@@ -113,6 +113,7 @@ export function NodeHexMap({ nodes, onNodeClick }: Props) {
               className="cursor-pointer transition-opacity hover:opacity-80"
               onClick={() => onNodeClick?.(nd.name)}
             >
+              <title>{`${nd.name}\n${nd.roles.join(', ')}\nStatus: ${nd.status.ready ? 'Ready' : 'NotReady'}${nd.pressures.length ? ' (' + nd.pressures.join(', ') + ')' : ''}\nPods: ${nd.podCount}/${nd.podCap}\nCPU: ${cpuPct != null ? cpuPct + '%' : 'N/A'}\nMemory: ${memPct != null ? memPct + '%' : 'N/A'}\nInstance: ${nd.instanceType || 'unknown'}\nAge: ${nd.age}\n\nClick to view node details and pods`}</title>
               {/* Hex background */}
               <path
                 d={hexPath(cx, cy, hexSize)}
