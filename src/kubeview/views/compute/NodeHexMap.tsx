@@ -26,11 +26,12 @@ interface Props {
 
 const TOTAL_SLOTS = 250;
 const COLS = 25;
-const HEX_R = 14; // Small hex radius for overview
+const HEX_R = 14;
 const HEX_W = HEX_R * 2;
 const HEX_H = Math.sqrt(3) * HEX_R;
-const GAP_X = HEX_W * 0.78;
-const GAP_Y = HEX_H * 0.9;
+// Proper hex tiling: horizontal = 1.5 * R, vertical = sqrt(3) * R
+const GAP_X = HEX_R * 1.55;
+const GAP_Y = HEX_H * 1.05;
 
 const STATUS_COLOR: Record<string, string> = {
   ready: '#10b981',
@@ -62,14 +63,14 @@ function hexPoints(cx: number, cy: number, r: number): string {
 function hexPos(i: number) {
   const col = i % COLS;
   const row = Math.floor(i / COLS);
-  const cx = HEX_R + 4 + col * GAP_X + (row % 2 === 1 ? GAP_X / 2 : 0);
-  const cy = HEX_R + 4 + row * GAP_Y;
+  const cx = HEX_R + 6 + col * GAP_X + (row % 2 === 1 ? GAP_X / 2 : 0);
+  const cy = HEX_R + 6 + row * GAP_Y;
   return { cx, cy };
 }
 
 export function NodeHexMap({ nodes, podsByNode, onNodeClick, onPodClick, onViewAll }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(2);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -91,14 +92,14 @@ export function NodeHexMap({ nodes, podsByNode, onNodeClick, onPodClick, onViewA
   const nodeSlots = new Map<number, NodeDetail>();
   filtered.forEach((nd, i) => nodeSlots.set(i, nd));
 
-  const svgW = COLS * GAP_X + HEX_R + 8;
-  const rows = Math.ceil(TOTAL_SLOTS / COLS);
-  const svgH = rows * GAP_Y + HEX_R + 8;
+  const svgW = COLS * GAP_X + HEX_R + 12;
+  const totalRows = Math.ceil(TOTAL_SLOTS / COLS);
+  const svgH = totalRows * GAP_Y + HEX_R + 12;
 
   // Zoom controls
   const zoomIn = () => setZoom(z => Math.min(z * 1.4, 6));
   const zoomOut = () => setZoom(z => Math.max(z / 1.4, 0.5));
-  const resetView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+  const resetView = () => { setZoom(2); setPan({ x: 0, y: 0 }); };
 
   // Mouse wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -177,11 +178,14 @@ export function NodeHexMap({ nodes, podsByNode, onNodeClick, onPodClick, onViewA
         onMouseLeave={handleMouseUp}
       >
         <svg
-          width={svgW * zoom}
-          height={svgH * zoom}
           viewBox={`0 0 ${svgW} ${svgH}`}
+          preserveAspectRatio="xMinYMin meet"
           className="transition-transform duration-100"
-          style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}
+          style={{
+            width: svgW * zoom,
+            height: svgH * zoom,
+            transform: `translate(${pan.x}px, ${pan.y}px)`,
+          }}
         >
           <defs>
             <linearGradient id="hexFill" x1="0" y1="0" x2="0" y2="1">
@@ -262,7 +266,7 @@ export function NodeHexMap({ nodes, podsByNode, onNodeClick, onPodClick, onViewA
                 )}
 
                 {/* Name label — only when zoomed in enough */}
-                {zoom >= 2 && (
+                {zoom >= 1.5 && (
                   <>
                     <text x={cx} y={cy - 3} textAnchor="middle" fill="#e2e8f0" fontSize={4} fontWeight={600}>
                       {nd.name.replace(/^ip-/, '').replace(/\..*/, '').slice(-10)}
@@ -274,7 +278,7 @@ export function NodeHexMap({ nodes, podsByNode, onNodeClick, onPodClick, onViewA
                 )}
 
                 {/* Pod dots — only when zoomed in a lot */}
-                {zoom >= 4 && pods.slice(0, 12).map((pod, j) => {
+                {zoom >= 3 && pods.slice(0, 12).map((pod, j) => {
                   const angle = (j / 12) * Math.PI * 2;
                   const pr = HEX_R * 0.5;
                   const px = cx + pr * Math.cos(angle);
