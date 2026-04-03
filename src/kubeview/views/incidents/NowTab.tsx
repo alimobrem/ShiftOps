@@ -376,7 +376,21 @@ function IncidentCard({
               ))}
             </div>
           )}
-          <span className="text-xs text-slate-500">{formatRelativeTime(incident.timestamp)}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">{formatRelativeTime(incident.timestamp)}</span>
+            {(() => {
+              const runbookUrl = (incident.sourceData as Record<string, unknown>)?.annotations
+                ? ((incident.sourceData as Record<string, Record<string, string>>).annotations?.runbook_url)
+                : undefined;
+              return runbookUrl ? (
+                <a href={runbookUrl} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                  onClick={(e) => e.stopPropagation()}>
+                  Runbook →
+                </a>
+              ) : null;
+            })()}
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <button

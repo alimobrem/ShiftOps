@@ -36,6 +36,8 @@ export interface ReadinessGate {
   category: ReadinessCategory;
   /** How heavily a failure weighs on the score */
   priority: GatePriority;
+  /** Optional link to the view where this gate can be remediated */
+  remediationLink?: string;
   /**
    * Evaluate the gate. Receives a fetcher scoped to /api/kubernetes/.
    * Must return a GateResult.
@@ -63,7 +65,7 @@ export interface GateResult {
   fixGuidance: string;
   /** Optional link to relevant documentation or fix page */
   fixLink?: string;
-  /** Optional remediation action */
+  /** Optional navigation action for remediation */
   action?: { label: string; path: string };
   /** Timestamp of evaluation (epoch ms) */
   evaluatedAt: number;

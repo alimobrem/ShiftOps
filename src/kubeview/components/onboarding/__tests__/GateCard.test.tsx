@@ -18,6 +18,10 @@ vi.mock('../../../store/uiStore', () => ({
   ),
 }));
 
+vi.mock('../../../hooks/useNavigateTab', () => ({
+  useNavigateTab: () => vi.fn(),
+}));
+
 vi.mock('../../../store/agentStore', () => ({
   useAgentStore: Object.assign(
     (selector?: any) => {

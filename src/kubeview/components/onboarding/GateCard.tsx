@@ -1,11 +1,12 @@
 import React from 'react';
 import {
   CheckCircle2, XCircle, AlertTriangle, HelpCircle, ShieldOff,
-  Loader2, RefreshCw, ShieldCheck, Bot,
+  Loader2, RefreshCw, ShieldCheck, Bot, ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '../../store/uiStore';
 import { useAgentStore } from '../../store/agentStore';
+import { useNavigateTab } from '../../hooks/useNavigateTab';
 import type { GateStatus, ReadinessGate, GateResult } from '../../engine/readiness/types';
 
 interface GateCardProps {
@@ -31,6 +32,7 @@ const STATUS_CONFIG: Record<GateStatus, {
 };
 
 export function GateCard({ gate, result, waived, waiverReason, onReVerify, onWaive }: GateCardProps) {
+  const go = useNavigateTab();
   const status: GateStatus = waived ? 'waived' : (result?.status ?? 'not_started');
   const cfg = STATUS_CONFIG[status];
   const [expanded, setExpanded] = React.useState(status === 'failed' || status === 'needs_attention');
@@ -101,6 +103,14 @@ export function GateCard({ gate, result, waived, waiverReason, onReVerify, onWai
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-violet-600 hover:bg-violet-500 rounded-md transition-colors"
               >
                 <Bot className="w-3 h-3" /> Fix with AI
+              </button>
+            )}
+            {result?.action && (
+              <button
+                onClick={() => go(result.action!.path, result.action!.label)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-300 bg-blue-900/30 hover:bg-blue-900/50 border border-blue-800/40 rounded-md transition-colors"
+              >
+                {result.action.label} <ArrowRight className="w-3 h-3" />
               </button>
             )}
             {onReVerify && (

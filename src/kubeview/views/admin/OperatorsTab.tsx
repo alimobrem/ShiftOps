@@ -50,6 +50,12 @@ export function OperatorsTab({ operators, go }: OperatorsTabProps) {
           <div className="text-xl font-bold text-slate-100">{progressingOps.length}</div>
         </div>
       </div>
+      {degradedOps.length === 0 && operatorList.length > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-950/30 border border-emerald-800/50 rounded-lg">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-xs text-emerald-300">All {operatorList.length} operators healthy — no degraded or unavailable operators</span>
+        </div>
+      )}
       <SearchInput value={search} onChange={setSearch} placeholder="Filter operators..." />
       <Card>
         <div className="divide-y divide-slate-800">

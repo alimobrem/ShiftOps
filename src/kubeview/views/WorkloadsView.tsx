@@ -19,6 +19,7 @@ import { Panel } from '../components/primitives/Panel';
 import { sanitizePromQL } from '../engine/query';
 import { SectionHeader } from '../components/primitives/SectionHeader';
 import { Card } from '../components/primitives/Card';
+import { EmptyState } from '../components/primitives/EmptyState';
 import { FilterButtonGroup } from '../components/primitives/FilterButtonGroup';
 import type { AuditCheck } from '../components/audit/types';
 import { HealthAuditPanel } from '../components/audit/HealthAuditPanel';
@@ -424,7 +425,13 @@ export default function WorkloadsView() {
             </div>
           )}
           {deployments.length === 0 ? (
-            <div className="text-center py-6 text-sm text-slate-500">No deployments{nsFilter ? ` in ${nsFilter}` : ''}</div>
+            <EmptyState
+              icon={<Package className="w-8 h-8" />}
+              title={`No deployments${nsFilter ? ` in ${nsFilter}` : ''}`}
+              description="Deploy a workload to see it here. Deployments manage pod replicas and rolling updates."
+              action={{ label: 'Browse All Deployments', onClick: () => go('/r/apps~v1~deployments', 'Deployments') }}
+              className="py-8"
+            />
           ) : (
             <div className="divide-y divide-slate-800 max-h-80 overflow-auto">
               {sortedDeploys.filter((d) => {
