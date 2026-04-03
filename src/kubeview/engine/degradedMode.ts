@@ -3,7 +3,8 @@ export type DegradedReason =
   | 'protocol_mismatch'
   | 'polling_fallback'
   | 'rbac_denied'
-  | 'observability_unavailable';
+  | 'observability_unavailable'
+  | 'session_expired';
 
 export const DEGRADED_MESSAGES: Record<DegradedReason, { title: string; description: string }> = {
   agent_unreachable: {
@@ -25,5 +26,9 @@ export const DEGRADED_MESSAGES: Record<DegradedReason, { title: string; descript
   observability_unavailable: {
     title: 'Monitoring Unavailable',
     description: 'Cannot reach Prometheus or Alertmanager. Alert data may be stale or missing.',
+  },
+  session_expired: {
+    title: 'Session Expired',
+    description: 'Your OAuth session has expired. Click to re-authenticate.',
   },
 };

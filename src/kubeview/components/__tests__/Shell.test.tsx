@@ -19,6 +19,7 @@ const _mockUIState: Record<string, any> = {
   dockPanel: null,
   impersonateUser: null,
   clearImpersonation: vi.fn(),
+  degradedReasons: new Set(),
   selectedNamespace: '*',
   addTab: vi.fn(),
   addToast: vi.fn(),

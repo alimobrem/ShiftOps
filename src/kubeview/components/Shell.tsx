@@ -44,8 +44,16 @@ export function Shell() {
   const exitViewBuilder = useUIStore((s) => s.exitViewBuilder);
   const impersonateUser = useUIStore((s) => s.impersonateUser);
   const clearImpersonation = useUIStore((s) => s.clearImpersonation);
+  const sessionExpired = useUIStore((s) => s.degradedReasons.has('session_expired'));
   return (
     <div className="flex h-screen flex-col bg-slate-900 text-slate-100">
+      {/* Session expired banner */}
+      {sessionExpired && (
+        <div className="flex items-center justify-between px-4 py-2 bg-red-900/60 border-b border-red-700 text-xs">
+          <span className="text-red-200">Your session has expired. API requests are failing with 401 Unauthorized.</span>
+          <button onClick={() => window.location.reload()} className="px-3 py-1 text-white bg-red-700 hover:bg-red-600 rounded font-medium transition-colors">Re-authenticate</button>
+        </div>
+      )}
       {/* Impersonation banner */}
       {impersonateUser && (
         <div className="flex items-center justify-between px-4 py-1.5 bg-amber-900/50 border-b border-amber-700 text-xs">

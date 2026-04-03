@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, GitBranch, ChevronDown,
   HeartPulse, Search, AlertCircle, RefreshCw,
   History, AlertTriangle, GitPullRequest,
-  Monitor, Sparkles, Brain, Github,
+  Monitor, Sparkles, Brain, Github, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -125,6 +125,14 @@ export default function WelcomeView() {
           />
         </div>
 
+        {/* ── Getting Started ── */}
+        <GettingStartedBanner
+          go={go}
+          isConnected={isConnected}
+          alertCount={alertCount}
+          nodeCount={typedNodes.length}
+        />
+
         {/* ── AI Briefing ── */}
         <BriefingCard
           briefing={briefing}
@@ -148,14 +156,14 @@ export default function WelcomeView() {
 
         {/* ── Primary Navigation: 2 rows of 4 ── */}
         <div className="grid grid-cols-4 gap-2">
-          <NavCard icon={<HeartPulse className="w-5 h-5" />} color="text-blue-400" border="border-blue-500/20" title="Pulse" sub="Health briefing" onClick={() => go('/pulse', 'Pulse')} path="/pulse" />
-          <NavCard icon={<Bell className="w-5 h-5" />} color="text-red-400" border="border-red-500/20" title="Incidents" sub="Triage & auto-fix" onClick={() => go('/incidents', 'Incidents')} />
-          <NavCard icon={<GitPullRequest className="w-5 h-5" />} color="text-violet-400" border="border-violet-500/20" title="Reviews" sub="Approve changes" onClick={() => go('/reviews', 'Reviews')} />
-          <NavCard icon={<Package className="w-5 h-5" />} color="text-blue-400" border="border-blue-500/20" title="Workloads" sub="Deployments & pods" onClick={() => go('/workloads', 'Workloads')} path="/workloads" />
-          <NavCard icon={<Server className="w-5 h-5" />} color="text-blue-400" border="border-slate-800" title="Compute" sub="Nodes & capacity" onClick={() => go('/compute', 'Compute')} path="/compute" />
-          <NavCard icon={<Globe className="w-5 h-5" />} color="text-cyan-400" border="border-slate-800" title="Networking" sub="Routes & policies" onClick={() => go('/networking', 'Networking')} path="/networking" />
-          <NavCard icon={<HardDrive className="w-5 h-5" />} color="text-orange-400" border="border-slate-800" title="Storage" sub="PVCs & volumes" onClick={() => go('/storage', 'Storage')} path="/storage" />
-          <NavCard icon={<Shield className="w-5 h-5" />} color="text-emerald-400" border="border-emerald-500/20" title="Readiness" sub="30 production gates" onClick={() => go('/readiness', 'Production Readiness')} />
+          <NavCard icon={<HeartPulse className="w-5 h-5" />} color="text-blue-400" border="border-blue-500/20" title="Pulse" sub="AI briefing, topology, overnight activity" onClick={() => go('/pulse', 'Pulse')} path="/pulse" />
+          <NavCard icon={<Bell className="w-5 h-5" />} color="text-red-400" border="border-red-500/20" title="Incidents" sub="Triage alerts, review AI fixes, track history" onClick={() => go('/incidents', 'Incidents')} />
+          <NavCard icon={<GitPullRequest className="w-5 h-5" />} color="text-violet-400" border="border-violet-500/20" title="Reviews" sub="Approve or reject AI-proposed changes" onClick={() => go('/reviews', 'Reviews')} />
+          <NavCard icon={<Package className="w-5 h-5" />} color="text-blue-400" border="border-blue-500/20" title="Workloads" sub="Deployments, pods, health audit" onClick={() => go('/workloads', 'Workloads')} path="/workloads" />
+          <NavCard icon={<Server className="w-5 h-5" />} color="text-blue-400" border="border-slate-800" title="Compute" sub="Node health, capacity planning, machines" onClick={() => go('/compute', 'Compute')} path="/compute" />
+          <NavCard icon={<Globe className="w-5 h-5" />} color="text-cyan-400" border="border-slate-800" title="Networking" sub="Routes, services, network policies" onClick={() => go('/networking', 'Networking')} path="/networking" />
+          <NavCard icon={<HardDrive className="w-5 h-5" />} color="text-orange-400" border="border-slate-800" title="Storage" sub="PVCs, storage classes, capacity" onClick={() => go('/storage', 'Storage')} path="/storage" />
+          <NavCard icon={<Shield className="w-5 h-5" />} color="text-emerald-400" border="border-emerald-500/20" title="Readiness" sub="30 production gates across 6 categories" onClick={() => go('/readiness', 'Production Readiness')} />
         </div>
 
         {/* ── More Views (collapsible) ── */}
@@ -405,4 +413,85 @@ function ClusterStatusPill({ isConnected, connectionStatus, nodeCount, readyCoun
 
 function ShortcutKey({ keys }: { keys: string }) {
   return <kbd className="px-1.5 py-0.5 bg-slate-800 rounded text-xs font-mono text-slate-400 border border-slate-700/60">{keys}</kbd>;
+}
+
+const GETTING_STARTED_KEY = 'openshiftpulse-getting-started-dismissed';
+
+function GettingStartedBanner({ go, isConnected, alertCount, nodeCount }: {
+  go: (path: string, title: string) => void;
+  isConnected: boolean;
+  alertCount: number;
+  nodeCount: number;
+}) {
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(GETTING_STARTED_KEY) === '1'; } catch { return false; }
+  });
+
+  if (dismissed) return null;
+
+  const steps = [
+    {
+      title: 'Check cluster health',
+      done: isConnected && nodeCount > 0,
+      status: isConnected ? `${nodeCount} nodes connected` : 'Not connected',
+      action: () => go('/pulse', 'Pulse'),
+    },
+    {
+      title: 'Review incidents',
+      done: alertCount === 0,
+      status: alertCount > 0 ? `${alertCount} alert${alertCount !== 1 ? 's' : ''} firing` : 'All clear',
+      action: () => go('/incidents', 'Incidents'),
+    },
+    {
+      title: 'Verify production readiness',
+      done: false, // always show as actionable until user checks
+      status: '30 gates across 6 categories',
+      action: () => go('/readiness', 'Production Readiness'),
+    },
+  ];
+
+  const allDone = steps.every((s) => s.done);
+
+  const handleDismiss = () => {
+    try { localStorage.setItem(GETTING_STARTED_KEY, '1'); } catch { /* ignore */ }
+    setDismissed(true);
+  };
+
+  return (
+    <div className="rounded-lg border border-violet-800/40 bg-violet-950/20 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-violet-400" />
+          <span className="text-sm font-semibold text-slate-200">
+            {allDone ? 'You\'re all set!' : 'Getting Started'}
+          </span>
+        </div>
+        <button onClick={handleDismiss} className="text-slate-500 hover:text-slate-300 transition-colors" title="Dismiss">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {steps.map((step, i) => (
+          <button
+            key={i}
+            onClick={step.action}
+            className={cn(
+              'flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-left transition-all hover:bg-slate-800/40',
+              step.done ? 'border-emerald-800/40 bg-emerald-950/10' : 'border-slate-700/40 bg-slate-900/30',
+            )}
+          >
+            <div className={cn('w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold',
+              step.done ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400',
+            )}>
+              {step.done ? <CheckCircle className="w-3.5 h-3.5" /> : i + 1}
+            </div>
+            <div>
+              <div className="text-xs font-medium text-slate-200">{step.title}</div>
+              <div className={cn('text-[11px] mt-0.5', step.done ? 'text-emerald-400' : 'text-slate-500')}>{step.status}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }

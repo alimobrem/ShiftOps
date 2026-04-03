@@ -85,6 +85,15 @@ export function NowTab() {
   const [focusedIdx, setFocusedIdx] = useState(-1);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Deep-link: auto-focus incident from ?finding=<id> URL param
+  useEffect(() => {
+    const findingId = new URLSearchParams(window.location.search).get('finding');
+    if (findingId && incidents.length > 0) {
+      const idx = incidents.findIndex((i) => i.id === findingId || i.sourceRef === findingId);
+      if (idx >= 0) setFocusedIdx(idx);
+    }
+  }, [incidents]);
+
   // Keyboard shortcuts for incident triage (j/k/s/i/d)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
