@@ -229,10 +229,10 @@ export default function ComputeView() {
         {computeTab === 'capacity' && <CapacityTab />}
 
         {computeTab === 'overview' && <>
-        {/* Metrics sparklines */}
+        {/* Key metrics — sparklines for trends, static for capacity */}
         <MetricGrid>
           <MetricCard
-            title="Cluster CPU"
+            title="CPU Utilization"
             query={isHyperShift
               ? "sum(rate(node_cpu_seconds_total{mode!='idle'}[5m])) / count(count by (cpu) (node_cpu_seconds_total)) * 100"
               : "sum(rate(node_cpu_seconds_total{mode!='idle'}[5m])) / sum(machine_cpu_cores) * 100"}
@@ -241,49 +241,34 @@ export default function ComputeView() {
             thresholds={{ warning: 70, critical: 90 }}
           />
           <MetricCard
-            title="Cluster Memory"
+            title="Memory Utilization"
             query="(1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) * 100"
             unit="%"
             color={CHART_COLORS.violet}
             thresholds={{ warning: 75, critical: 90 }}
           />
           <MetricCard
-            title="Node Load (1m)"
-            query="avg(node_load1)"
-            unit=""
-            color={CHART_COLORS.amber}
-          />
-          <MetricCard
-            title="Filesystem Usage"
+            title="Disk Usage"
             query="(1 - sum(node_filesystem_avail_bytes{fstype!~'tmpfs|overlay|squashfs'}) / sum(node_filesystem_size_bytes{fstype!~'tmpfs|overlay|squashfs'})) * 100"
             unit="%"
             color={CHART_COLORS.cyan}
             thresholds={{ warning: 80, critical: 95 }}
           />
           <MetricCard
-            title="CPU Throttling"
-            query="sum(rate(container_cpu_cfs_throttled_periods_total[5m])) / sum(rate(container_cpu_cfs_periods_total[5m])) * 100"
+            title="Pod Density"
+            query={`sum(kubelet_running_pods) / ${nodes.length * (clusterCapacity.podCapacity / nodes.length || 250)} * 100 or vector(0)`}
             unit="%"
-            color={CHART_COLORS.red}
-            thresholds={{ warning: 25, critical: 50 }}
-          />
-          <MetricCard
-            title="Nodes Not Ready"
-            query='count(kube_node_status_condition{condition="Ready",status="false"}) or vector(0)'
-            unit=""
-            color={CHART_COLORS.red}
-            thresholds={{ warning: 1, critical: 2 }}
+            color={CHART_COLORS.amber}
+            thresholds={{ warning: 80, critical: 95 }}
           />
         </MetricGrid>
 
-        {/* Cluster overview cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard label="Nodes" value={`${readyCount}/${nodes.length}`} issues={unreadyNodes.length + pressureNodes.length} onClick={() => go('/r/v1~nodes', 'Nodes')} />
-          <StatCard label="CPU Usage" value={cpuPercent !== null ? `${Math.round(cpuPercent)}%` : '—'} bar={cpuPercent} barColor={cpuPercent && cpuPercent > 80 ? 'red' : cpuPercent && cpuPercent > 60 ? 'yellow' : 'green'} />
-          <StatCard label="Memory" value={memPercent !== null ? `${Math.round(memPercent)}%` : '—'} bar={memPercent} barColor={memPercent && memPercent > 80 ? 'red' : memPercent && memPercent > 60 ? 'yellow' : 'green'} />
-          <StatCard label="Total CPU" value={formatCpu(clusterCapacity.cpuCores)} subtitle={`${nodes.length} nodes`} />
-          <StatCard label="Total Memory" value={formatBytes(clusterCapacity.memBytes)} subtitle={`${nodes.length} nodes`} />
-          <StatCard label="Pods" value={`${clusterCapacity.totalPods}/${clusterCapacity.podCapacity}`} bar={clusterCapacity.podCapacity > 0 ? (clusterCapacity.totalPods / clusterCapacity.podCapacity) * 100 : null} barColor="blue" />
+        {/* Capacity summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard label="Nodes" value={`${readyCount}/${nodes.length}`} issues={unreadyNodes.length} onClick={() => go('/r/v1~nodes', 'Nodes')} />
+          <StatCard label="Total CPU" value={formatCpu(clusterCapacity.cpuCores)} />
+          <StatCard label="Total Memory" value={formatBytes(clusterCapacity.memBytes)} />
+          <StatCard label="Pods" value={`${clusterCapacity.totalPods}/${clusterCapacity.podCapacity}`} />
         </div>
 
         {/* Compute Health Audit */}
