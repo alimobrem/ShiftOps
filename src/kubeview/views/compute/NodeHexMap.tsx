@@ -185,14 +185,26 @@ function HexNode({ nd, pods, onClick, onPodClick }: { nd: NodeDetail; pods?: Pod
             ))
           )}
         </div>
-        {/* Pod tooltip */}
-        {hoveredPod && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded bg-slate-800 border border-slate-700 text-[9px] text-slate-200 whitespace-nowrap z-20 shadow-lg pointer-events-none">
-            {hoveredPod.namespace}/{hoveredPod.name} — {hoveredPod.status}{hoveredPod.restarts > 0 ? ` (${hoveredPod.restarts} restarts)` : ''}
-          </div>
-        )}
         <div className="text-[8px] font-mono text-slate-500 mt-0.5">{nd.podCount}/{nd.podCap}</div>
       </div>
+
+      {/* Pod tooltip — outside clip-path so it's visible */}
+      {hoveredPod && (
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 shadow-xl z-50 pointer-events-none min-w-[200px]">
+          <div className="text-[11px] font-semibold text-slate-100">{hoveredPod.name}</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">{hoveredPod.namespace}</div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="flex items-center gap-1 text-[10px]">
+              <span className="w-2 h-2 rounded-full" style={{ background: POD_STATUS_COLOR[hoveredPod.status] || '#6b7280' }} />
+              <span style={{ color: POD_STATUS_COLOR[hoveredPod.status] || '#94a3b8' }}>{hoveredPod.status}</span>
+            </span>
+            {hoveredPod.restarts > 0 && (
+              <span className="text-[10px] text-amber-400">{hoveredPod.restarts} restart{hoveredPod.restarts !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+          <div className="text-[9px] text-slate-500 mt-1">Click to inspect pod</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -234,17 +246,32 @@ export function NodeHexMap({ nodes, podsByNode, onNodeClick, onPodClick, onViewA
         </div>
       </div>
 
-      {/* Hex grid */}
-      <div className="flex flex-wrap justify-center gap-2">
-        {visible.map(nd => (
-          <HexNode
-            key={nd.name}
-            nd={nd}
-            pods={podsByNode?.[nd.name]}
-            onClick={() => onNodeClick?.(nd.name)}
-            onPodClick={onPodClick}
-          />
-        ))}
+      {/* Honeycomb hex grid — offset odd rows for hex tiling */}
+      <div className="flex flex-col items-center gap-0">
+        {(() => {
+          const cols = Math.min(visible.length, 4);
+          const rows: NodeDetail[][] = [];
+          for (let i = 0; i < visible.length; i += cols) {
+            rows.push(visible.slice(i, i + cols));
+          }
+          return rows.map((row, rowIdx) => (
+            <div
+              key={rowIdx}
+              className="flex gap-1 justify-center"
+              style={{ marginTop: rowIdx > 0 ? -20 : 0, marginLeft: rowIdx % 2 === 1 ? 90 : 0 }}
+            >
+              {row.map(nd => (
+                <HexNode
+                  key={nd.name}
+                  nd={nd}
+                  pods={podsByNode?.[nd.name]}
+                  onClick={() => onNodeClick?.(nd.name)}
+                  onPodClick={onPodClick}
+                />
+              ))}
+            </div>
+          ));
+        })()}
       </div>
 
       {/* View all link */}
