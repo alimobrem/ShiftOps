@@ -139,7 +139,7 @@ describe('getMetricNames', () => {
     mockOk({ status: 'success', data: [] });
 
     await getMetricNames();
-    expect(mockFetch).toHaveBeenCalledWith('/api/prometheus/api/v1/label/__name__/values');
+    expect(mockFetch).toHaveBeenCalledWith('/api/prometheus/api/v1/label/__name__/values', expect.objectContaining({ headers: expect.any(Object) }));
   });
 });
 
@@ -155,7 +155,7 @@ describe('getLabelValues', () => {
     mockOk({ status: 'success', data: [] });
 
     await getLabelValues('pod');
-    expect(mockFetch).toHaveBeenCalledWith('/api/prometheus/api/v1/label/pod/values');
+    expect(mockFetch).toHaveBeenCalledWith('/api/prometheus/api/v1/label/pod/values', expect.objectContaining({ headers: expect.any(Object) }));
   });
 });
 

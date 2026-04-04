@@ -45,6 +45,8 @@ interface CustomViewState {
   createAndAddWidget: (widget: ComponentSpec) => Promise<string | null>;
   /** Set the active builder view */
   setActiveBuilderId: (id: string | null) => void;
+  /** Force-reload views from backend, bypassing debounce */
+  forceLoadViews: () => Promise<void>;
   /** Clone a view to the current user (from share link) */
   claimSharedView: (shareToken: string) => Promise<string | null>;
   /** Generate a share link for a view */
@@ -106,6 +108,11 @@ export const useCustomViewStore = create<CustomViewState>()(
         _lastLoadAttempt = 0; // Allow immediate retry on error
         set({ loading: false, error: err instanceof Error ? err.message : 'Failed to load views' });
       }
+    },
+
+    forceLoadViews: async () => {
+      _lastLoadAttempt = 0;
+      await get().loadViews();
     },
 
     saveView: async (view) => {
