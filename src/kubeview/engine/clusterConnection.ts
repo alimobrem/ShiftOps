@@ -88,11 +88,6 @@ export function getAllConnections(): ClusterConnection[] {
   return Array.from(connections.values());
 }
 
-/** Get a specific connection */
-export function getConnection(id: string): ClusterConnection | undefined {
-  return connections.get(id);
-}
-
 /** Register a new cluster connection */
 export function registerCluster(config: ClusterConnectionConfig): ClusterConnection {
   let apiBase: string;

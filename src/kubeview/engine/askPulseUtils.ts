@@ -1,5 +1,3 @@
-export type { QuickAction, AskPulseResponse } from './types/askPulse';
-
 const QUESTION_WORDS = new Set([
   'what', 'why', 'how', 'show', 'find', 'list', 'which',
   'is', 'are', 'can', 'tell', 'where', 'when', 'do', 'does',

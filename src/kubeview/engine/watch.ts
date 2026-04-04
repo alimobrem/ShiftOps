@@ -188,12 +188,12 @@ export class WatchManager {
       };
 
       ws.onclose = (event) => {
-        if (event.code !== 1006) console.log(`Watch closed: ${normalizedPath}`, event.code);
+        // Watch closed — reconnect handled below
         this.stopHeartbeat(connection);
 
         // Handle 410 Gone (resourceVersion too old)
         if (event.code === 1008 || (event.reason && event.reason.includes('410'))) {
-          console.log('Resource version too old, resetting');
+          // Resource version too old — reset and reconnect
           connection.resourceVersion = '';
         }
 
@@ -230,7 +230,7 @@ export class WatchManager {
     connection.reconnectAttempt++;
     this.status = 'reconnecting';
 
-    console.log(`Reconnecting in ${backoff}ms (attempt ${connection.reconnectAttempt})`);
+    // Reconnect with exponential backoff
 
     connection.reconnectTimer = setTimeout(() => {
       connection.reconnectTimer = null;
@@ -249,7 +249,7 @@ export class WatchManager {
 
       // If no event for 45 seconds, verify connection is still alive
       if (timeSinceLastEvent > HEARTBEAT_INTERVAL) {
-        console.log('No watch events for 45s, checking connection');
+        // No watch events for 45s — force reconnect
 
         // Close and reconnect to verify
         if (connection.ws && connection.ws.readyState === WebSocket.OPEN) {

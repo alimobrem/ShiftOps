@@ -88,28 +88,3 @@ export async function fleetCount(apiPath: string, namespace?: string): Promise<{
   };
 }
 
-/**
- * Check which clusters have a specific alert firing.
- */
-export async function fleetAlertCorrelation(alertName: string): Promise<Array<{
-  clusterId: string;
-  clusterName: string;
-  firing: boolean;
-  count: number;
-}>> {
-  const clusters = getAllConnections().filter(c => c.status === 'connected');
-
-  const results = await Promise.allSettled(
-    clusters.map(async (cluster) => {
-      const res = await fetch(`${cluster.apiBase}/api/v1/namespaces/openshift-monitoring/services/alertmanager-main:web/proxy/api/v2/alerts?filter=alertname%3D${encodeURIComponent(alertName)}`);
-      if (!res.ok) return { clusterId: cluster.id, clusterName: cluster.name, firing: false, count: 0 };
-      const alerts = await res.json();
-      const firingAlerts = Array.isArray(alerts) ? alerts.filter((a: { status?: { state?: string } }) => a.status?.state === 'active') : [];
-      return { clusterId: cluster.id, clusterName: cluster.name, firing: firingAlerts.length > 0, count: firingAlerts.length };
-    })
-  );
-
-  return results
-    .filter((r): r is PromiseFulfilledResult<{ clusterId: string; clusterName: string; firing: boolean; count: number }> => r.status === 'fulfilled')
-    .map(r => r.value);
-}

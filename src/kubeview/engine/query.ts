@@ -256,65 +256,11 @@ export function useK8sList<T = K8sResource>(
   } as UseQueryOptions<T[], Error>);
 }
 
-/**
- * Hook to get a single resource
- */
-export function useK8sGet<T = K8sResource>(
-  apiPath: string,
-  options?: {
-    enabled?: boolean;
-  }
-) {
-  return useQuery<T, Error>({
-    queryKey: ['k8s', 'get', apiPath],
-    queryFn: () => k8sGet<T>(apiPath),
-    enabled: options?.enabled !== false,
-  } as UseQueryOptions<T, Error>);
-}
-
 // Note: useK8sWatch was removed — it had race conditions (stale data, missing list resourceVersion).
 // Real-time updates are handled by useClusterHealthData which uses WebSocket watches to invalidate queries.
 // useK8sCreate, useK8sUpdate, useK8sPatch, useK8sDelete hooks were also removed
 // as they were never adopted. Views use raw k8sCreate/k8sPatch/k8sDelete directly.
 // If hooks are needed in the future, wrap the raw functions with useMutation.
-
-/**
- * Execute a subresource action (e.g., /scale, /status, /eviction)
- */
-export async function k8sSubresource<T>(
-  apiPath: string,
-  subresource: string,
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' = 'GET',
-  body?: unknown,
-  clusterId?: string
-): Promise<T> {
-  const url = `${getClusterBase(clusterId)}${apiPath}/${subresource}`;
-  const options: RequestInit = {
-    method,
-  };
-
-  options.headers = {
-    ...getImpersonationHeaders(),
-  };
-
-  if (body && method !== 'GET') {
-    options.headers['Content-Type'] = 'application/json';
-    options.body = JSON.stringify(body);
-  }
-
-  let response: Response;
-  try {
-    response = await fetch(url, options);
-  } catch (e) {
-    throw wrapNetworkError(e, { operation: subresource, apiPath });
-  }
-
-  if (!response.ok) {
-    throw await parseK8sErrorResponse(response, { operation: subresource, apiPath });
-  }
-
-  return response.json();
-}
 
 /**
  * Get logs from a Pod

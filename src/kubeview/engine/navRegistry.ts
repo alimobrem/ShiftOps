@@ -36,19 +36,6 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'agent', label: 'Agent Settings', icon: 'Bot', path: '/agent', group: 'agent', subtitle: 'Trust level, monitoring, memory, views management', color: 'text-violet-400' },
 ];
 
-/** Group label for each nav group */
-export const NAV_GROUP_LABELS: Record<NavItem['group'], string> = {
-  cluster: 'CLUSTER',
-  operations: 'OPERATIONS',
-  administration: 'ADMINISTRATION',
-  agent: 'AGENT',
-};
-
-/** Get nav items for a specific group */
-export function getNavGroup(group: NavItem['group']): NavItem[] {
-  return NAV_ITEMS.filter((item) => item.group === group);
-}
-
 /** Look up a nav item by path */
 export function getNavByPath(path: string): NavItem | undefined {
   return NAV_ITEMS.find((item) => item.path === path);

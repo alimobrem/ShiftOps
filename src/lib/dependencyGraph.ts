@@ -322,27 +322,3 @@ export async function buildDependencyGraph(
 
   return { nodes: filteredNodes, edges: filteredEdges, rootId };
 }
-
-/**
- * Get the navigation href for a graph node
- */
-export function getNodeHref(node: GraphNode): string | undefined {
-  const { kind, namespace, name } = node;
-  const map: Record<string, string> = {
-    Pod: `/workloads/pods/${namespace}/${name}`,
-    Deployment: `/workloads/deployments/${namespace}/${name}`,
-    ReplicaSet: `/workloads/replicasets/${namespace}/${name}`,
-    StatefulSet: `/workloads/statefulsets/${namespace}/${name}`,
-    DaemonSet: `/workloads/daemonsets/${namespace}/${name}`,
-    Job: `/workloads/jobs/${namespace}/${name}`,
-    Service: `/networking/services/${namespace}/${name}`,
-    Ingress: `/networking/ingress/${namespace}/${name}`,
-    Route: `/networking/routes/${namespace}/${name}`,
-    ConfigMap: `/workloads/configmaps/${namespace}/${name}`,
-    Secret: `/workloads/secrets/${namespace}/${name}`,
-    HPA: `/workloads/hpa/${namespace}/${name}`,
-    PDB: `/workloads/poddisruptionbudgets/${namespace}/${name}`,
-    NetworkPolicy: `/networking/networkpolicies/${namespace}/${name}`,
-  };
-  return map[kind];
-}

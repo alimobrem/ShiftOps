@@ -126,11 +126,11 @@ export const useAgentStore = create<AgentState>()(
           const checkInterval = setInterval(() => {
             if (get().connected && client) {
               clearInterval(checkInterval);
+              clearTimeout(safetyTimeout);
               get().sendMessage(content, context);
             }
           }, 50);
-          // Safety timeout — don't poll forever
-          setTimeout(() => clearInterval(checkInterval), 5000);
+          const safetyTimeout = setTimeout(() => clearInterval(checkInterval), 5000);
         }
       },
 

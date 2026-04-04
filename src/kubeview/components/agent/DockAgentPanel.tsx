@@ -60,6 +60,7 @@ export function DockAgentPanel() {
     scrollTimer.current = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
     }, streaming ? 200 : 0);
+    return () => clearTimeout(scrollTimer.current);
   }, [messages, streamingText, thinkingText, streaming]);
 
   // Focus input after streaming

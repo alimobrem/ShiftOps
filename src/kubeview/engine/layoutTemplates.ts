@@ -102,14 +102,6 @@ export const LAYOUT_TEMPLATES: Record<string, LayoutTemplate> = Object.fromEntri
   TEMPLATES.map((t) => [t.id, t]),
 );
 
-export function getTemplate(id: string): LayoutTemplate | undefined {
-  return LAYOUT_TEMPLATES[id];
-}
-
-export function getAllTemplates(): LayoutTemplate[] {
-  return TEMPLATES;
-}
-
 // ─── Template Application ────────────────────────────────────────────────────
 
 type Position = { x: number; y: number; w: number; h: number };
