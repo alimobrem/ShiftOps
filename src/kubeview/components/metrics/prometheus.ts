@@ -4,6 +4,8 @@
  * Helper functions for querying Prometheus/Thanos via the /api/prometheus proxy
  */
 
+import { getImpersonationHeaders } from '../../engine/query';
+
 const PROM_BASE = '/api/prometheus';
 
 export interface PrometheusDataPoint {
@@ -55,7 +57,7 @@ export async function queryRange(
   });
 
   const url = `${PROM_BASE}/api/v1/query_range?${params}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: getImpersonationHeaders() });
 
   if (!res.ok) {
     throw new Error(`Prometheus query failed: ${res.status} ${res.statusText}`);
@@ -83,7 +85,7 @@ export async function queryInstant(
   }
 
   const url = `${PROM_BASE}/api/v1/query?${params}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: getImpersonationHeaders() });
 
   if (!res.ok) {
     throw new Error(`Prometheus query failed: ${res.status} ${res.statusText}`);
@@ -106,7 +108,7 @@ export async function queryInstant(
  */
 export async function getMetricNames(): Promise<string[]> {
   const url = `${PROM_BASE}/api/v1/label/__name__/values`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: getImpersonationHeaders() });
 
   if (!res.ok) {
     throw new Error(`Failed to fetch metric names: ${res.status} ${res.statusText}`);
@@ -129,7 +131,7 @@ export async function getLabelValues(labelName: string): Promise<string[]> {
     throw new Error(`Invalid Prometheus label name: ${labelName}`);
   }
   const url = `${PROM_BASE}/api/v1/label/${labelName}/values`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: getImpersonationHeaders() });
 
   if (!res.ok) {
     throw new Error(`Failed to fetch label values: ${res.status} ${res.statusText}`);
