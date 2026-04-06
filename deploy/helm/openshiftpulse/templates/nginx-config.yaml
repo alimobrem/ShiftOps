@@ -55,7 +55,12 @@ data:
           proxy_pass https://{{ .Values.monitoring.prometheus.host }}/;
           proxy_ssl_verify on;
           proxy_ssl_trusted_certificate /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt;
-          proxy_set_header Authorization "Bearer $http_x_forwarded_access_token";
+          # Try user OAuth token first, fall back to SA token (set by entrypoint)
+          set $prom_token $http_x_forwarded_access_token;
+          if ($prom_token = '') {
+            set $prom_token '__SA_TOKEN__';
+          }
+          proxy_set_header Authorization "Bearer $prom_token";
           proxy_read_timeout 60s;
         }
         {{- else }}
@@ -70,7 +75,11 @@ data:
           proxy_pass https://{{ .Values.monitoring.alertmanager.host }}/;
           proxy_ssl_verify on;
           proxy_ssl_trusted_certificate /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt;
-          proxy_set_header Authorization "Bearer $http_x_forwarded_access_token";
+          set $am_token $http_x_forwarded_access_token;
+          if ($am_token = '') {
+            set $am_token '__SA_TOKEN__';
+          }
+          proxy_set_header Authorization "Bearer $am_token";
           proxy_read_timeout 60s;
         }
         {{- else }}

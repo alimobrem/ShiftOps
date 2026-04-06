@@ -98,6 +98,8 @@ spec:
           TOKEN=$(cat /etc/nginx/agent-token/token)
           sed -i "s|__AGENT_TOKEN__|${TOKEN}|g" /tmp/nginx.conf
           {{- end }}
+          SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo "")
+          sed -i "s|__SA_TOKEN__|${SA_TOKEN}|g" /tmp/nginx.conf
           exec nginx -c /tmp/nginx.conf -g 'daemon off;'
         ports:
         - containerPort: 8080
