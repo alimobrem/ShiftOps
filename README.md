@@ -49,6 +49,31 @@ Real-time Kubernetes dashboard built with React, TypeScript, and WebSocket watch
 
 ---
 
+## Prerequisites
+
+- **Node.js 22+** and **pnpm** — for building the UI
+- **OpenShift 4.14+** or **ROSA** — with OAuth proxy support
+- **Podman** or **Docker** — for building container images
+- **Helm 3+** — for deployment
+- **oc CLI** — logged into target cluster
+- **Container registry** — writable push access (Quay.io, Docker Hub, etc.)
+
+### Container Registry Setup
+
+The default registry is `quay.io/amobrem`. To use your own:
+
+```bash
+# Option 1: Environment variables
+export PULSE_UI_IMAGE=your-registry.io/your-org/openshiftpulse
+export PULSE_AGENT_IMAGE=your-registry.io/your-org/pulse-agent
+./deploy/deploy.sh
+
+# Option 2: Helm values
+helm install pulse ./deploy/helm/pulse \
+  --set openshiftpulse.image.repository=your-registry.io/your-org/openshiftpulse \
+  --set agent.image.repository=your-registry.io/your-org/pulse-agent
+```
+
 ## Quick Start
 
 ```bash
