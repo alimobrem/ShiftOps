@@ -43,17 +43,20 @@ function generateDefaultLayout(specs: ComponentSpec[], templateId?: string): Rea
     // Height based on content type
     // Heights tuned for rowHeight=60px
     const rows = spec.kind === 'data_table' ? (spec as any).rows?.length || 5 : 0;
+    const gridItems = spec.kind === 'grid' ? ((spec as any).items?.length || 0) : 0;
+    const gridCols = spec.kind === 'grid' ? ((spec as any).columns || 2) : 1;
+    const gridRows = Math.ceil(gridItems / gridCols);
     const h =
-      spec.kind === 'info_card_grid' ? 2 :
-      spec.kind === 'grid' ? 2 :
+      spec.kind === 'info_card_grid' ? 3 :
+      spec.kind === 'grid' ? Math.max(3, 1 + gridRows * 2) :
       spec.kind === 'metric_card' ? 2 :
       spec.kind === 'status_list' ? Math.min(2 + Math.ceil(((spec as any).items?.length || 3) / 2), 6) :
-      spec.kind === 'badge_list' ? 1 :
+      spec.kind === 'badge_list' ? 2 :
       spec.kind === 'key_value' ? Math.min(2 + Math.ceil(((spec as any).pairs?.length || 2) / 2), 5) :
-      spec.kind === 'chart' ? 5 :
+      spec.kind === 'chart' ? 6 :
       spec.kind === 'data_table' ? Math.min(2 + Math.ceil(rows * 0.5), 8) :
-      spec.kind === 'log_viewer' ? 5 :
-      spec.kind === 'yaml_viewer' ? 4 :
+      spec.kind === 'log_viewer' ? 6 :
+      spec.kind === 'yaml_viewer' ? 5 :
       spec.kind === 'tabs' ? 8 :
       3;
     const layout = { i: String(i), x: 0, y, w: 4, h, minW: 1, minH: 1 };
@@ -372,7 +375,7 @@ export default function CustomView() {
             margin={[16, 16]}
           >
             {view.layout.map((spec, i) => (
-              <div key={String(i)} className={`rounded-lg border bg-slate-900/80 p-3 relative group overflow-auto transition-colors ${editMode ? 'border-slate-700 border-dashed' : 'border-slate-800 hover:border-slate-700'}`}>
+              <div key={String(i)} className={`rounded-lg border bg-slate-900/80 p-3 relative group overflow-hidden transition-colors ${editMode ? 'border-slate-700 border-dashed' : 'border-slate-800 hover:border-slate-700'}`}>
                 {editMode && (
                   <>
                     <div className="widget-drag-handle absolute top-2 left-2 p-1 cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 transition-colors">
