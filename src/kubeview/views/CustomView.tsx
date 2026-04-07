@@ -41,25 +41,25 @@ function generateDefaultLayout(specs: ComponentSpec[], templateId?: string): Rea
   let y = 0;
   return specs.map((spec, i) => {
     // Height based on content type
-    // Heights tuned for rowHeight=60px
+    // Heights tuned for rowHeight=30px (1 unit = 30px + 16px margin)
     const rows = spec.kind === 'data_table' ? (spec as any).rows?.length || 5 : 0;
     const gridItems = spec.kind === 'grid' ? ((spec as any).items?.length || 0) : 0;
     const gridCols = spec.kind === 'grid' ? ((spec as any).columns || 2) : 1;
     const gridRows = Math.ceil(gridItems / gridCols);
     const h =
-      spec.kind === 'info_card_grid' ? 3 :
-      spec.kind === 'grid' ? (2 + gridRows * 2) :
-      spec.kind === 'metric_card' ? 2 :
-      spec.kind === 'status_list' ? Math.min(2 + Math.ceil(((spec as any).items?.length || 3) / 2), 6) :
-      spec.kind === 'badge_list' ? 2 :
-      spec.kind === 'key_value' ? Math.min(2 + Math.ceil(((spec as any).pairs?.length || 2) / 2), 5) :
-      spec.kind === 'chart' ? 6 :
-      spec.kind === 'data_table' ? Math.min(2 + Math.ceil(rows * 0.5), 8) :
-      spec.kind === 'log_viewer' ? 6 :
-      spec.kind === 'yaml_viewer' ? 5 :
-      spec.kind === 'tabs' ? 8 :
-      3;
-    const layout = { i: String(i), x: 0, y, w: 4, h, minW: 1, minH: 1 };
+      spec.kind === 'info_card_grid' ? 5 :
+      spec.kind === 'grid' ? (3 + gridRows * 4) :
+      spec.kind === 'metric_card' ? 4 :
+      spec.kind === 'status_list' ? Math.min(4 + ((spec as any).items?.length || 3), 12) :
+      spec.kind === 'badge_list' ? 3 :
+      spec.kind === 'key_value' ? Math.min(4 + ((spec as any).pairs?.length || 2), 10) :
+      spec.kind === 'chart' ? 12 :
+      spec.kind === 'data_table' ? Math.min(4 + rows, 16) :
+      spec.kind === 'log_viewer' ? 12 :
+      spec.kind === 'yaml_viewer' ? 10 :
+      spec.kind === 'tabs' ? 16 :
+      6;
+    const layout = { i: String(i), x: 0, y, w: 4, h, minW: 1, minH: 2 };
     y += h;
     return layout;
   });
@@ -367,7 +367,7 @@ export default function CustomView() {
             layouts={{ lg: currentLayout }}
             breakpoints={{ lg: 1024, md: 768, sm: 480 }}
             cols={{ lg: 4, md: 2, sm: 1 }}
-            rowHeight={60}
+            rowHeight={30}
             isDraggable={editMode}
             isResizable={editMode}
             onLayoutChange={handleLayoutChange}
