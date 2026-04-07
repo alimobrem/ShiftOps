@@ -19,7 +19,10 @@ export type ComponentSpec =
   | LogViewerSpec
   | YamlViewerSpec
   | MetricCardSpec
-  | NodeMapSpec;
+  | NodeMapSpec
+  | BarListSpec
+  | ProgressListSpec
+  | StatCardSpec;
 
 export interface RelationshipTreeSpec {
   kind: 'relationship_tree';
@@ -186,6 +189,49 @@ export interface NodeMapSpec {
     restarts: number;
   }>>;
   maxVisible?: number;
+}
+
+export interface BarListSpec {
+  kind: 'bar_list';
+  title?: string;
+  description?: string;
+  items: Array<{
+    label: string;
+    value: number;
+    color?: string;
+    badge?: string;
+    badgeVariant?: 'error' | 'warning' | 'info';
+    href?: string;
+    gvr?: string;
+  }>;
+  maxItems?: number;
+  valueLabel?: string;
+}
+
+export interface ProgressListSpec {
+  kind: 'progress_list';
+  title?: string;
+  description?: string;
+  items: Array<{
+    label: string;
+    value: number;
+    max: number;
+    unit?: string;
+    detail?: string;
+  }>;
+  thresholds?: { warning: number; critical: number };
+}
+
+export interface StatCardSpec {
+  kind: 'stat_card';
+  title: string;
+  value: string;
+  unit?: string;
+  trend?: 'up' | 'down' | 'stable';
+  trendValue?: string;
+  trendGood?: 'up' | 'down';
+  description?: string;
+  status?: 'healthy' | 'warning' | 'error';
 }
 
 export interface ViewSpec {
