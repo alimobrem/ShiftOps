@@ -79,6 +79,8 @@ export function AgentComponentRenderer({ spec, depth = 0, onAddToView, refreshIn
       return <AgentBarList spec={spec} />;
     case 'progress_list':
       return <AgentProgressList spec={spec} />;
+    case 'stat_card':
+      return <AgentStatCard spec={spec} />;
     default:
       return null;
   }
@@ -908,6 +910,34 @@ function AgentProgressList({ spec }: { spec: ProgressListSpec }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/** Single big number with trend indicator */
+function AgentStatCard({ spec }: { spec: StatCardSpec }) {
+  const goodDir = spec.trendGood || 'down';
+  const trendIsGood = spec.trend === goodDir;
+  const trendColor = !spec.trend || spec.trend === 'stable'
+    ? 'text-slate-400'
+    : trendIsGood ? 'text-emerald-400' : 'text-red-400';
+  const trendArrow = spec.trend === 'up' ? '\u2191' : spec.trend === 'down' ? '\u2193' : '';
+
+  return (
+    <div className={cn(
+      'bg-slate-900 rounded-lg border p-4 flex flex-col items-center justify-center text-center',
+      METRIC_STATUS_BORDER[spec.status || ''] || 'border-slate-800'
+    )}>
+      <span className="text-xs text-slate-400 mb-1">{spec.title}</span>
+      <div className="text-2xl font-bold text-slate-100 font-mono">
+        {spec.value}{spec.unit && <span className="text-sm text-slate-400 ml-0.5">{spec.unit}</span>}
+      </div>
+      {spec.trend && spec.trendValue && (
+        <div className={cn('text-xs mt-1 font-medium', trendColor)}>
+          {trendArrow} {spec.trendValue}
+        </div>
+      )}
+      {spec.description && <div className="text-[10px] text-slate-500 mt-1">{spec.description}</div>}
     </div>
   );
 }
