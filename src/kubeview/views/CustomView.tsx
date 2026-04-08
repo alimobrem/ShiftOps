@@ -386,7 +386,7 @@ export default function CustomView() {
             compactType="vertical"
           >
             {view.layout.map((spec, i) => (
-              <div key={String(i)} className={`rounded-lg border bg-slate-900/80 p-3 relative group overflow-y-auto overflow-x-hidden transition-colors ${editMode ? 'border-slate-700 border-dashed' : 'border-slate-800 hover:border-slate-700'}`}>
+              <div key={String(i)} className={`rounded-lg border bg-slate-900/80 p-3 relative group overflow-hidden transition-colors ${editMode ? 'border-slate-700 border-dashed' : 'border-slate-800 hover:border-slate-700'}`}>
                 {editMode && (
                   <>
                     <div className="widget-drag-handle absolute inset-x-0 top-0 h-6 cursor-grab active:cursor-grabbing flex items-center px-2 bg-slate-800/30 rounded-t-lg z-10">
@@ -413,8 +413,8 @@ export default function CustomView() {
                   </button>
                 )}
                 <div className={editMode ? 'pt-6' : ''}>
-                  {/* Editable widget title and description in edit mode */}
-                  {editMode && (
+                  {/* Editable widget title and description in edit mode (skip for self-titled components) */}
+                  {editMode && spec.kind !== 'stat_card' && spec.kind !== 'metric_card' && (
                     <>
                       {(spec as any).title && (
                         <input
