@@ -580,6 +580,32 @@ const STATUS_LIST_COLORS: Record<string, string> = {
 };
 
 function AgentStatusList({ spec }: { spec: StatusListSpec }) {
+  const navigate = useNavigate();
+
+  // Map status list item names to navigable resource paths
+  const KIND_GVR_MAP: Record<string, string> = {
+    Deployment: 'apps~v1~deployments',
+    StatefulSet: 'apps~v1~statefulsets',
+    DaemonSet: 'apps~v1~daemonsets',
+    Service: 'v1~services',
+    Pod: 'v1~pods',
+    Route: 'route.openshift.io~v1~routes',
+    PVC: 'v1~persistentvolumeclaims',
+  };
+
+  function handleItemClick(name: string) {
+    // Parse "Kind/name" pattern
+    const match = name.match(/^(\w+)\/(.+)$/);
+    if (match) {
+      const [, kind, resourceName] = match;
+      const gvr = KIND_GVR_MAP[kind];
+      if (gvr) {
+        navigate(`/r/${gvr}/_/${resourceName}`);
+        return;
+      }
+    }
+  }
+
   return (
     <div className="my-2 border border-slate-700 rounded-lg overflow-hidden min-w-0">
       {spec.title && (
@@ -590,10 +616,15 @@ function AgentStatusList({ spec }: { spec: StatusListSpec }) {
       <div className="divide-y divide-slate-800">
         {spec.items.map((item, i) => {
           const Icon = STATUS_ICONS[item.status] || HelpCircle;
+          const isClickable = /^\w+\//.test(item.name);
           return (
-            <div key={i} className="flex items-center gap-2 px-3 py-1.5">
+            <div
+              key={i}
+              className={cn('flex items-center gap-2 px-3 py-1.5 transition-colors', isClickable && 'cursor-pointer hover:bg-slate-800/50')}
+              onClick={() => isClickable && handleItemClick(item.name)}
+            >
               <Icon className={cn('h-3.5 w-3.5 shrink-0', STATUS_LIST_COLORS[item.status])} />
-              <span className="text-xs text-slate-200 font-medium">{item.name}</span>
+              <span className={cn('text-xs font-medium', isClickable ? 'text-blue-400 hover:text-blue-300' : 'text-slate-200')}>{item.name}</span>
               {item.detail && <span className="text-xs text-slate-500 truncate ml-auto">{item.detail}</span>}
             </div>
           );

@@ -44,7 +44,7 @@ export function idealHeight(spec: ComponentSpec): number {
     spec.kind === 'info_card_grid' ? 4 :
     spec.kind === 'grid' ? (2 + gridRows * 3) :
     spec.kind === 'metric_card' ? 3 :
-    spec.kind === 'status_list' ? Math.min(3 + ((spec as any).items?.length || 3), 10) :
+    spec.kind === 'status_list' ? Math.min(2 + Math.ceil(((spec as any).items?.length || 3) * 0.8), 8) :
     spec.kind === 'badge_list' ? 2 :
     spec.kind === 'key_value' ? Math.min(3 + ((spec as any).pairs?.length || 2), 8) :
     spec.kind === 'chart' ? 10 :

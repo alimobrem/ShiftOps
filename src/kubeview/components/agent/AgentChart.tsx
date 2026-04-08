@@ -22,6 +22,18 @@ function formatTimestamp(ts: number) {
   return _chartTimeFmt.format(ts);
 }
 
+/** Smart Y-axis formatter — detects large numbers and formats as K/M/G/T */
+function formatYValue(value: number): string {
+  if (!isFinite(value)) return '';
+  const abs = Math.abs(value);
+  if (abs >= 1e12) return `${(value / 1e12).toFixed(1)}T`;
+  if (abs >= 1e9) return `${(value / 1e9).toFixed(1)}G`;
+  if (abs >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+  if (abs >= 1e4) return `${(value / 1e3).toFixed(1)}K`;
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(2);
+}
+
 /** Format "Updated Xs ago" from a dataUpdatedAt timestamp */
 function formatUpdatedAgo(ts: number): string {
   const sec = Math.floor((Date.now() - ts) / 1000);
@@ -127,7 +139,7 @@ export default function AgentChart({ spec, onAddToView, refreshInterval }: { spe
           <ScatterChart margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="x" stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatTimestamp} />
-            <YAxis dataKey="y" stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+            <YAxis dataKey="y" stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatYValue} />
             <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 6, fontSize: 11 }} />
             {liveSeries.map((s, i) => {
               const color = s.color || CHART_COLORS[i % CHART_COLORS.length];
@@ -174,7 +186,7 @@ export default function AgentChart({ spec, onAddToView, refreshInterval }: { spe
           <BarChart data={rechartsData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="time" tickFormatter={formatTimestamp} stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-            <YAxis stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+            <YAxis stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatYValue} />
             <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 6, fontSize: 11 }}
               labelFormatter={(l) => typeof l === 'number' ? formatTimestamp(l) : String(l)} />
             {liveSeries.length <= 6 && <Legend wrapperStyle={{ fontSize: 10, color: '#94a3b8' }} />}
@@ -189,7 +201,7 @@ export default function AgentChart({ spec, onAddToView, refreshInterval }: { spe
           <AreaChart data={rechartsData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="time" tickFormatter={formatTimestamp} stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-            <YAxis stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+            <YAxis stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatYValue} />
             <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 6, fontSize: 11 }}
               labelFormatter={(l) => typeof l === 'number' ? formatTimestamp(l) : String(l)} />
             {liveSeries.length <= 6 && <Legend wrapperStyle={{ fontSize: 10, color: '#94a3b8' }} />}
@@ -208,6 +220,7 @@ export default function AgentChart({ spec, onAddToView, refreshInterval }: { spe
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="time" tickFormatter={formatTimestamp} stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={{ stroke: '#334155' }} />
             <YAxis stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={{ stroke: '#334155' }}
+              tickFormatter={formatYValue}
               label={spec.yAxisLabel ? { value: spec.yAxisLabel, angle: -90, position: 'insideLeft', style: { fill: '#94a3b8', fontSize: 10 } } : undefined} />
             <Tooltip
               contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 6, fontSize: 11 }}
