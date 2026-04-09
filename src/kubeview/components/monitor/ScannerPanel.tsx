@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, CheckCircle, AlertTriangle, XCircle, Clock, Shield } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ChevronDown, ChevronRight, CheckCircle, AlertTriangle, XCircle, Clock, Shield, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useMonitorStore } from '../../store/monitorStore';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +47,12 @@ const CATEGORY_COLOR: Record<string, string> = {
 export function ScannerPanel() {
   const [scanners, setScanners] = useState<Scanner[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [disabledScanners, setDisabledScanners] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('pulse-disabled-scanners');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
   const [loading, setLoading] = useState(true);
   const scanReport = useMonitorStore((s) => (s as any).scanReport as { scanId: number; duration_ms: number; total_findings: number; scanners: ScannerResult[] } | null);
 
@@ -57,7 +63,7 @@ export function ScannerPanel() {
       .catch(() => setLoading(false));
   }, []);
 
-  const toggle = (id: string) => {
+  const toggleExpand = (id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -65,6 +71,17 @@ export function ScannerPanel() {
       return next;
     });
   };
+
+  const toggleEnabled = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDisabledScanners((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      localStorage.setItem('pulse-disabled-scanners', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   const resultMap = new Map(
     (scanReport?.scanners || []).map((s) => [s.name, s])
@@ -87,7 +104,9 @@ export function ScannerPanel() {
       <div className="px-3 py-2 bg-slate-800/50 border-b border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-3.5 h-3.5 text-blue-400" />
-          <span className="text-xs font-medium text-slate-300">Scanners ({scanners.length})</span>
+          <span className="text-xs font-medium text-slate-300">
+            Scanners ({scanners.length - disabledScanners.size}/{scanners.length} active)
+          </span>
         </div>
         {scanReport && (
           <span className="text-[10px] text-slate-500">
@@ -105,23 +124,24 @@ export function ScannerPanel() {
             </div>
             {catScanners.map((scanner) => {
               const result = resultMap.get(scanner.id);
-              const status = result?.status || 'clean';
-              const Icon = STATUS_ICON[status as keyof typeof STATUS_ICON] || Clock;
+              const isDisabled = disabledScanners.has(scanner.id);
+              const status = isDisabled ? 'disabled' : (result?.status || 'clean');
+              const Icon = isDisabled ? Clock : (STATUS_ICON[status as keyof typeof STATUS_ICON] || Clock);
               const isExpanded = expanded.has(scanner.id);
 
               return (
-                <div key={scanner.id}>
+                <div key={scanner.id} className={cn(isDisabled && 'opacity-50')}>
                   <button
-                    onClick={() => toggle(scanner.id)}
+                    onClick={() => toggleExpand(scanner.id)}
                     className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-800/30 transition-colors"
                   >
-                    <Icon className={cn('w-3.5 h-3.5 shrink-0', STATUS_COLOR[status as keyof typeof STATUS_COLOR] || 'text-slate-600')} />
+                    <Icon className={cn('w-3.5 h-3.5 shrink-0', isDisabled ? 'text-slate-700' : (STATUS_COLOR[status as keyof typeof STATUS_COLOR] || 'text-slate-600'))} />
                     <div className="flex-1 min-w-0">
-                      <span className="text-xs font-medium text-slate-200">{scanner.displayName}</span>
-                      {scanner.auto_fixable && <span className="text-[10px] text-emerald-600 ml-1.5">auto-fix</span>}
+                      <span className={cn('text-xs font-medium', isDisabled ? 'text-slate-500 line-through' : 'text-slate-200')}>{scanner.displayName}</span>
+                      {scanner.auto_fixable && !isDisabled && <span className="text-[10px] text-emerald-600 ml-1.5">auto-fix</span>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {result && (
+                      {result && !isDisabled && (
                         <>
                           <span className="text-[10px] text-slate-600 tabular-nums">{result.duration_ms}ms</span>
                           {result.findings_count > 0 && (
@@ -129,6 +149,16 @@ export function ScannerPanel() {
                           )}
                         </>
                       )}
+                      <button
+                        onClick={(e) => toggleEnabled(scanner.id, e)}
+                        className="p-0.5 hover:bg-slate-700 rounded transition-colors"
+                        title={isDisabled ? 'Enable scanner' : 'Disable scanner'}
+                      >
+                        {isDisabled
+                          ? <ToggleLeft className="w-4 h-4 text-slate-600" />
+                          : <ToggleRight className="w-4 h-4 text-emerald-500" />
+                        }
+                      </button>
                       {isExpanded ? <ChevronDown className="w-3 h-3 text-slate-600" /> : <ChevronRight className="w-3 h-3 text-slate-600" />}
                     </div>
                   </button>
