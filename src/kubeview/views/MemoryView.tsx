@@ -401,14 +401,16 @@ export default function MemoryView({ embedded = false }: { embedded?: boolean })
                           {inc.query.length > 120 ? `${inc.query.slice(0, 120)}...` : inc.query}
                         </p>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className={cn(
-                            'text-xs px-2 py-0.5 rounded',
-                            inc.outcome === 'resolved' ? 'bg-emerald-900/50 text-emerald-300' :
-                            inc.outcome === 'unresolved' ? 'bg-red-900/50 text-red-300' :
-                            'bg-slate-800 text-slate-400',
-                          )}>
-                            {inc.outcome || 'unknown'}
-                          </span>
+                          {inc.outcome && inc.outcome !== 'unknown' && (
+                            <span className={cn(
+                              'text-xs px-2 py-0.5 rounded',
+                              inc.outcome === 'resolved' ? 'bg-emerald-900/50 text-emerald-300' :
+                              inc.outcome === 'unresolved' ? 'bg-red-900/50 text-red-300' :
+                              'bg-slate-800 text-slate-400',
+                            )}>
+                              {inc.outcome}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -438,9 +440,9 @@ export default function MemoryView({ embedded = false }: { embedded?: boolean })
                         </div>
                       </div>
 
-                      {inc.timestamp && (
+                      {inc.timestamp && !isNaN(Number(inc.timestamp)) && Number(inc.timestamp) > 0 && (
                         <div className="text-xs text-slate-500 mb-2">
-                          {formatRelativeTime(inc.timestamp)}
+                          {formatRelativeTime(Number(inc.timestamp))}
                         </div>
                       )}
 
@@ -465,7 +467,7 @@ export default function MemoryView({ embedded = false }: { embedded?: boolean })
                             </div>
                           )}
                           <div className="text-xs text-slate-500">
-                            Score breakdown: resolution 40%, efficiency 30%, safety 20%, speed 10%
+                            Score weights: resolution 40% · efficiency 30% · safety 20% · speed 10%
                           </div>
                         </div>
                       )}
