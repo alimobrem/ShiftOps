@@ -195,7 +195,7 @@ function UsageTab() {
   const [modeFilter, setModeFilter] = useState(filters.agent_mode || '');
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
 
-  useEffect(() => { loadUsage(); }, [loadUsage]);
+  useEffect(() => { loadUsage(); const iv = setInterval(loadUsage, 5000); return () => clearInterval(iv); }, [loadUsage]);
 
   const totalPages = usage ? Math.ceil(usage.total / usage.per_page) : 0;
 
@@ -351,7 +351,7 @@ function UsageRow({ entry: e }: { entry: ToolUsageEntry }) {
 function StatsTab() {
   const { stats, statsLoading, loadStats, chains, chainsLoading, loadChains, tools, loadTools } = useToolUsageStore();
 
-  useEffect(() => { loadStats(); loadChains(); loadTools(); }, [loadStats, loadChains, loadTools]);
+  useEffect(() => { loadStats(); loadChains(); loadTools(); const iv = setInterval(() => { loadStats(); loadChains(); }, 10000); return () => clearInterval(iv); }, [loadStats, loadChains, loadTools]);
 
   if (statsLoading) {
     return <div className="flex justify-center py-12"><div className="kv-skeleton w-8 h-8 rounded-full" /></div>;
