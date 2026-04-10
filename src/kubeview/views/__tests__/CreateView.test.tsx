@@ -123,6 +123,20 @@ describe('CreateView', () => {
     expect(screen.getByText('Helm Charts')).toBeDefined();
   });
 
+  it('back button in YAML editor uses browser history', () => {
+    const historyBackSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    // Simulate having history (came from a resource list)
+    Object.defineProperty(window.history, 'length', { value: 3, writable: true });
+    renderCreateView({ gvrKey: 'apps/v1/deployments' });
+    // Should be in YAML edit mode
+    expect(screen.getByTestId('yaml-editor')).toBeDefined();
+    // Click back button
+    const backBtn = screen.getByLabelText('Back');
+    fireEvent.click(backBtn);
+    expect(historyBackSpy).toHaveBeenCalled();
+    historyBackSpy.mockRestore();
+  });
+
   it('shows Quick Deploy form fields', () => {
     renderCreateView();
 
