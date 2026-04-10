@@ -175,8 +175,9 @@ function MCPTab() {
   const { data: connections = [], isLoading } = useQuery({
     queryKey: ['admin', 'mcp'],
     queryFn: async () => {
-      // TODO: wire to /admin/mcp when endpoint exists
-      return [];
+      const res = await fetch('/api/agent/admin/mcp');
+      if (!res.ok) return [];
+      return res.json();
     },
   });
 
