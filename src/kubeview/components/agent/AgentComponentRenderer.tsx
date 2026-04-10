@@ -32,6 +32,7 @@ import type {
   ResourceCountsSpec,
 } from '../../engine/agentComponents';
 import { AgentNodeMap } from './AgentNodeMap';
+import { DynamicComponent } from './DynamicComponent';
 import { Badge } from '../primitives/Badge';
 import { InfoCard } from '../primitives/InfoCard';
 import { MetricCard as SparklineMetricCard } from '../metrics/Sparkline';
@@ -89,7 +90,8 @@ export function AgentComponentRenderer({ spec, depth = 0, onAddToView, refreshIn
     case 'resource_counts':
       return <AgentResourceCounts spec={spec} />;
     default:
-      return null;
+      // Dynamic rendering for unknown kinds — uses layout templates from component registry
+      return <DynamicComponentFallback spec={spec} />;
   }
 }
 
@@ -1488,6 +1490,21 @@ function AgentResourceCounts({ spec }: { spec: ResourceCountsSpec }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Dynamic Component Fallback                                          */
+/* ------------------------------------------------------------------ */
+
+function DynamicComponentFallback({ spec }: { spec: ComponentSpec }) {
+  const raw = spec as unknown as Record<string, unknown>;
+  const title = raw.title as string | undefined;
+  return (
+    <div className="bg-slate-900/50 border border-slate-800/50 rounded-lg p-4">
+      {title && <div className="text-xs font-medium text-slate-300 mb-2">{title}</div>}
+      <DynamicComponent spec={raw} />
     </div>
   );
 }
