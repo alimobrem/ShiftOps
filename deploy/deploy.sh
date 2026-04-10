@@ -482,6 +482,9 @@ $AI_VALUES
 YAML
 chmod 600 "$VALUES_FILE"
 
+# Rebuild chart dependencies to pick up subchart version changes
+helm dependency update deploy/helm/pulse/ >/dev/null 2>&1 || true
+
 helm upgrade --install "$RELEASE" deploy/helm/pulse/ \
   -n "$NAMESPACE" --create-namespace \
   --values "$VALUES_FILE" \
