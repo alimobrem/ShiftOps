@@ -302,11 +302,11 @@ function NsMetricPanel({ query, title, yAxisLabel, yAxisFormat, colorIndex, star
     }));
   }, [data, title, colorIndex]);
 
+  const [localHover, setLocalHover] = useState<number | null>(null);
+
   if (isLoading) {
     return <div className="h-48 flex items-center justify-center"><div className="kv-skeleton w-6 h-6 rounded-full" /></div>;
   }
-
-  const [localHover, setLocalHover] = useState<number | null>(null);
 
   return (
     <div className="h-48">
