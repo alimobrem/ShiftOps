@@ -387,16 +387,12 @@ function getCommandItems(
       { type: 'nav', id: 'storage', title: 'Storage', subtitle: 'PVs, PVCs, StorageClasses', icon: 'HardDrive', path: '/storage' },
       { type: 'nav', id: 'security', title: 'Security', subtitle: 'Security audit, SCCs, network policies, access', icon: 'ShieldCheck', path: '/security' },
       { type: 'nav', id: 'identity', title: 'Identity & Access', subtitle: 'Users, groups, service accounts, RBAC, impersonation', icon: 'Shield', path: '/identity' },
-      { type: 'nav', id: 'incidents', title: 'Incident Center', subtitle: 'Unified triage — findings, alerts, errors, auto-fix', icon: 'Bell', path: '/incidents' },
-      { type: 'nav', id: 'alerts', title: 'Alerts', subtitle: 'Prometheus alert rules and silences (Incident Center)', icon: 'Bell', path: '/incidents?tab=alerts' },
-      { type: 'nav', id: 'builds', title: 'Builds', subtitle: 'BuildConfigs, Builds, ImageStreams (Workloads tab)', icon: 'Hammer', path: '/workloads?tab=builds' },
-      { type: 'nav', id: 'crds', title: 'Custom Resources', subtitle: 'CRDs, browse by API group (Admin tab)', icon: 'Puzzle', path: '/admin?tab=crds' },
-      { type: 'nav', id: 'gitops', title: 'GitOps', subtitle: 'ArgoCD applications, sync status, drift detection, auto-PR', icon: 'GitBranch', path: '/gitops' },
-      { type: 'nav', id: 'fleet', title: 'Fleet', subtitle: 'Multi-cluster dashboard, health scores, cluster switching, comparison', icon: 'Globe', path: '/fleet' },
-      { type: 'nav', id: 'admin', title: 'Administration', subtitle: 'Operators, config, updates, snapshots, quotas, certificates', icon: 'Settings', path: '/admin' },
+      { type: 'nav', id: 'incidents', title: 'Incident Center', subtitle: 'Active incidents, timeline, review queue, alerts', icon: 'Bell', path: '/incidents' },
+      { type: 'nav', id: 'gitops', title: 'GitOps', subtitle: 'ArgoCD applications, sync status, drift detection', icon: 'GitBranch', path: '/gitops' },
+      { type: 'nav', id: 'fleet', title: 'Fleet', subtitle: 'Multi-cluster dashboard, health scores, comparison', icon: 'Globe', path: '/fleet' },
+      { type: 'nav', id: 'admin', title: 'Administration', subtitle: 'Operators, config, updates, quotas, certificates, CRDs', icon: 'Settings', path: '/admin' },
       { type: 'nav', id: 'readiness', title: 'Production Readiness', subtitle: 'Readiness wizard — security, reliability, observability gates', icon: 'Shield', path: '/readiness' },
-      { type: 'nav', id: 'actions', title: 'Actions', subtitle: 'AI-proposed changes — approve, reject, diff (Incident Center)', icon: 'GitPullRequest', path: '/incidents?tab=actions' },
-      { type: 'nav', id: 'agent', title: 'Agent Settings', subtitle: 'Trust level, monitoring, memory, views management', icon: 'Bot', path: '/agent' },
+      { type: 'nav', id: 'agent', title: 'Agent Settings', subtitle: 'Trust level, scanners, memory, views, tools', icon: 'Bot', path: '/agent' },
     ];
 
     const matchingPages = builtinViews.filter((page) =>

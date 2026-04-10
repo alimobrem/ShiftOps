@@ -145,9 +145,9 @@ describe('OpenShift Pulse CommandPalette', () => {
   it('shows built-in pages', () => {
     renderPalette();
     expect(screen.getByText('Cluster Pulse')).toBeDefined();
-    expect(screen.getByText('Custom Resources')).toBeDefined();
     expect(screen.getByText('Security')).toBeDefined();
-    expect(screen.getByText('Actions')).toBeDefined();
+    expect(screen.getByText('Incident Center')).toBeDefined();
+    expect(screen.getByText('Administration')).toBeDefined();
   });
 
   it('shows resource types from registry', () => {
@@ -160,8 +160,8 @@ describe('OpenShift Pulse CommandPalette', () => {
   it('filters by search query including pages', () => {
     renderPalette();
     const input = screen.getByPlaceholderText(/Search resources/);
-    fireEvent.change(input, { target: { value: 'custom' } });
-    expect(screen.getByText('Custom Resources')).toBeDefined();
+    fireEvent.change(input, { target: { value: 'incident' } });
+    expect(screen.getByText('Incident Center')).toBeDefined();
     expect(screen.queryByText('Nodes')).toBeNull();
     expect(screen.queryByText('Deployments')).toBeNull();
   });
