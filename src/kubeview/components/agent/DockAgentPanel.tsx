@@ -65,6 +65,60 @@ async function renameSession(sessionId: string, title: string): Promise<void> {
   if (!res.ok) throw new Error('Failed to rename session');
 }
 
+/* ---- Follow-Up Suggestions ---- */
+
+const FOLLOW_UP_MAP: Record<string, string[]> = {
+  diagnose: ['Build me a dashboard for this', 'Check if this happened before', 'What metrics should I monitor?'],
+  security: ['Build a security findings dashboard', 'Check RBAC for this namespace', 'Are there network policies?'],
+  dashboard: ['Add a memory chart', 'Change the layout', 'Clone this dashboard'],
+  general: ['What else can you do?', 'Show me available PromQL recipes', 'Are there any deprecated APIs?'],
+};
+
+function FollowUpSuggestions({
+  messages,
+  onSend,
+  smartPrompts,
+}: {
+  messages: Array<{ role: string; content: string }>;
+  onSend: (msg: string) => void;
+  smartPrompts: Array<{ prompt: string }>;
+}) {
+  // Determine context from last assistant message
+  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+  if (!lastAssistant) return null;
+
+  const text = lastAssistant.content.toLowerCase();
+  let suggestions: string[];
+
+  if (text.includes('dashboard') || text.includes('view') || text.includes('create_dashboard')) {
+    suggestions = FOLLOW_UP_MAP.dashboard;
+  } else if (text.includes('security') || text.includes('rbac') || text.includes('scan')) {
+    suggestions = FOLLOW_UP_MAP.security;
+  } else if (text.includes('crash') || text.includes('error') || text.includes('restart') || text.includes('oom')) {
+    suggestions = FOLLOW_UP_MAP.diagnose;
+  } else {
+    suggestions = FOLLOW_UP_MAP.general;
+  }
+
+  // Mix in a context-aware smart prompt if available
+  if (smartPrompts.length > 0) {
+    const sp = smartPrompts[0];
+    if (!suggestions.includes(sp.prompt)) {
+      suggestions = [...suggestions.slice(0, 2), sp.prompt];
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5 px-1 py-2">
+      {suggestions.slice(0, 3).map((s, i) => (
+        <PromptPill key={i} onClick={() => onSend(s)}>
+          {s}
+        </PromptPill>
+      ))}
+    </div>
+  );
+}
+
 /* ---- Chat History Panel ---- */
 
 function ChatHistoryPanel({
@@ -370,6 +424,15 @@ export function DockAgentPanel() {
 
         {pendingConfirm && (
           <ConfirmationCard confirm={pendingConfirm} onConfirm={confirmAction} />
+        )}
+
+        {/* Follow-up suggestions after conversation */}
+        {messages.length > 0 && !streaming && !pendingConfirm && (
+          <FollowUpSuggestions
+            messages={messages}
+            onSend={sendMessage}
+            smartPrompts={smartPrompts}
+          />
         )}
 
         <div ref={messagesEndRef} />

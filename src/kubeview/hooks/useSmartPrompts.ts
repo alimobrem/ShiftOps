@@ -260,6 +260,13 @@ export function useSmartPrompts(): SmartPromptItem[] {
       );
     }
 
+    // --- Always include self-discovery prompt ---
+    items.push({
+      prompt: 'What can you do?',
+      context: 'Self-description: lists skills, tools, and capabilities',
+      priority: 10,
+    });
+
     // Sort by priority descending
     return items.sort((a, b) => b.priority - a.priority);
   }, [pods, pvcs, deployments, events, isLoading, location.pathname, selectedNamespace]);
