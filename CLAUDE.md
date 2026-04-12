@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-OpenShift Pulse — a React/TypeScript dashboard for OpenShift Day-2 operations. All data comes from live Kubernetes APIs (no mock data in production code). v5.21.0, ~200 source files, 1934 unit tests + 53 E2E scenarios.
+OpenShift Pulse — a React/TypeScript dashboard for OpenShift Day-2 operations. All data comes from live Kubernetes APIs (no mock data in production code). v6.0.0, ~200 source files, 1934 unit tests + 53 E2E scenarios.
 
 ## Commands
 
@@ -128,7 +128,7 @@ Agent:          Agent Settings (Settings/Scanners/Memory/Views/Evals), Toolbox (
 - **Confirmation flow**: `confirm_request` with nonce → UI shows dialog → `confirm_response` with nonce echoed back
 - **Degraded mode**: `engine/degradedMode.ts` — 5 failure reasons, displayed via `DegradedBanner`
 - **Auto-fix**: at trust level 3/4, monitor fixes crashloop (pod delete) and workloads (deployment restart) WITHOUT confirmation gate. Has safety guardrails: max 3/scan, 5min cooldown, no bare pods.
-- **Agent version**: v1.16.0 (Protocol v2, 111 tools [75 native + 36 MCP], 17 scanners)
+- **Agent version**: v2.0.0 (Protocol v2, 111 tools [75 native + 36 MCP], 17 scanners)
 - **MCP integration**: OpenShift MCP server with 11 toolsets, 36 tools including Prometheus queries and Helm management
 - **Skills**: 4 skill packages (sre, security, view_designer, capacity_planner) with hot reload, routing, and version history
 - **Custom views**: auto-saved to PostgreSQL on `create_dashboard`, user-scoped via OAuth token

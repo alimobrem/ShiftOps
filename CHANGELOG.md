@@ -1,5 +1,31 @@
 # Changelog
 
+## [6.0.0] - 2026-04-10
+
+Major release matching Agent v2.0.0.
+
+### Added
+- **Toolbox page** (`/toolbox`) — 6 tabs replacing `/tools` + `/extensions`: Catalog, Skills, Connections, Components, Usage, Analytics
+- **Skill attribution footer** on chat responses — shows which skill handled each query
+- **Follow-up suggestion pills** — context-aware follow-up prompts after each agent response
+- **Welcome message** with dynamic capability counts on first connect
+- **Capability change toast notifications** when agent capabilities change (new tools, skills, MCP connections)
+- **Skill detail drawer** — inline editor, version history, diff viewer, clone, delete
+- **MCP toolset toggles** with checkboxes in Connections tab
+- **Prompt Audit section** in Analytics tab — token cost breakdown per prompt section
+- **Source badges** (native/mcp) throughout Catalog, Usage, and Analytics
+- **Arrow key tab navigation** and ARIA improvements across Toolbox and Agent Settings
+
+### Fixed
+- **UX review blockers** — 5 blockers resolved (tab focus, drawer keyboard trap, empty states, badge contrast, scroll restoration)
+
+### Stats
+- **1,934 tests** across 162 test files
+- **111 tools** (75 native + 36 MCP), **4 skills**, **19 component types**
+- **0 npm CVEs**, all Red Hat UBI images
+
+---
+
 ## [5.21.0] - 2026-04-10
 
 ### Added
