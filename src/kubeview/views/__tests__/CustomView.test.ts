@@ -105,7 +105,7 @@ describe('idealHeight', () => {
 });
 
 describe('positionsToLayout', () => {
-  it('ignores saved h and uses idealHeight', () => {
+  it('uses saved h from positions when available', () => {
     const specs: ComponentSpec[] = [
       {
         kind: 'grid',
@@ -118,22 +118,21 @@ describe('positionsToLayout', () => {
         ],
       },
     ];
-    // Backend saved h=12, but idealHeight should be 4
     const positions = { '0': { x: 0, y: 0, w: 4, h: 12 } };
     const layout = positionsToLayout(positions, specs);
-    expect(layout[0].h).toBe(4); // idealHeight, NOT saved h=12
+    expect(layout[0].h).toBe(12); // saved h is respected
   });
 
-  it('preserves x, y, w from saved positions', () => {
+  it('preserves x, y, w, h from saved positions', () => {
     const specs: ComponentSpec[] = [
       { kind: 'chart', series: [{ label: 'test', data: [[1, 2]] }] },
     ];
-    const positions = { '0': { x: 2, y: 5, w: 2, h: 999 } };
+    const positions = { '0': { x: 2, y: 5, w: 2, h: 15 } };
     const layout = positionsToLayout(positions, specs);
     expect(layout[0].x).toBe(2);
     expect(layout[0].y).toBe(5);
     expect(layout[0].w).toBe(2);
-    expect(layout[0].h).toBe(10); // idealHeight for chart, NOT 999
+    expect(layout[0].h).toBe(15); // saved h is respected
   });
 
   it('handles numeric keys from positions', () => {
@@ -142,7 +141,7 @@ describe('positionsToLayout', () => {
     ];
     const positions = { 0: { x: 0, y: 0, w: 1, h: 50 } };
     const layout = positionsToLayout(positions as any, specs);
-    expect(layout[0].h).toBe(3); // idealHeight for metric_card
+    expect(layout[0].h).toBe(50); // saved h is respected
   });
 
   it('falls back to default layout when no positions exist for index', () => {

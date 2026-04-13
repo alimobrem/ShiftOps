@@ -54,6 +54,13 @@ export function idealHeight(spec: ComponentSpec): number {
     totalH += cardRows * 3;
     return totalH;
   }
+  if (spec.kind === 'section') {
+    // Sum child component heights + 2 for section header/padding
+    const children: any[] = (spec as any).components || [];
+    const childH = children.reduce((sum: number, child: ComponentSpec) => sum + idealHeight(child), 0);
+    return Math.max(childH + 2, 5);
+  }
+
   return (
     spec.kind === 'metric_card' ? 3 :
     spec.kind === 'status_list' ? Math.min(2 + Math.ceil(((spec as any).items?.length || 3) * 0.8), 8) :
@@ -120,16 +127,15 @@ function layoutToPositions(layout: ReactGridLayout.Layout[]): Record<number, { x
 }
 
 /** Convert positions map to react-grid-layout Layout[].
- *  Height is ALWAYS computed from content via idealHeight — saved h is ignored.
- *  Only x, y, w are used from saved positions. */
+ *  Uses saved height if available (user may have resized), otherwise computes from content. */
 export function positionsToLayout(positions: Record<string | number, { x: number; y: number; w: number; h: number }>, specs: ComponentSpec[]): ReactGridLayout.Layout[] {
   return Array.from({ length: specs.length }, (_, i) => {
     const pos = positions[i] || positions[String(i)];
-    const h = idealHeight(specs[i]);
+    const defaultH = idealHeight(specs[i]);
     if (pos) {
-      return { i: String(i), x: pos.x, y: pos.y, w: pos.w, h, minW: 1, minH: 2 };
+      return { i: String(i), x: pos.x, y: pos.y, w: pos.w, h: pos.h || defaultH, minW: 1, minH: 2 };
     }
-    return { i: String(i), x: 0, y: i * 5, w: idealWidth(specs[i]), h, minW: 1, minH: 2 };
+    return { i: String(i), x: 0, y: i * 5, w: idealWidth(specs[i]), h: defaultH, minW: 1, minH: 2 };
   });
 }
 
