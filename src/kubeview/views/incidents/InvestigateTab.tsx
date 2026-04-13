@@ -275,6 +275,9 @@ export function InvestigateTab() {
               <Link2 className="w-4 h-4 text-violet-400" />
               Correlation Groups ({filteredGroups.length})
             </h2>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Events grouped by resource — click to expand the timeline and see what happened. Resources with many events or warnings may need investigation.
+            </p>
           </div>
           <div className="divide-y divide-slate-800">
             {filteredGroups.map((group) => (
