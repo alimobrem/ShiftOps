@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Bot } from 'lucide-react';
+import { Bot, AlertTriangle } from 'lucide-react';
 import {
   fetchFixHistorySummary,
   fetchScannerCoverage,
@@ -24,53 +24,62 @@ import { MemoryDrawer } from './mission-control/MemoryDrawer';
 export default function MissionControlView() {
   const [drawerOpen, setDrawerOpen] = useState<'scanner' | 'eval' | 'memory' | null>(null);
 
-  const { data: evalStatus } = useQuery({
+  const evalQ = useQuery({
     queryKey: ['agent', 'eval-status'],
     queryFn: () => fetchAgentEvalStatus().catch(() => null),
     refetchInterval: 60_000,
   });
 
-  const { data: fixSummary } = useQuery({
+  const fixQ = useQuery({
     queryKey: ['agent', 'fix-history-summary'],
     queryFn: () => fetchFixHistorySummary().catch(() => null),
     staleTime: 60_000,
   });
 
-  const { data: coverage } = useQuery({
+  const coverageQ = useQuery({
     queryKey: ['agent', 'scanner-coverage'],
     queryFn: () => fetchScannerCoverage().catch(() => null),
     staleTime: 60_000,
   });
 
-  const { data: confidence } = useQuery({
+  const confidenceQ = useQuery({
     queryKey: ['agent', 'confidence'],
     queryFn: () => fetchConfidenceCalibration().catch(() => null),
     staleTime: 60_000,
   });
 
-  const { data: accuracy } = useQuery({
+  const accuracyQ = useQuery({
     queryKey: ['agent', 'accuracy'],
     queryFn: () => fetchAccuracyStats().catch(() => null),
     staleTime: 60_000,
   });
 
-  const { data: costStats } = useQuery({
+  const costQ = useQuery({
     queryKey: ['agent', 'cost'],
     queryFn: () => fetchCostStats().catch(() => null),
     staleTime: 60_000,
   });
 
-  const { data: recommendations } = useQuery({
+  const recsQ = useQuery({
     queryKey: ['agent', 'recommendations'],
     queryFn: () => fetchRecommendations().catch(() => null),
     staleTime: 5 * 60_000,
   });
 
-  const { data: readiness } = useQuery({
+  const readinessQ = useQuery({
     queryKey: ['agent', 'readiness-summary'],
     queryFn: () => fetchReadinessSummary().catch(() => null),
     staleTime: 60_000,
   });
+
+  const { evalStatus, fixSummary, coverage, confidence, accuracy, costStats, recommendations, readiness } = {
+    evalStatus: evalQ.data, fixSummary: fixQ.data, coverage: coverageQ.data,
+    confidence: confidenceQ.data, accuracy: accuracyQ.data, costStats: costQ.data,
+    recommendations: recsQ.data, readiness: readinessQ.data,
+  };
+
+  const anyError = [evalQ, fixQ, coverageQ, confidenceQ, accuracyQ, costQ, recsQ, readinessQ]
+    .some((q) => q.isError);
 
   const { data: capabilities } = useQuery({
     queryKey: ['agent', 'capabilities'],
@@ -97,8 +106,15 @@ export default function MissionControlView() {
           )}
         </div>
 
+        {anyError && (
+          <div className="flex items-center gap-2 text-xs text-amber-300/80 bg-amber-500/5 rounded-md px-3 py-2 border border-amber-500/10">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            <span>Some analytics data is unavailable. Cards below may show partial information.</span>
+          </div>
+        )}
+
         <TrustPolicy
-          maxTrustLevel={capabilities?.max_trust_level ?? 4}
+          maxTrustLevel={capabilities?.max_trust_level ?? 0}
           scannerCount={coverage?.active_scanners ?? 0}
           fixSummary={fixSummary ?? null}
         />

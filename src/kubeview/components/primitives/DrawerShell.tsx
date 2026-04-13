@@ -55,7 +55,7 @@ export function DrawerShell({ title, onClose, children }: DrawerShellProps) {
       >
         <div className="sticky top-0 z-10 bg-slate-950 border-b border-slate-800 px-5 py-4 flex items-center justify-between">
           <h2 className="text-base font-semibold text-slate-100">{title}</h2>
-          <button ref={closeRef} onClick={onClose} className="text-slate-500 hover:text-slate-300">
+          <button ref={closeRef} onClick={onClose} aria-label="Close" className="text-slate-500 hover:text-slate-300">
             <X className="w-5 h-5" />
           </button>
         </div>
