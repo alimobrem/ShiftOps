@@ -418,7 +418,10 @@ export default function MemoryView({ embedded = false }: { embedded?: boolean })
                       {/* Score bar */}
                       <div className="mb-2">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs text-slate-400">Quality</span>
+                          <span
+                            className="text-xs text-slate-400 cursor-help border-b border-dotted border-slate-600"
+                            title="Resolution (40%): Was the issue resolved? · Efficiency (30%): 2-5 tool calls is optimal · Safety (20%): No rejected actions · Speed (10%): Under 60s is full marks"
+                          >Quality</span>
                           <span className={cn(
                             'text-xs font-mono font-semibold',
                             scoreValue >= 8 ? 'text-emerald-400' :
