@@ -11,6 +11,35 @@ interface EvalDrawerProps {
 
 const SUITES = ['release', 'safety', 'integration', 'view_designer'] as const;
 
+const SUITE_DESCRIPTIONS: Record<string, { short: string; detail: string; negative?: boolean }> = {
+  release: {
+    short: 'Release gate — must pass before shipping',
+    detail: 'End-to-end SRE and security scenarios covering crash loops, pending pods, RBAC, network policies, alerts, GitOps, and resource quotas. If any scenario fails, the release is blocked.',
+  },
+  safety: {
+    short: 'Negative tests — low scores are expected',
+    detail: 'Verifies the agent correctly DETECTS safety violations: missing write confirmations, hallucinated tools, and policy violations. Blockers shown here are the violations being tested, not real problems. PASS means the detection works.',
+    negative: true,
+  },
+  integration: {
+    short: 'Cross-tool workflows and error recovery',
+    detail: 'Tests multi-step workflows: transient API recovery, partial data handling, timeouts, post-fix verification, and component generation across tool calls.',
+  },
+  view_designer: {
+    short: 'Dashboard generation quality',
+    detail: 'Validates that the agent selects the right tools and components when creating dashboards: namespace views, cluster overviews, incident triage, widget additions.',
+  },
+};
+
+const PROMPT_SECTION_DESCRIPTIONS: Record<string, string> = {
+  base_prompt: 'Core system prompt — security rules, diagnostic workflow, few-shot examples',
+  runbooks: 'Built-in SRE runbooks injected for common scenarios (crash loops, OOM, node pressure)',
+  cluster_context: 'Live cluster info — node count, namespaces, OCP version. Refreshed per turn',
+  chain_hints: 'Tool sequence patterns learned from usage (e.g., after list_pods → describe_pod)',
+  intelligence_context: 'Analytics feedback — query reliability, error hotspots, token efficiency',
+  component_hint_all: 'UI component schemas guiding the agent on chart, table, and metric card formats',
+};
+
 export function EvalDrawer({ evalStatus, onClose }: EvalDrawerProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -44,17 +73,20 @@ export function EvalDrawer({ evalStatus, onClose }: EvalDrawerProps) {
         {/* Prompt Audit */}
         {evalStatus?.prompt_audit && Object.keys(evalStatus.prompt_audit).length > 0 && (
           <div className="mt-6">
-            <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Prompt Token Audit</h3>
+            <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Prompt Token Audit</h3>
+            <p className="text-[11px] text-slate-500 mb-3">
+              Token cost breakdown of the system prompt sent to Claude per mode. Lower is cheaper. Sections at 0% are inactive (no data yet). Use ablation testing to identify sections that can be trimmed without impacting quality.
+            </p>
             {Object.entries(evalStatus.prompt_audit).map(([mode, audit]) => (
               <div key={mode} className="bg-slate-900 rounded-lg border border-slate-800 p-4 mb-3">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-slate-200 capitalize">{mode}</span>
+                  <span className="text-sm font-medium text-slate-200 capitalize">{mode.replace(/_/g, ' ')}</span>
                   <span className="text-xs text-slate-500">~{audit.estimated_tokens.toLocaleString()} tokens</span>
                 </div>
                 <div className="space-y-1.5">
-                  {audit.sections.map((section) => (
-                    <div key={section.name} className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-500 w-28 truncate">{section.name}</span>
+                  {audit.sections.map((section: { name: string; pct: number }) => (
+                    <div key={section.name} className="group flex items-center gap-2">
+                      <span className="text-[11px] text-slate-500 w-28 truncate" title={PROMPT_SECTION_DESCRIPTIONS[section.name] || section.name}>{section.name}</span>
                       <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-violet-500/60 rounded-full"
@@ -73,7 +105,10 @@ export function EvalDrawer({ evalStatus, onClose }: EvalDrawerProps) {
         {/* Outcomes */}
         {evalStatus?.outcomes && (
           <div className="mt-4">
-            <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Outcome Tracking</h3>
+            <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Outcome Tracking</h3>
+            <p className="text-[11px] text-slate-500 mb-2">
+              Compares auto-fix actions from the last 7 days against the previous 7 days. Detects regressions in success rate, rollback rate, and action duration.
+            </p>
             <div className="bg-slate-900 rounded-lg border border-slate-800 p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-slate-200">Actions</span>
@@ -81,9 +116,15 @@ export function EvalDrawer({ evalStatus, onClose }: EvalDrawerProps) {
                   {evalStatus.outcomes.gate_passed ? 'PASS' : 'FAIL'}
                 </span>
               </div>
-              <div className="text-xs text-slate-400">
-                Current: {evalStatus.outcomes.current_actions} &middot; Baseline: {evalStatus.outcomes.baseline_actions}
-              </div>
+              {evalStatus.outcomes.current_actions === 0 && evalStatus.outcomes.baseline_actions === 0 ? (
+                <div className="text-xs text-slate-500">
+                  No auto-fix actions recorded yet. The monitor will track actions once it starts applying fixes at trust level 3+.
+                </div>
+              ) : (
+                <div className="text-xs text-slate-400">
+                  Current window: {evalStatus.outcomes.current_actions} actions &middot; Baseline: {evalStatus.outcomes.baseline_actions} actions
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -115,7 +156,8 @@ function SuiteCard({ name, suite, expanded, onToggle }: {
           <div>
             <h3 className="font-medium text-slate-200 capitalize">{name.replace(/_/g, ' ')}</h3>
             <div className="text-xs text-slate-400 mt-0.5">
-              {suite.scenario_count} scenarios &middot; avg {Math.round((suite.average_overall || 0) * 100)}%
+              {SUITE_DESCRIPTIONS[name]?.short || `${suite.scenario_count} scenarios`}
+              {' · '}avg {Math.round((suite.average_overall || 0) * 100)}%
               {suite.passed_count != null && ` · ${suite.passed_count} passed`}
             </div>
           </div>
@@ -127,6 +169,23 @@ function SuiteCard({ name, suite, expanded, onToggle }: {
 
       {expanded && (
         <div className="px-4 pb-4 pt-1 border-t border-slate-800 space-y-3">
+          {/* Suite description */}
+          {SUITE_DESCRIPTIONS[name] && (
+            <div className="text-xs text-slate-400 leading-relaxed">
+              {SUITE_DESCRIPTIONS[name].detail}
+            </div>
+          )}
+
+          {/* Negative test banner */}
+          {SUITE_DESCRIPTIONS[name]?.negative && (
+            <div className="flex items-start gap-2 rounded bg-blue-950/30 border border-blue-800/30 px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
+              <span className="text-[11px] text-blue-300/80">
+                These are intentional safety violations used as test inputs. Low dimension scores confirm the detection system is working. Blockers below are the violations being caught.
+              </span>
+            </div>
+          )}
+
           {/* Dimension breakdown */}
           {Object.keys(dims).length > 0 && (
             <div className="space-y-1.5">
