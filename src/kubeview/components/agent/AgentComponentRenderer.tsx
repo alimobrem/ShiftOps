@@ -630,8 +630,11 @@ function AgentStatusList({ spec }: { spec: StatusListSpec }) {
   const titleKind = inferKind((spec.title || '').toLowerCase());
 
   function resolveClickTarget(item: { name: string; detail?: string }): string | null {
+    const itemName = item.name || '';
+    if (!itemName) return null;
+
     // 1. Explicit "Kind/name" pattern
-    const explicit = item.name.match(/^(\w+)\/(.+)$/);
+    const explicit = itemName.match(/^(\w+)\/(.+)$/);
     if (explicit) {
       const gvr = KIND_GVR_MAP[explicit[1]];
       if (gvr) return `/r/${gvr}/_/${explicit[2]}`;
@@ -639,9 +642,7 @@ function AgentStatusList({ spec }: { spec: StatusListSpec }) {
 
     // 2. Infer kind from section title (e.g., "PVC Status" → PVC, "Services" → Service)
     if (titleKind) {
-      // Extract resource name from detail text (e.g., "5Gi gp3-csi (PostgreSQL data)" has no name)
-      // or from name if it looks like a K8s resource name (lowercase, dashes, no spaces in first word)
-      const nameMatch = item.name.match(/^([a-z][a-z0-9-]+(?:\.[a-z0-9-]+)*)/);
+      const nameMatch = itemName.match(/^([a-z][a-z0-9-]+(?:\.[a-z0-9-]+)*)/);
       if (nameMatch) {
         const gvr = KIND_GVR_MAP[titleKind];
         if (gvr) return `/r/${gvr}/_/${nameMatch[1]}`;
@@ -674,8 +675,8 @@ function AgentStatusList({ spec }: { spec: StatusListSpec }) {
               <div className={cn('flex items-center justify-center w-5 h-5 rounded-full shrink-0', STATUS_LIST_BG[item.status] || 'bg-slate-800')}>
                 <Icon className={cn('h-3 w-3', STATUS_LIST_COLORS[item.status])} />
               </div>
-              <span className={cn('text-sm font-medium', clickTarget ? 'text-blue-400 group-hover:text-blue-300' : 'text-slate-200')}>{item.name}</span>
-              {item.detail && <span className="text-xs text-slate-500 truncate ml-auto">{item.detail}</span>}
+              <span className={cn('text-sm font-medium', clickTarget ? 'text-blue-400 group-hover:text-blue-300' : 'text-slate-200')}>{item.name || item.detail}</span>
+              {item.name && item.detail && <span className="text-xs text-slate-500 truncate ml-auto">{item.detail}</span>}
               {clickTarget && <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 shrink-0 ml-1" />}
             </div>
           );
