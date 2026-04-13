@@ -1,9 +1,34 @@
 import React from 'react';
-import { Check, X, AlertTriangle, Info } from 'lucide-react';
+import { Check, X, AlertTriangle, Info, Terminal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ReviewItem } from '../../store/reviewStore';
 import { useReviewStore } from '../../store/reviewStore';
 import { DiffViewer } from './DiffViewer';
+
+function toKubectlCommand(review: ReviewItem): string | null {
+  const ns = review.namespace;
+  const name = review.resourceName;
+  const tool = review.diff?.before?.split('\n')[0] || '';
+
+  if (review.title === 'Delete Pod' || tool.includes('delete_pod')) {
+    return `kubectl delete pod ${name} -n ${ns}`;
+  }
+  if (review.title === 'Restart Deployment' || tool.includes('restart_deployment') || review.description?.includes('rolling restart')) {
+    return `kubectl rollout restart deployment/${name} -n ${ns}`;
+  }
+  if (review.title === 'Scale Deployment' || tool.includes('scale_deployment')) {
+    const match = review.description?.match(/to (\d+) replicas/);
+    const replicas = match ? match[1] : '?';
+    return `kubectl scale deployment/${name} --replicas=${replicas} -n ${ns}`;
+  }
+  if (review.title === 'Cordon Node' || tool.includes('cordon_node')) {
+    return `kubectl cordon ${name}`;
+  }
+  if (review.title === 'Drain Node' || tool.includes('drain_node')) {
+    return `kubectl drain ${name} --ignore-daemonsets --delete-emptydir-data`;
+  }
+  return null;
+}
 
 interface ReviewDetailProps {
   review: ReviewItem;
@@ -18,6 +43,19 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
   return (
     <div className="space-y-4 pt-3 border-t border-slate-800">
       <p className="text-sm text-slate-300 leading-relaxed">{review.description}</p>
+
+      {(() => {
+        const cmd = toKubectlCommand(review);
+        return cmd ? (
+          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Command Executed</span>
+            </div>
+            <code className="text-xs text-emerald-300 font-mono">{cmd}</code>
+          </div>
+        ) : null;
+      })()}
 
       {review.diff.fields.length > 0 && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
