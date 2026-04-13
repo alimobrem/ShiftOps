@@ -1403,7 +1403,12 @@ function AnalyticsTab() {
 
   const byTool = stats.by_tool || [];
   const maxCount = Math.max(...byTool.slice(0, 10).map((t) => t.count), 1);
-  const bySource = (stats as unknown as { by_source?: Array<{ source: string; count: number }> }).by_source;
+  const rawBySource = (stats as unknown as { by_source?: Record<string, number> | Array<{ source: string; count: number }> }).by_source;
+  const bySource = rawBySource
+    ? Array.isArray(rawBySource)
+      ? rawBySource
+      : Object.entries(rawBySource).map(([source, count]) => ({ source, count }))
+    : [];
 
   const skills = skillStats?.skills || [];
   const handoffs = skillStats?.handoffs || [];
