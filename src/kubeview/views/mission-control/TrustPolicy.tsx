@@ -112,7 +112,7 @@ export function TrustPolicy({ maxTrustLevel, scannerCount, fixSummary }: TrustPo
         <div className={cn('space-y-2', trustLevel < 2 && 'opacity-40')}>
           <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider">Auto-fix categories</h3>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            When the monitor detects these issues, the agent will automatically apply fixes without asking. Each fix is recorded with a before-state snapshot for rollback. Toggle categories to control what gets auto-fixed.
+            When the monitor detects these issues, the agent applies a fix automatically. Each fix is recorded with a before-state snapshot for rollback. If a fix fails, the agent stops and surfaces the finding to you — it won't retry or escalate on its own.
           </p>
           <div className="space-y-1.5">
             {AUTOFIX_CATEGORIES.map((cat) => {
