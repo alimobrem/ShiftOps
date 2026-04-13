@@ -388,7 +388,8 @@ export default function MemoryView({ embedded = false }: { embedded?: boolean })
             )}
             {incidents.map((inc, i) => {
               const isExpanded = expandedIncident === i;
-              const scoreValue = inc.score ?? 0;
+              const scoreRaw = inc.score ?? 0;
+              const scoreValue = scoreRaw <= 1 ? scoreRaw * 10 : scoreRaw; // Normalize 0-1 → 0-10
               const scorePercent = scoreValue * 10; // Convert 0-10 scale to 0-100%
 
               return (
