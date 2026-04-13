@@ -43,7 +43,7 @@ export interface ActionReport {
   durationMs?: number;
   confidence?: number;
   rollbackAvailable?: boolean;
-  verificationStatus?: 'verified' | 'still_failing';
+  verificationStatus?: 'verified' | 'still_failing' | 'improved';
   verificationEvidence?: string;
   verificationTimestamp?: number;
 }

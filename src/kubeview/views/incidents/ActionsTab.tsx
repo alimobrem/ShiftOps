@@ -42,9 +42,10 @@ export function ActionsTab() {
   };
 
   const filteredRecent = useMemo(() => {
-    if (!searchQuery) return recentActions;
+    const sorted = [...recentActions].reverse();
+    if (!searchQuery) return sorted;
     const q = searchQuery.toLowerCase();
-    return recentActions.filter(
+    return sorted.filter(
       (a) =>
         a.tool.toLowerCase().includes(q) ||
         (a.reasoning || '').toLowerCase().includes(q),
@@ -280,14 +281,30 @@ function RecentActionCard({
             <p className="text-xs text-red-400 mb-1">{action.error}</p>
           )}
           {action.verificationStatus && (
-            <p className={cn(
-              'text-xs mb-1',
-              action.verificationStatus === 'verified' ? 'text-green-400' : 'text-amber-400',
-            )}
-            >
-              Verification: {action.verificationStatus === 'verified' ? 'verified healthy on next scan' : 'still failing on next scan'}
-              {action.verificationEvidence ? ` — ${action.verificationEvidence}` : ''}
-            </p>
+            <div className={cn(
+              'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs mb-1.5',
+              action.verificationStatus === 'verified'
+                ? 'bg-emerald-950/40 border border-emerald-800/40'
+                : action.verificationStatus === 'improved'
+                  ? 'bg-blue-950/40 border border-blue-800/40'
+                  : 'bg-amber-950/30 border border-amber-800/30',
+            )}>
+              <span className={cn(
+                'font-semibold uppercase tracking-wider text-[10px]',
+                action.verificationStatus === 'verified' ? 'text-emerald-400' :
+                action.verificationStatus === 'improved' ? 'text-blue-400' : 'text-amber-400',
+              )}>
+                {action.verificationStatus === 'verified' ? 'Resolved' :
+                 action.verificationStatus === 'improved' ? 'Improved' : 'Still Failing'}
+              </span>
+              <span className="text-slate-500">
+                {action.verificationStatus === 'verified'
+                  ? 'Issue resolved on next scan — fix worked'
+                  : action.verificationStatus === 'improved'
+                    ? 'Partial improvement detected'
+                    : 'Issue persists after fix — may need manual intervention'}
+              </span>
+            </div>
           )}
           <span className="text-xs text-slate-500">{formatRelativeTime(action.timestamp)}</span>
         </div>
