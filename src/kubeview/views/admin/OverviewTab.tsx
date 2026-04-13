@@ -178,7 +178,7 @@ export function OverviewTab({
             return `${score}%`;
           })()}
           sub={opDegraded > 0 ? `${opDegraded} degraded` : firingAlerts.length > 0 ? `${firingAlerts.length} alerts` : 'All systems go'}
-          onClick={() => setActiveTab('readiness')}
+          onClick={() => go('/readiness', 'Production Readiness')}
           className={cn(
             opDegraded > 0 ? 'border-red-800' :
             firingAlerts.length > 0 ? 'border-amber-800' :

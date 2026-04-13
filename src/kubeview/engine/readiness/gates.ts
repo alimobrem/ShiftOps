@@ -486,7 +486,7 @@ const trustLevelConfigured: ReadinessGate = {
       const v = version?.version || version?.gitVersion || 'unknown';
       return { status: 'passed', detail: `Agent reachable (${v})`, fixGuidance: '' };
     } catch {
-      return { status: 'needs_attention', detail: 'Agent not reachable', fixGuidance: 'Deploy the OpenshiftPulse agent and verify connectivity.', action: { label: 'Setup Agent', path: '/readiness' } };
+      return { status: 'needs_attention', detail: 'Agent not reachable', fixGuidance: 'Deploy the OpenshiftPulse agent and verify connectivity.', action: { label: 'Mission Control', path: '/agent' } };
     }
   }),
 };
