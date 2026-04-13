@@ -339,13 +339,13 @@ function SkillsTab() {
                 skill.degraded ? 'border-amber-800/50' : 'border-slate-800',
               )}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   {skill.degraded
-                    ? <AlertTriangle className="w-4 h-4 text-amber-400" />
-                    : <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                  <span className="text-sm font-medium text-slate-100">{String(skill.name)}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 rounded text-slate-500">v{Number(skill.version)}</span>
+                    ? <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    : <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+                  <span className="text-sm font-medium text-slate-100 truncate">{String(skill.name)}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 rounded text-slate-500 shrink-0">v{Number(skill.version)}</span>
                 </div>
                 {Boolean(skill.write_tools) && (
                   <span className="text-[10px] px-1.5 py-0.5 bg-amber-900/30 text-amber-400 rounded border border-amber-800/30">write</span>
