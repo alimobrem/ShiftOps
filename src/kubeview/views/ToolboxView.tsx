@@ -1620,7 +1620,8 @@ function AnalyticsTab() {
 
       {/* Top tools bar chart */}
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-        <h3 className="text-xs font-medium text-slate-300 mb-3">Top Tools</h3>
+        <h3 className="text-xs font-medium text-slate-300 mb-1">Top Tools</h3>
+        <p className="text-[11px] text-slate-500 mb-3">Most frequently called tools across all agent conversations.</p>
         <div className="space-y-1.5">
           {byTool.slice(0, 10).map((t) => (
             <div key={t.tool_name} className="flex items-center gap-2 text-xs">
@@ -1648,7 +1649,8 @@ function AnalyticsTab() {
       {/* By mode + by category + by source */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <h3 className="text-xs font-medium text-slate-300 mb-3">By Mode</h3>
+          <h3 className="text-xs font-medium text-slate-300 mb-1">By Mode</h3>
+          <p className="text-[11px] text-slate-500 mb-3">Which agent skill handled each conversation.</p>
           <div className="space-y-1">
             {(stats.by_mode || []).map((m) => (
               <div key={m.mode} className="flex items-center justify-between text-xs">
@@ -1662,7 +1664,8 @@ function AnalyticsTab() {
           </div>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <h3 className="text-xs font-medium text-slate-300 mb-3">By Category</h3>
+          <h3 className="text-xs font-medium text-slate-300 mb-1">By Category</h3>
+          <p className="text-[11px] text-slate-500 mb-3">Tool calls grouped by operational domain.</p>
           <div className="space-y-1">
             {(stats.by_category || []).map((c) => (
               <div key={c.category} className="flex items-center justify-between text-xs">
@@ -1673,7 +1676,8 @@ function AnalyticsTab() {
           </div>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <h3 className="text-xs font-medium text-slate-300 mb-3">By Source</h3>
+          <h3 className="text-xs font-medium text-slate-300 mb-1">By Source</h3>
+          <p className="text-[11px] text-slate-500 mb-3">Native K8s tools vs MCP server tools.</p>
           {bySource && bySource.length > 0 ? (
             <div className="space-y-1">
               {bySource.map((s) => (
@@ -1693,7 +1697,8 @@ function AnalyticsTab() {
 
       {/* Context hogs */}
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-        <h3 className="text-xs font-medium text-slate-300 mb-3">Largest Results (Context Usage)</h3>
+        <h3 className="text-xs font-medium text-slate-300 mb-1">Largest Results (Context Usage)</h3>
+        <p className="text-[11px] text-slate-500 mb-3">Tools returning the most data per call — these consume the most context window.</p>
         <div className="space-y-1">
           {[...byTool].sort((a, b) => b.avg_result_bytes - a.avg_result_bytes).slice(0, 5).map((t) => (
             <div key={t.tool_name} className="flex items-center justify-between text-xs">
@@ -1707,7 +1712,8 @@ function AnalyticsTab() {
       {/* Common Patterns */}
       {!chainsLoading && chains && chains.bigrams.length > 0 && (
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <h3 className="text-xs font-medium text-slate-300 mb-3">Common Tool Chains</h3>
+          <h3 className="text-xs font-medium text-slate-300 mb-1">Common Tool Chains</h3>
+          <p className="text-[11px] text-slate-500 mb-3">Frequent tool-to-tool sequences — shows how the agent builds its reasoning.</p>
           <div className="space-y-1.5">
             {chains.bigrams.slice(0, 10).map((b, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
@@ -1745,9 +1751,11 @@ function AnalyticsTab() {
                 <div className="flex items-center gap-3 text-xs text-slate-500">
                   <span>avg {Number(skill.avg_tools)} tools</span>
                   <span>{Number(skill.avg_duration_ms)}ms avg</span>
-                  <span className="text-emerald-400">{Number(skill.feedback_positive)} positive</span>
-                  {(skill.feedback_negative as number) > 0 && (
-                    <span className="text-red-400">{Number(skill.feedback_negative)} negative</span>
+                  {(Number(skill.feedback_positive) > 0 || (skill.feedback_negative as number) > 0) && (
+                    <>
+                      {Number(skill.feedback_positive) > 0 && <span className="text-emerald-400">{Number(skill.feedback_positive)} positive</span>}
+                      {(skill.feedback_negative as number) > 0 && <span className="text-red-400">{Number(skill.feedback_negative)} negative</span>}
+                    </>
                   )}
                 </div>
                 {(skill.top_tools as Array<{ name: string; count: number }>)?.length > 0 && (
@@ -1762,7 +1770,8 @@ function AnalyticsTab() {
           {/* Handoff flow */}
           {handoffs.length > 0 && (
             <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-              <h3 className="text-xs font-medium text-slate-300 mb-3">Skill Handoffs</h3>
+              <h3 className="text-xs font-medium text-slate-300 mb-1">Skill Handoffs</h3>
+              <p className="text-[11px] text-slate-500 mb-3">When one skill routes a conversation to another mid-session.</p>
               <div className="space-y-1.5">
                 {handoffs.map((h: { from: string; to: string; count: number }, i: number) => (
                   <div key={i} className="flex items-center gap-2 text-xs">
@@ -1781,10 +1790,11 @@ function AnalyticsTab() {
       {/* Harness Effectiveness */}
       {intelligence?.harness_effectiveness && (
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-1">
             <Target className="w-4 h-4 text-blue-400" />
             <h3 className="text-xs font-medium text-slate-300">Harness Effectiveness</h3>
           </div>
+          <p className="text-[11px] text-slate-500 mb-3">How well the tool selector predicts which tools the agent will actually use.</p>
           <div className="text-sm text-slate-200">
             Tool selection accuracy: <span className="font-semibold">{intelligence.harness_effectiveness.accuracy.toFixed(0)}%</span>
           </div>
@@ -1804,10 +1814,11 @@ function AnalyticsTab() {
       {/* Prompt Analytics */}
       {promptAnalytics?.stats && (
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-1">
             <FileText className="w-4 h-4 text-green-400" />
             <h3 className="text-xs font-medium text-slate-300">Prompt Analytics</h3>
           </div>
+          <p className="text-[11px] text-slate-500 mb-3">System prompt size and cache performance. Lower tokens = faster, cheaper responses.</p>
           <div className="text-sm text-slate-200">
             Avg tokens: {promptAnalytics.stats.avg_tokens.toLocaleString()} &middot; Cache hit rate: {(promptAnalytics.stats.cache_hit_rate * 100).toFixed(0)}%
           </div>
@@ -1834,6 +1845,7 @@ function AnalyticsTab() {
             <Database className="w-4 h-4 text-cyan-400" />
             <h3 className="text-xs font-medium text-slate-300">PromQL Reliability</h3>
           </div>
+          <p className="text-[11px] text-slate-500 mb-2">Tracks which PromQL queries succeed vs fail on your cluster.</p>
           <div className="text-xs text-slate-400 mb-2">
             {intelligence.query_reliability.preferred.length} reliable &middot; {intelligence.query_reliability.unreliable.length} unreliable
           </div>
@@ -1852,6 +1864,7 @@ function AnalyticsTab() {
             <TrendingUp className="w-4 h-4 text-amber-400" />
             <h3 className="text-xs font-medium text-slate-300">Token Trending (week-over-week)</h3>
           </div>
+          <p className="text-[11px] text-slate-500 mb-3">Change in token usage vs last week. Green = decreasing cost.</p>
           <div className="grid grid-cols-3 gap-4 text-center text-xs">
             <div>
               <div className="text-slate-400">Input</div>
