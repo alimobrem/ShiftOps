@@ -212,3 +212,18 @@ export const fetchPlanTemplates = () =>
 
 export const fetchPostmortemCount = () =>
   get<{ postmortems: unknown[]; total: number }>(`${AGENT_BASE}/postmortems?limit=1`).then(r => r.total);
+
+export interface SLOStatus {
+  service: string;
+  type: string;
+  target: number;
+  window_days: number;
+  description: string;
+  current_value: number;
+  error_budget_remaining: number;
+  burn_rate: number;
+  alert_level: 'ok' | 'warning' | 'critical';
+}
+
+export const fetchSLOStatus = () =>
+  get<{ slos: SLOStatus[]; total: number }>(`${AGENT_BASE}/slo`);

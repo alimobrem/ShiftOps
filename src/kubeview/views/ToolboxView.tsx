@@ -14,7 +14,7 @@ import { useToolUsageStore } from '../store/toolUsageStore';
 import {
   fetchIntelligenceSections, fetchPromptStats,
   fetchTopologySummary, fetchPlanTemplates, fetchPostmortemCount,
-  fetchFixHistorySummary,
+  fetchFixHistorySummary, fetchSLOStatus,
 } from '../engine/analyticsApi';
 import type { ToolInfo, ToolUsageEntry } from '../store/toolUsageStore';
 
@@ -2190,6 +2190,12 @@ function OrcaAnalyticsSection() {
     staleTime: 60_000,
   });
 
+  const { data: sloData } = useQuery({
+    queryKey: ['analytics', 'slo-status'],
+    queryFn: () => fetchSLOStatus().catch(() => ({ slos: [], total: 0 })),
+    staleTime: 60_000,
+  });
+
   const { data: fixSummary } = useQuery({
     queryKey: ['analytics', 'fix-summary'],
     queryFn: () => fetchFixHistorySummary(30).catch(() => null),
@@ -2289,6 +2295,57 @@ function OrcaAnalyticsSection() {
                 <div className="text-[10px] text-slate-500">{kind}s</div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Service Health Targets (SLO) */}
+      {sloData && sloData.slos.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+          <h3 className="text-xs font-medium text-slate-300 mb-1">Service Health Targets</h3>
+          <p className="text-[11px] text-slate-500 mb-3">SLO burn rates from live Prometheus data. Red = error budget depleted.</p>
+          <div className="space-y-2">
+            {sloData.slos.map((slo) => {
+              const budgetPct = Math.round(slo.error_budget_remaining * 100);
+              return (
+                <div key={`${slo.service}:${slo.type}`} className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-medium text-slate-200">{slo.service}</span>
+                      <span className="text-[10px] px-1 py-0.5 bg-slate-800 text-slate-400 rounded">{slo.type}</span>
+                      <span className={cn(
+                        'text-[10px] px-1 py-0.5 rounded',
+                        slo.alert_level === 'critical' ? 'bg-red-900/50 text-red-300' :
+                        slo.alert_level === 'warning' ? 'bg-amber-900/50 text-amber-300' :
+                        'bg-emerald-900/50 text-emerald-300',
+                      )}>
+                        {slo.alert_level}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            'h-full rounded-full',
+                            budgetPct > 50 ? 'bg-emerald-500/70' :
+                            budgetPct > 20 ? 'bg-amber-500/70' :
+                            'bg-red-500/70',
+                          )}
+                          style={{ width: `${Math.max(budgetPct, 2)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-500 w-14 text-right">
+                        {budgetPct}% left
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs text-slate-300">{(slo.target * 100).toFixed(1)}%</div>
+                    <div className="text-[10px] text-slate-500">{slo.window_days}d window</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
