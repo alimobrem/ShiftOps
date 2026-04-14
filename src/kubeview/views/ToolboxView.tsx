@@ -445,6 +445,8 @@ function PlansTab() {
   const queryClient = useQueryClient();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editPhases, setEditPhases] = useState<PlanPhaseDetail[]>([]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['plan-templates'],
@@ -521,6 +523,33 @@ function PlansTab() {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-200">{planDetail.name}</h3>
             <div className="flex items-center gap-2">
+              {editing ? (
+                <button
+                  onClick={async () => {
+                    try {
+                      await fetch(`/api/agent/plan-templates/${encodeURIComponent(selectedPlan!)}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phases: editPhases }),
+                      });
+                      queryClient.invalidateQueries({ queryKey: ['plan-templates'] });
+                      queryClient.invalidateQueries({ queryKey: ['plan-template-detail', selectedPlan] });
+                    } catch { /* ignore */ }
+                    setEditing(false);
+                  }}
+                  className="px-2 py-1 text-xs bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 rounded border border-emerald-800/30 flex items-center gap-1 transition-colors"
+                >
+                  <Save className="w-3 h-3" />
+                  Save
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setEditing(true); setEditPhases(planDetail.phases); }}
+                  className="px-2 py-1 text-xs bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded border border-blue-800/30 flex items-center gap-1 transition-colors"
+                >
+                  Edit
+                </button>
+              )}
               {planDetail.id.startsWith('auto-') && (
                 <button
                   onClick={() => setConfirmDelete(selectedPlan)}
@@ -555,19 +584,42 @@ function PlansTab() {
 
           {/* Phase details */}
           <div className="space-y-2">
-            {planDetail.phases.map((phase) => (
+            {(editing ? editPhases : planDetail.phases).map((phase, phaseIdx) => (
               <div key={phase.id} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-semibold text-slate-200">{phase.id}</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] text-slate-500">skill: {phase.skill_name}</span>
-                    {phase.required && <span className="text-[10px] px-1 py-0.5 bg-red-900/30 text-red-400 rounded">required</span>}
+                    {editing ? (
+                      <button
+                        onClick={() => { const p = [...editPhases]; p[phaseIdx] = { ...p[phaseIdx], required: !p[phaseIdx].required }; setEditPhases(p); }}
+                        className={cn('text-[10px] px-1 py-0.5 rounded cursor-pointer', phase.required ? 'bg-red-900/30 text-red-400' : 'bg-slate-700 text-slate-500')}
+                      >
+                        {phase.required ? 'required' : 'optional'}
+                      </button>
+                    ) : (
+                      <>
+                        {phase.required && <span className="text-[10px] px-1 py-0.5 bg-red-900/30 text-red-400 rounded">required</span>}
+                      </>
+                    )}
                     {phase.approval_required && <span className="text-[10px] px-1 py-0.5 bg-amber-900/30 text-amber-400 rounded">approval</span>}
                     {phase.runs === 'always' && <span className="text-[10px] px-1 py-0.5 bg-blue-900/30 text-blue-400 rounded">always runs</span>}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3 text-[11px] text-slate-500">
-                  <span>Timeout: {phase.timeout_seconds}s</span>
+                  {editing ? (
+                    <span className="flex items-center gap-1">
+                      Timeout:
+                      <input
+                        type="number"
+                        value={phase.timeout_seconds}
+                        onChange={(e) => { const p = [...editPhases]; p[phaseIdx] = { ...p[phaseIdx], timeout_seconds: parseInt(e.target.value) || 120 }; setEditPhases(p); }}
+                        className="w-16 px-1 py-0.5 text-[11px] bg-slate-700 border border-slate-600 rounded text-slate-200"
+                      />s
+                    </span>
+                  ) : (
+                    <span>Timeout: {phase.timeout_seconds}s</span>
+                  )}
                   {phase.depends_on.length > 0 && <span>After: {phase.depends_on.join(', ')}</span>}
                   {phase.produces.length > 0 && <span>Produces: {phase.produces.join(', ')}</span>}
                   {phase.branch_on && <span>Branches on: {phase.branch_on}</span>}
