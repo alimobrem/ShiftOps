@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
-  CheckCircle, XCircle, Clock, Play, Search, RotateCcw,
+  CheckCircle, XCircle, Clock, Play, Search, RotateCcw, ArrowUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '../../engine/formatters';
@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../../components/feedback/ConfirmDialog';
 import { useMonitorStore } from '../../store/monitorStore';
 import { requestRollback } from '../../engine/fixHistory';
 import type { ActionReport } from '../../engine/monitorClient';
+import { fetchResolutions, type ResolutionRecord } from '../../engine/analyticsApi';
 
 const STATUS_COLORS: Record<string, string> = {
   proposed: 'bg-blue-900/50 text-blue-300',
@@ -107,11 +108,13 @@ export function ActionsTab() {
       </div>
 
       {/* Recent actions */}
-      <div className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-          <Play className="w-4 h-4 text-violet-400" />
-          Recent Actions ({recentActions.length})
-        </h2>
+      <Card>
+        <div className="px-4 py-3 border-b border-slate-800">
+          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+            <Play className="w-4 h-4 text-violet-400" />
+            Recent Actions ({recentActions.length})
+          </h2>
+        </div>
         {!hasRecent ? (
           <EmptyState
             icon={<Clock className="w-8 h-8" />}
@@ -120,14 +123,30 @@ export function ActionsTab() {
             className="py-8"
           />
         ) : (
-          filteredRecent.map((action) => (
-            <RecentActionCard
-              key={action.id}
-              action={action}
-            />
-          ))
+          <div className="divide-y divide-slate-800">
+            {filteredRecent.map((action) => (
+              <RecentActionCard
+                key={action.id}
+                action={action}
+              />
+            ))}
+          </div>
         )}
-      </div>
+      </Card>
+
+      {/* Resolution History */}
+      <Card>
+        <div className="px-4 py-3 border-b border-slate-800">
+          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            Resolution History
+          </h2>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            Every auto-fix outcome — whether the fix resolved the issue, how long it took, and what was done.
+          </p>
+        </div>
+        <ResolutionHistoryList />
+      </Card>
 
       {/* Bulk action confirmation */}
       <ConfirmDialog
@@ -261,7 +280,7 @@ function RecentActionCard({
   }
 
   return (
-    <Card>
+    <>
       <div className="px-4 py-3 flex items-start gap-3">
         {(action.status === 'completed' && !rolledBack) ? (
           <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
@@ -338,6 +357,64 @@ function RecentActionCard({
         variant="warning"
         loading={rolling}
       />
-    </Card>
+    </>
+  );
+}
+
+function ResolutionHistoryList() {
+  const [resolutions, setResolutions] = useState<ResolutionRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchResolutions(7, 20)
+      .then((data) => setResolutions(data.resolutions))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="px-4 py-6 text-xs text-slate-500 text-center">Loading resolution history...</div>;
+  if (resolutions.length === 0) return <div className="px-4 py-6 text-xs text-slate-500 text-center">No resolution data yet. Auto-fix outcomes will appear here after the next scan cycle verifies fixes.</div>;
+
+  return (
+    <div className="divide-y divide-slate-800">
+      {resolutions.map((r) => (
+        <div key={r.id} className="px-4 py-3 flex items-center gap-3">
+          <div className={cn(
+            'flex items-center justify-center w-6 h-6 rounded-full shrink-0',
+            r.outcome === 'verified' ? 'bg-emerald-500/15' :
+            r.outcome === 'improved' ? 'bg-blue-500/15' : 'bg-amber-500/15',
+          )}>
+            {r.outcome === 'verified' ? (
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+            ) : r.outcome === 'improved' ? (
+              <ArrowUp className="w-3.5 h-3.5 text-blue-400" />
+            ) : (
+              <XCircle className="w-3.5 h-3.5 text-amber-400" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-200 truncate">{r.reasoning || r.tool}</span>
+              <span className={cn(
+                'text-[10px] px-1.5 py-0.5 rounded font-medium uppercase',
+                r.outcome === 'verified' ? 'bg-emerald-900/40 text-emerald-400' :
+                r.outcome === 'improved' ? 'bg-blue-900/40 text-blue-400' :
+                'bg-amber-900/40 text-amber-400',
+              )}>
+                {r.outcome === 'verified' ? 'Resolved' : r.outcome === 'improved' ? 'Improved' : 'Failed'}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">{r.category}</span>
+            </div>
+            {r.evidence && <div className="text-[11px] text-slate-500 mt-0.5 truncate">{r.evidence}</div>}
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-xs text-slate-500">{formatRelativeTime(r.timestamp)}</div>
+            {r.timeToVerifyMs != null && r.timeToVerifyMs > 0 && (
+              <div className="text-[10px] text-slate-600">verified in {Math.round(r.timeToVerifyMs / 1000)}s</div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

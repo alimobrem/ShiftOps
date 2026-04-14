@@ -20,6 +20,13 @@ export interface FixHistorySummary {
   avg_resolution_ms: number;
   by_category: Array<{ category: string; count: number; success_count: number; auto_fixed: number; confirmation_required: number }>;
   trend: { current_week: number; previous_week: number; delta: number };
+  verification: {
+    resolved: number;
+    still_failing: number;
+    improved: number;
+    pending: number;
+    resolution_rate: number;
+  };
 }
 
 export interface ScannerCoverage {
@@ -156,3 +163,26 @@ export const fetchAgentVersion = async (): Promise<AgentVersionInfo | null> => {
   if (!res.ok) return null;
   return res.json();
 };
+
+export interface ResolutionRecord {
+  id: string;
+  findingId: string;
+  category: string;
+  tool: string;
+  status: string;
+  reasoning: string;
+  outcome: 'verified' | 'still_failing' | 'improved';
+  evidence: string;
+  timestamp: number;
+  verifiedAt: number | null;
+  durationMs: number | null;
+  timeToVerifyMs: number | null;
+}
+
+export interface ResolutionsResponse {
+  resolutions: ResolutionRecord[];
+  total: number;
+}
+
+export const fetchResolutions = (days = 7, limit = 50) =>
+  get<ResolutionsResponse>(`${AGENT_BASE}/fix-history/resolutions?days=${days}&limit=${limit}`);

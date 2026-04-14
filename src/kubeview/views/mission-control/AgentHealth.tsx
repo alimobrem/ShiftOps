@@ -172,6 +172,28 @@ function OutcomesCard({
           </div>
         )}
 
+        {fixSummary && fixSummary.verification && (
+          <div className="flex items-center gap-3 text-xs">
+            <span className="text-emerald-400 font-medium">{fixSummary.verification.resolved} resolved</span>
+            <span className="text-slate-600">&middot;</span>
+            <span className="text-amber-400">{fixSummary.verification.still_failing} still failing</span>
+            {fixSummary.verification.pending > 0 && (
+              <>
+                <span className="text-slate-600">&middot;</span>
+                <span className="text-slate-400">{fixSummary.verification.pending} pending</span>
+              </>
+            )}
+          </div>
+        )}
+
+        {fixSummary && fixSummary.verification && fixSummary.total_actions > 0 && (
+          <div className="text-xs text-slate-400">
+            Resolution rate: <span className="text-slate-200 font-medium">
+              {Math.round(fixSummary.verification.resolution_rate * 100)}%
+            </span>
+          </div>
+        )}
+
         {costStats && costStats.cost && costStats.cost.total_usd > 0 && (
           <div className="space-y-1">
             <div className="text-xs text-slate-400">
