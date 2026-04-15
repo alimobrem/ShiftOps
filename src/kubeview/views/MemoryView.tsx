@@ -11,7 +11,7 @@ const AGENT_BASE = '/api/agent';
 interface Runbook {
   name: string;
   description: string;
-  tool_sequence: string[];
+  tool_sequence?: string[] | string;
   success_count: number;
   total_count: number;
   trigger_keywords?: string[];
@@ -361,6 +361,7 @@ export default function MemoryView({ embedded = false }: { embedded?: boolean })
                           ))}
                         </div>
                       )}
+                      {Array.isArray(rb.tool_sequence) && rb.tool_sequence.length > 0 && (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {rb.tool_sequence.map((tool, i) => (
                           <div key={i} className="flex items-center gap-1.5">
@@ -371,11 +372,12 @@ export default function MemoryView({ embedded = false }: { embedded?: boolean })
                           </div>
                         ))}
                       </div>
+                      )}
                       {expandedRunbook === rb.name && (
                         <div className="mt-3 pt-3 border-t border-slate-700">
                           <div className="text-xs text-slate-500 space-y-1">
                             <div>Success: {rb.success_count} / {rb.total_count} invocations</div>
-                            <div>Tools: {rb.tool_sequence.length} steps</div>
+                            <div>Tools: {Array.isArray(rb.tool_sequence) ? rb.tool_sequence.length : 0} steps</div>
                           </div>
                         </div>
                       )}
