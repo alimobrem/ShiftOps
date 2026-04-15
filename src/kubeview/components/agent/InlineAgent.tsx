@@ -4,8 +4,6 @@ import {
   StopCircle,
   ChevronDown,
   ChevronUp,
-  Brain,
-  Wrench,
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
@@ -13,6 +11,7 @@ import { useAgentSession } from '../../hooks/useAgentSession';
 import type { AgentMode, ResourceContext } from '../../engine/agentClient';
 import { MessageBubble } from './MessageBubble';
 import { AgentComponentRenderer } from './AgentComponentRenderer';
+import { ThinkingIndicator } from './ThinkingIndicator';
 import { ConfirmationCard } from './ConfirmationCard';
 import { AIIcon, AIIconStatic, AI_ACCENT, aiGlowClass } from './AIBranding';
 import { generateSmartPrompts } from '../../engine/smartPrompts';
@@ -214,27 +213,14 @@ export const InlineAgent: React.FC<InlineAgentProps> = ({
           <AgentComponentRenderer key={`component-${i}`} spec={spec} />
         ))}
 
-        {/* Thinking indicator */}
-        {thinkingText && (
-          <div className="flex items-start gap-2 text-xs text-slate-400" data-testid="thinking-indicator">
-            <Brain className="h-3.5 w-3.5 mt-0.5 text-purple-400 shrink-0" />
-            <span className="italic">{thinkingText}</span>
-          </div>
-        )}
-
-        {/* Active tools indicator */}
-        {activeTools.length > 0 && (
-          <div className="flex items-center gap-2 text-xs text-slate-400" data-testid="tool-indicator">
-            <Wrench className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-            <span>Using {activeTools.join(', ')}</span>
-          </div>
-        )}
-
-        {/* Streaming text — plain text during stream, markdown after completion */}
-        {streamingText && (
-          <div className="text-sm" data-testid="streaming-text">
-            <pre className="text-slate-300 whitespace-pre-wrap font-sans">{streamingText}</pre>
-          </div>
+        {/* Streaming indicator — Neural Pulse (compact) */}
+        {(thinkingText || activeTools.length > 0 || streamingText) && (
+          <ThinkingIndicator
+            thinkingText={thinkingText}
+            streamingText={streamingText}
+            activeTools={activeTools}
+            compact
+          />
         )}
 
         {/* Pending confirmation */}

@@ -186,6 +186,77 @@
   animation: kv-pulse 2s ease-in-out infinite;
 }
 
+/* ── ThinkingIndicator: Neural Pulse ─────────────────────────────── */
+
+/* Rotating gradient border */
+@property --thinking-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes thinking-rotate {
+  to { --thinking-angle: 360deg; }
+}
+
+.thinking-border {
+  background: conic-gradient(
+    from var(--thinking-angle),
+    rgba(139, 92, 246, 0.6),
+    rgba(59, 130, 246, 0.1),
+    rgba(139, 92, 246, 0.05),
+    rgba(245, 158, 11, 0.3),
+    rgba(139, 92, 246, 0.6)
+  );
+  animation: thinking-rotate 3s linear infinite;
+}
+
+/* Glowing orb — large (DockPanel) */
+@keyframes thinking-orb-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.6), 0 0 20px rgba(139, 92, 246, 0.2); transform: scale(1); }
+  50% { box-shadow: 0 0 14px rgba(139, 92, 246, 0.8), 0 0 30px rgba(139, 92, 246, 0.35); transform: scale(1.15); }
+}
+
+.thinking-orb-lg {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 1) 0%, rgba(139, 92, 246, 0.8) 60%, rgba(109, 40, 217, 0.4) 100%);
+  animation: thinking-orb-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* Glowing orb — compact (InlineAgent) */
+.thinking-orb {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(167, 139, 250, 1);
+  animation: thinking-orb-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* Active tool pulse */
+@keyframes thinking-tool-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(245, 158, 11, 0); }
+  50% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.2); }
+}
+
+.thinking-tool-active {
+  animation: thinking-tool-glow 1.5s ease-in-out infinite;
+}
+
+/* Active tool dot */
+.thinking-tool-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgb(245, 158, 11);
+  animation: kv-dot-pulse 1s ease-in-out infinite;
+}
+
+/* ── End ThinkingIndicator ──────────────────────────────────────── */
+
 /* Success flash */
 @keyframes kv-flash-success {
   0% { background-color: rgba(16, 185, 129, 0.3); }

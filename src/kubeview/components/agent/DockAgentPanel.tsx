@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Send, StopCircle, Bot, Loader2, Wrench, Brain, AlertTriangle, Trash2, Shield, Download, History, MessageSquare, Plus, X } from 'lucide-react';
+import { Send, StopCircle, Bot, Loader2, AlertTriangle, Trash2, Shield, Download, History, MessageSquare, Plus, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigateTab } from '../../hooks/useNavigateTab';
@@ -13,6 +13,7 @@ import { useTrustStore } from '../../store/trustStore';
 import { useSmartPrompts } from '../../hooks/useSmartPrompts';
 import { useMonitorStore } from '../../store/monitorStore';
 import { MessageBubble } from './MessageBubble';
+import { ThinkingIndicator } from './ThinkingIndicator';
 import { AgentComponentRenderer } from './AgentComponentRenderer';
 import { ConfirmationCard } from './ConfirmationCard';
 import { ConfirmDialog } from '../feedback/ConfirmDialog';
@@ -462,32 +463,13 @@ export function DockAgentPanel() {
           <MessageBubble key={msg.id} message={msg} mode={mode} onAddToView={handleAddToView} />
         ))}
 
-        {/* Streaming indicators */}
+        {/* Streaming indicator — Neural Pulse */}
         {streaming && (
-          <div className="space-y-1">
-            {/* Compact status line showing what the agent is doing */}
-            {(thinkingText || activeTools.length > 0) && !streamingText && (
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400" />
-                {activeTools.length > 0 ? (
-                  <span className="text-cyan-400">Using {activeTools[activeTools.length - 1]}...</span>
-                ) : (
-                  <span>Thinking...</span>
-                )}
-              </div>
-            )}
-            {/* Show streaming text as it arrives */}
-            {streamingText && (
-              <pre className="text-sm text-slate-300 whitespace-pre-wrap font-sans">{streamingText}</pre>
-            )}
-            {/* Components will be visible in the final message via "Show details" */}
-            {!streamingText && !thinkingText && activeTools.length === 0 && streamingComponents.length === 0 && (
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Thinking...
-              </div>
-            )}
-          </div>
+          <ThinkingIndicator
+            thinkingText={thinkingText}
+            streamingText={streamingText}
+            activeTools={activeTools}
+          />
         )}
 
         {loadError && (

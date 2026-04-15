@@ -99,9 +99,9 @@ describe('InlineAgent', () => {
 
     render(<InlineAgent context={defaultContext} defaultExpanded />);
 
-    expect(screen.getByTestId('thinking-indicator').textContent).toContain('Analyzing deployment...');
-    expect(screen.getByTestId('tool-indicator').textContent).toContain('Using kubectl_get');
-    expect(screen.getByTestId('streaming-text')).toBeTruthy();
+    // ThinkingIndicator (compact mode) shows tool name and streaming text
+    expect(screen.getByText('kubectl_get')).toBeTruthy();
+    expect(screen.getByText('The deployment is healthy')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Stop' })).toBeTruthy();
   });
 
