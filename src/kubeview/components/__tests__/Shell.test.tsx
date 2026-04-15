@@ -152,4 +152,27 @@ describe('Shell', () => {
     renderShell();
     expect(screen.queryByTestId('command-palette')).toBeNull();
   });
+
+  it('renders session expired modal when session_expired is in degradedReasons', () => {
+    _mockUIState.degradedReasons = new Set(['session_expired']);
+    renderShell();
+    expect(screen.getByText('Session Expired')).toBeDefined();
+    expect(screen.getByText('Your OAuth token has expired')).toBeDefined();
+    expect(screen.getByText('Re-authenticate')).toBeDefined();
+    expect(screen.getByText('Dismiss')).toBeDefined();
+    _mockUIState.degradedReasons = new Set();
+  });
+
+  it('does not render session expired modal when no session_expired reason', () => {
+    _mockUIState.degradedReasons = new Set();
+    renderShell();
+    expect(screen.queryByText('Session Expired')).toBeNull();
+  });
+
+  it('does not render session expired modal for other degraded reasons', () => {
+    _mockUIState.degradedReasons = new Set(['agent_unreachable']);
+    renderShell();
+    expect(screen.queryByText('Session Expired')).toBeNull();
+    _mockUIState.degradedReasons = new Set();
+  });
 });
