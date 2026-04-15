@@ -564,7 +564,7 @@ if [[ "$HEALTHY" == "true" ]]; then
 
     # Verify token substitution — check the CONFIGMAP (source of truth), not the pod's
     # runtime /tmp/nginx.conf which may be from a stale pod during rollout.
-    TOKEN_CHECK=$(oc get configmap openshiftpulse-nginx -n "$NAMESPACE" -o jsonpath='{.data.nginx\.conf}' 2>/dev/null | grep -c "__AGENT_TOKEN__" || echo "0")
+    TOKEN_CHECK=$(oc get configmap openshiftpulse-nginx -n "$NAMESPACE" -o jsonpath='{.data.nginx\.conf}' 2>/dev/null | { grep -c "__AGENT_TOKEN__" || true; })
     if [[ "$TOKEN_CHECK" != "0" ]]; then
       error "WS TOKEN NOT INJECTED — nginx config still has __AGENT_TOKEN__ placeholder"
       error "WebSocket connections will fail. Fix: check secret '$WS_SECRET' exists and is mounted"
