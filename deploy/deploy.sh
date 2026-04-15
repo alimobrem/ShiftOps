@@ -562,12 +562,9 @@ if [[ "$HEALTHY" == "true" ]]; then
       HEALTHY=false
     fi
 
-    # Verify token substitution — proxy chain success already proves the token works,
-    # but double-check the nginx config doesn't have leftover placeholders
-    # Wait for rollout to complete before checking token — avoids reading from stale pod
-    sleep 3
-    UI_POD=$(oc get pods -n "$NAMESPACE" -l app=openshiftpulse --field-selector=status.phase=Running --no-headers 2>/dev/null | head -1 | awk '{print $1}')
-    TOKEN_CHECK=$(oc exec "$UI_POD" -c openshiftpulse -n "$NAMESPACE" -- grep -c "__AGENT_TOKEN__" /tmp/nginx.conf 2>/dev/null || echo "0")
+    # Verify token substitution — check the CONFIGMAP (source of truth), not the pod's
+    # runtime /tmp/nginx.conf which may be from a stale pod during rollout.
+    TOKEN_CHECK=$(oc get configmap openshiftpulse-nginx -n "$NAMESPACE" -o jsonpath='{.data.nginx\.conf}' 2>/dev/null | grep -c "__AGENT_TOKEN__" || echo "0")
     if [[ "$TOKEN_CHECK" != "0" ]]; then
       error "WS TOKEN NOT INJECTED — nginx config still has __AGENT_TOKEN__ placeholder"
       error "WebSocket connections will fail. Fix: check secret '$WS_SECRET' exists and is mounted"
