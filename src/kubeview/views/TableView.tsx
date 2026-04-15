@@ -796,6 +796,8 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
             className="h-64"
           />
         ) : (
+          <>
+          {/* Header table for column alignment */}
           <table className="w-full">
             <thead className="bg-slate-900 sticky top-0 z-10">
               <tr>
@@ -852,139 +854,131 @@ export default function TableView({ gvrKey, namespace: namespaceProp }: TableVie
                 </tr>
               )}
             </thead>
-            <tbody className="divide-y divide-slate-800">
-              {paginatedResources.length === 0 && (
-                <tr>
-                  <td colSpan={visibleColumns.length + 2} className="px-4 py-12 text-center">
-                    <p className="text-slate-400 text-sm">
-                      0 of {stampedResources.length} {resourceKind.toLowerCase()} match your filters
-                    </p>
-                    {(searchTerm || Object.values(columnFilters).some(v => v)) && (
-                      <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-500">
-                        {searchTerm && (
-                          <span>
-                            Search: "<span className="text-slate-300">{searchTerm}</span>"
-                          </span>
-                        )}
-                        {Object.entries(columnFilters)
-                          .filter(([, v]) => v)
-                          .map(([colId, value]) => {
-                            const col = visibleColumns.find((c) => c.id === colId);
-                            return (
-                              <span key={colId}>
-                                {col?.header || colId}: "<span className="text-slate-300">{value}</span>"
-                              </span>
-                            );
-                          })}
-                      </div>
-                    )}
-                    {(searchTerm || Object.values(columnFilters).some(v => v)) && (
-                      <button
-                        onClick={() => { setSearchInput(''); setSearchTerm(''); setColumnFilters({}); }}
-                        className="mt-2 text-xs text-blue-400 hover:text-blue-300"
-                      >
-                        Clear all filters
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )}
-              {paginatedResources.length > 0 && (
-                <tr>
-                  <td colSpan={visibleColumns.length + 2} style={{ padding: 0 }}>
-                    <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-                      {virtualizer.getVirtualItems().map((virtualRow) => {
-                        const rowIndex = virtualRow.index;
-                        const resource = paginatedResources[rowIndex];
-                        const uid = resource.metadata.uid || '';
-                        const isSelected = selectedRows.has(uid);
-                        const isFocused = rowIndex === focusedRow;
-
-                        return (
-                          <div
-                            key={uid}
-                            data-index={virtualRow.index}
-                            ref={virtualizer.measureElement}
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              transform: `translateY(${virtualRow.start}px)`,
-                            }}
-                          >
-                            <table className="w-full"><tbody>
-                              <tr
-                                onClick={(e) => { setFocusedRow(rowIndex); handleRowClick(resource, e); }}
-                                className={cn(
-                                  'hover:bg-slate-800/70 transition-colors cursor-pointer border-b border-slate-800',
-                                  isSelected && 'bg-slate-900/70',
-                                  isFocused && 'ring-1 ring-inset ring-blue-500/50 bg-blue-950/20'
-                                )}
-                              >
-                                <td className="px-4 py-3" style={{ width: 48 }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={() => handleRowSelect(uid)}
-                                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-2 focus:ring-blue-500"
-                                  />
-                                </td>
-                                {visibleColumns.map((column) => {
-                                  const value = column.accessorFn(resource);
-                                  return (
-                                    <td key={column.id} className="px-4 py-3" style={{ width: column.width }}>
-                                      {column.render(value, resource)}
-                                    </td>
-                                  );
-                                })}
-                                <td className="px-4 py-3">
-                                  <div className="flex items-center gap-1">
-                                    {enhancer?.inlineActions?.map((action) => (
-                                      <div key={action.id}>
-                                        {action.render(resource, handleAction)}
-                                      </div>
-                                    ))}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const gvrUrl = gvrKey.replace(/\//g, '~');
-                                        const ns = resource.metadata.namespace;
-                                        const yamlPath = ns ? `/yaml/${gvrUrl}/${ns}/${resource.metadata.name}` : `/yaml/${gvrUrl}/_/${resource.metadata.name}`;
-                                        addTab({ title: `${resource.metadata.name} (YAML)`, path: yamlPath, pinned: false, closable: true });
-                                        navigate(yamlPath);
-                                      }}
-                                      className={cn('inline-flex items-center px-1.5 py-1 text-xs rounded transition-colors disabled:opacity-50', canUpdate ? 'text-slate-500 hover:bg-blue-900/50 hover:text-blue-400' : 'text-slate-700 cursor-not-allowed')}
-                                      title={canUpdate ? 'Edit YAML' : 'No update permission'}
-                                      disabled={!canUpdate}
-                                    >
-                                      <FileEdit className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handleAction('delete-single', { resource }); }}
-                                      disabled={!canDelete || inlineActionLoading === `${resource.metadata.uid}-delete-single`}
-                                      className={cn('inline-flex items-center px-1.5 py-1 text-xs rounded transition-colors disabled:opacity-50',
-                                        canDelete ? 'text-slate-500 hover:bg-red-900/50 hover:text-red-400' : 'text-slate-700 cursor-not-allowed'
-                                      )}
-                                      title={canDelete ? 'Delete' : 'No delete permission'}
-                                    >
-                                      {inlineActionLoading === `${resource.metadata.uid}-delete-single`
-                                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        : <Trash2 className="w-3.5 h-3.5" />}
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            </tbody></table>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
           </table>
+
+          {/* Empty state */}
+          {paginatedResources.length === 0 && (
+            <div className="px-4 py-12 text-center">
+              <p className="text-slate-400 text-sm">
+                0 of {stampedResources.length} {resourceKind.toLowerCase()} match your filters
+              </p>
+              {(searchTerm || Object.values(columnFilters).some(v => v)) && (
+                <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-500">
+                  {searchTerm && (
+                    <span>
+                      Search: &quot;<span className="text-slate-300">{searchTerm}</span>&quot;
+                    </span>
+                  )}
+                  {Object.entries(columnFilters)
+                    .filter(([, v]) => v)
+                    .map(([colId, value]) => {
+                      const col = visibleColumns.find((c) => c.id === colId);
+                      return (
+                        <span key={colId}>
+                          {col?.header || colId}: &quot;<span className="text-slate-300">{value}</span>&quot;
+                        </span>
+                      );
+                    })}
+                </div>
+              )}
+              {(searchTerm || Object.values(columnFilters).some(v => v)) && (
+                <button
+                  onClick={() => { setSearchInput(''); setSearchTerm(''); setColumnFilters({}); }}
+                  className="mt-2 text-xs text-blue-400 hover:text-blue-300"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Div-based virtualized body */}
+          {paginatedResources.length > 0 && (
+            <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+              {virtualizer.getVirtualItems().map((virtualRow) => {
+                const rowIndex = virtualRow.index;
+                const resource = paginatedResources[rowIndex];
+                const uid = resource.metadata.uid || '';
+                const isSelected = selectedRows.has(uid);
+                const isFocused = rowIndex === focusedRow;
+
+                return (
+                  <div
+                    key={uid}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    className={cn(
+                      'flex items-center border-b border-slate-800/50 hover:bg-slate-800/70 transition-colors cursor-pointer',
+                      isSelected && 'bg-slate-900/70',
+                      isFocused && 'ring-1 ring-inset ring-blue-500/50 bg-blue-950/20'
+                    )}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                    onClick={(e) => { setFocusedRow(rowIndex); handleRowClick(resource, e); }}
+                  >
+                    <div className="px-4 py-3 shrink-0" style={{ width: 48 }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleRowSelect(uid)}
+                        className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    {visibleColumns.map((column) => {
+                      const value = column.accessorFn(resource);
+                      return (
+                        <div key={column.id} className="px-4 py-3 truncate" style={{ width: column.width, flex: column.width ? `0 0 ${column.width}` : '1 1 0%' }}>
+                          {column.render(value, resource)}
+                        </div>
+                      );
+                    })}
+                    <div className="px-4 py-3 shrink-0">
+                      <div className="flex items-center gap-1">
+                        {enhancer?.inlineActions?.map((action) => (
+                          <div key={action.id}>
+                            {action.render(resource, handleAction)}
+                          </div>
+                        ))}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const gvrUrl = gvrKey.replace(/\//g, '~');
+                            const ns = resource.metadata.namespace;
+                            const yamlPath = ns ? `/yaml/${gvrUrl}/${ns}/${resource.metadata.name}` : `/yaml/${gvrUrl}/_/${resource.metadata.name}`;
+                            addTab({ title: `${resource.metadata.name} (YAML)`, path: yamlPath, pinned: false, closable: true });
+                            navigate(yamlPath);
+                          }}
+                          className={cn('inline-flex items-center px-1.5 py-1 text-xs rounded transition-colors disabled:opacity-50', canUpdate ? 'text-slate-500 hover:bg-blue-900/50 hover:text-blue-400' : 'text-slate-700 cursor-not-allowed')}
+                          title={canUpdate ? 'Edit YAML' : 'No update permission'}
+                          disabled={!canUpdate}
+                        >
+                          <FileEdit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleAction('delete-single', { resource }); }}
+                          disabled={!canDelete || inlineActionLoading === `${resource.metadata.uid}-delete-single`}
+                          className={cn('inline-flex items-center px-1.5 py-1 text-xs rounded transition-colors disabled:opacity-50',
+                            canDelete ? 'text-slate-500 hover:bg-red-900/50 hover:text-red-400' : 'text-slate-700 cursor-not-allowed'
+                          )}
+                          title={canDelete ? 'Delete' : 'No delete permission'}
+                        >
+                          {inlineActionLoading === `${resource.metadata.uid}-delete-single`
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          </>
         )}
       </div>
 
