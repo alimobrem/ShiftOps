@@ -2,7 +2,6 @@ import { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Network, Loader2, RefreshCw,
-  Layers, Cable,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card } from '../components/primitives/Card';
@@ -363,7 +362,7 @@ export default function TopologyView() {
                 const relLabel = RELATIONSHIP_LABELS[edge.relationship] || edge.relationship;
 
                 return (
-                  <g key={i}>
+                  <g key={`${edge.source}:${edge.target}`}>
                     <path
                       d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
                       fill="none"

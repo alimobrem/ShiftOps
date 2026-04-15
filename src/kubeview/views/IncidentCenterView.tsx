@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Siren, Zap, Search, Clock, Bell, Settings, GitPullRequest, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMonitorStore } from '../store/monitorStore';
-import { useUIStore } from '../store/uiStore';
 import { NowTab } from './incidents/NowTab';
 import { InvestigateTab } from './incidents/InvestigateTab';
 import { HistoryTab } from './incidents/HistoryTab';
