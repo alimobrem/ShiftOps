@@ -1,5 +1,5 @@
-import { useState, useCallback, memo } from 'react';
-import { Clock, Copy, Check, Maximize2, Minimize2, ThumbsUp, ThumbsDown, Puzzle, Wrench } from 'lucide-react';
+import { useState, useCallback, memo, useMemo } from 'react';
+import { Clock, Copy, Check, Maximize2, Minimize2, ThumbsUp, ThumbsDown, Puzzle, Wrench, MessageCircleQuestion } from 'lucide-react';
 import { useAgentStore } from '../../store/agentStore';
 import type { AgentMode, AgentMessage } from '../../engine/agentClient';
 import type { ComponentSpec } from '../../engine/agentComponents';
@@ -59,6 +59,29 @@ export function riskLevel(tool: string, input: Record<string, unknown>): { level
   return { level: 'MEDIUM', color: 'text-amber-400' };
 }
 
+/**
+ * Split a trailing question from the agent's response.
+ * Returns [bodyContent, questionText] if the last paragraph ends with '?'.
+ */
+function splitTrailingQuestion(content: string): [string, string | null] {
+  // Don't split very short messages or messages that are entirely a question
+  if (content.length < 80) return [content, null];
+
+  // Split on double newline to find paragraphs
+  const trimmed = content.trimEnd();
+  const lastBreak = trimmed.lastIndexOf('\n\n');
+  if (lastBreak === -1) return [content, null];
+
+  const lastParagraph = trimmed.slice(lastBreak + 2).trim();
+
+  // Must end with ? and be a reasonable length (not a code block or list)
+  if (!lastParagraph.endsWith('?')) return [content, null];
+  if (lastParagraph.length > 300) return [content, null];
+  if (lastParagraph.startsWith('```') || lastParagraph.startsWith('|') || lastParagraph.startsWith('-')) return [content, null];
+
+  return [trimmed.slice(0, lastBreak).trim(), lastParagraph];
+}
+
 /** Detect HTML documents in content and render them in a sandboxed iframe */
 export function RichContent({ content, components, onAddToView }: { content: string; components?: ComponentSpec[]; onAddToView?: (spec: ComponentSpec) => void }) {
   const [expanded, setExpanded] = useState(false);
@@ -102,10 +125,17 @@ export function RichContent({ content, components, onAddToView }: { content: str
   }
 
   const [showComponents, setShowComponents] = useState(false);
+  const [body, trailingQuestion] = useMemo(() => splitTrailingQuestion(content), [content]);
 
   return (
     <>
-      <MarkdownRenderer content={content} />
+      <MarkdownRenderer content={trailingQuestion ? body : content} />
+      {trailingQuestion && (
+        <div className="mt-3 flex items-start gap-2.5 rounded-lg bg-violet-500/10 border border-violet-500/25 px-3.5 py-2.5">
+          <MessageCircleQuestion className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+          <span className="text-sm text-violet-200">{trailingQuestion}</span>
+        </div>
+      )}
       {components && components.length > 0 && (
         <>
           <button
