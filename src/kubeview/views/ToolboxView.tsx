@@ -45,11 +45,14 @@ const MODE_ICONS: Record<string, React.ReactNode> = {
 
 export default function ToolboxView() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get('tab') as ToolboxTab) || 'catalog';
+  const initialTab = (searchParams.get('tab') as ToolboxTab)
+    || (sessionStorage.getItem('toolbox-tab') as ToolboxTab)
+    || 'catalog';
   const [activeTab, setActiveTabState] = useState<ToolboxTab>(initialTab);
 
   const setActiveTab = (tab: ToolboxTab) => {
     setActiveTabState(tab);
+    sessionStorage.setItem('toolbox-tab', tab);
     const next = new URLSearchParams(searchParams);
     if (tab === 'catalog') next.delete('tab'); else next.set('tab', tab);
     setSearchParams(next, { replace: true });
