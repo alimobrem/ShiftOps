@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Brain, BookOpen, TrendingUp, Search, ChevronDown, ChevronRight, ThumbsUp, Zap, History, Target, FileText, Activity, Award, Download, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -74,6 +74,14 @@ export default function MemoryView({ embedded = false }: { embedded?: boolean })
   const [expandedRunbook, setExpandedRunbook] = useState<string | null>(null);
   const [expandedIncident, setExpandedIncident] = useState<number | null>(null);
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Auto-dismiss import status after 5 seconds
+  useEffect(() => {
+    if (importStatus) {
+      const timer = setTimeout(() => setImportStatus(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [importStatus]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: summary } = useQuery({

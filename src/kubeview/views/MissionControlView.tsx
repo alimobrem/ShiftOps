@@ -89,7 +89,7 @@ export default function MissionControlView() {
     queryKey: ['agent', 'kpi'],
     queryFn: async () => {
       const res = await fetch('/api/agent/kpi?days=7');
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`KPI fetch failed (${res.status})`);
       return res.json();
     },
     refetchInterval: 60_000,
@@ -201,7 +201,7 @@ function AgentIntelligenceCard() {
     queryKey: ['agent', 'learning-mc'],
     queryFn: async () => {
       const res = await fetch('/api/agent/analytics/learning?days=7');
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`Learning fetch failed (${res.status})`);
       return res.json();
     },
     staleTime: 60_000,
@@ -211,7 +211,7 @@ function AgentIntelligenceCard() {
     queryKey: ['agent', 'fix-strategies-mc'],
     queryFn: async () => {
       const res = await fetch('/api/agent/analytics/fix-strategies?days=30');
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`Fix strategies fetch failed (${res.status})`);
       return res.json();
     },
     staleTime: 60_000,

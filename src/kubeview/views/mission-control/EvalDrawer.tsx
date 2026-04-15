@@ -176,7 +176,7 @@ export function EvalDrawer({ evalStatus, onClose }: EvalDrawerProps) {
                         'font-mono font-semibold w-12',
                         run.gate_passed ? 'text-emerald-400' : 'text-red-400',
                       )}>
-                        {pct.toFixed(1)}%
+                        {Number.isInteger(pct) ? pct : pct.toFixed(1)}%
                       </span>
                       <span className="text-slate-500 w-36">{formatEvalTimestamp(run.timestamp)}</span>
                       <span className="text-slate-500">
