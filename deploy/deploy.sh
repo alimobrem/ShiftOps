@@ -423,7 +423,8 @@ if helm status "$RELEASE" -n "$NAMESPACE" &>/dev/null; then
   [[ -n "$PREV_REVISION" ]] && info "Current revision: $PREV_REVISION (rollback target if deploy fails)"
 fi
 
-# Build Helm dependencies (required on fresh clones where tgz archives are missing)
+# Always rebuild subchart tgz from live sources — stale archives miss template changes.
+rm -f deploy/helm/pulse/charts/*.tgz
 if ! helm dependency build deploy/helm/pulse/ 2>/dev/null; then
   warn "helm dependency build failed — retrying with update"
   helm dependency update deploy/helm/pulse/ 2>/dev/null || true
@@ -477,8 +478,6 @@ $AI_VALUES
 YAML
 chmod 600 "$VALUES_FILE"
 
-# Rebuild chart dependencies to pick up subchart version changes
-helm dependency update deploy/helm/pulse/ >/dev/null 2>&1 || true
 
 # Recover from stuck helm state (pending-install/pending-upgrade from interrupted deploys)
 HELM_STATUS=$(helm status "$RELEASE" -n "$NAMESPACE" -o json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('info',{}).get('status',''))" 2>/dev/null) || true
