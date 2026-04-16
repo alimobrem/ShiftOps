@@ -4,6 +4,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Plus, ChevronDown, Radio, Pause, Loader2, Settings, X } from 'lucide-react';
 import { useChartLiveData } from '../../hooks/useChartLiveData';
@@ -451,8 +452,8 @@ function ChartEditorModal({
   const inputClass = 'w-full px-2 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500';
   const sectionClass = 'space-y-2';
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60" />
       <div
         className="relative bg-slate-950 border border-slate-700 rounded-lg shadow-2xl w-full max-w-lg max-h-[80vh] overflow-auto"
@@ -583,6 +584,7 @@ function ChartEditorModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
