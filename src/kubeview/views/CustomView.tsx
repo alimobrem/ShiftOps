@@ -340,7 +340,7 @@ export default function CustomView() {
             isResizable={editMode}
             onLayoutChange={handleLayoutChange}
             draggableHandle=".widget-drag-handle"
-            margin={[16, 16]}
+            margin={[12, 8]}
             useCSSTransforms={true}
             compactType="vertical"
           >
