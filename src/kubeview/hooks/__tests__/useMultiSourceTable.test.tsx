@@ -216,7 +216,7 @@ describe('useMultiSourceTable', () => {
     expect(resource._gvrKey).toBe('apps/v1/deployments');
   });
 
-  it('handles mixed resource types (deployments + pods)', () => {
+  it('handles mixed resource types with Kind column and default columns', () => {
     let callCount = 0;
     useK8sListWatchMock.mockImplementation(() => {
       callCount++;
@@ -230,12 +230,29 @@ describe('useMultiSourceTable', () => {
     ];
     const { result } = renderHook(() => useMultiSourceTable(ds), { wrapper: createWrapper() });
 
-    // Both resource types should be present
-    expect(result.current.resources.length).toBeGreaterThanOrEqual(1);
-    // Should have base columns (name, namespace, age) + _source
     const colIds = result.current.columns.map((c) => c.id);
+    // Mixed types should get default columns + Kind + _source
     expect(colIds).toContain('name');
+    expect(colIds).toContain('_kind');
     expect(colIds).toContain('_source');
+    expect(colIds).toContain('age');
+    // Should NOT have enhancer-specific columns like 'replicas' or 'strategy'
+    expect(colIds).not.toContain('strategy');
+  });
+
+  it('single resource type uses enhancer columns (no Kind column)', () => {
+    useK8sListWatchMock.mockReturnValue({ data: [makeDeploy('web', 'default')], isLoading: false, error: null });
+
+    const ds: TableDatasource[] = [
+      { type: 'k8s', id: 'deploys', label: 'Deployments', resource: 'deployments', group: 'apps', namespace: 'default' },
+    ];
+    const { result } = renderHook(() => useMultiSourceTable(ds), { wrapper: createWrapper() });
+
+    const colIds = result.current.columns.map((c) => c.id);
+    // Single type should use enhancer columns, NOT add Kind
+    expect(colIds).toContain('name');
+    expect(colIds).not.toContain('_kind');
+    expect(colIds).not.toContain('_source');
   });
 
   it('enrichmentUpdatedAt is null when no enrichment datasources', () => {

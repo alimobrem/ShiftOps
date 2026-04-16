@@ -18,6 +18,7 @@ import { useK8sListWatch } from './useK8sListWatch';
 import { buildApiPath } from './useResourceUrl';
 import { queryInstant } from '../components/metrics/prometheus';
 import { getColumnsForResource } from '../engine/enhancers';
+import { getDefaultColumns } from '../engine/renderers';
 import { getImpersonationHeaders } from '../engine/query';
 
 const DEFAULT_ENRICHMENT_INTERVAL_MS = 30_000;
@@ -277,14 +278,37 @@ export function useMultiSourceTable(
     });
   }, [mergedResources, promqlData, logData, promqlDatasources, logDatasources]);
 
-  // Build columns — enhancer columns for primary K8s resource + enrichment columns
+  // Build columns — use enhancer for single resource type, default columns for mixed types
   const columns = useMemo(() => {
-    const primaryGvr = k8sDatasources[0] ? datasourceToGvrKey(k8sDatasources[0]) : '';
     const namespaced = k8sDatasources.some((ds) => !!ds.namespace);
+    const gvrKeys = new Set(k8sDatasources.map(datasourceToGvrKey));
+    const isMixedTypes = gvrKeys.size > 1;
 
-    let baseCols = primaryGvr
-      ? getColumnsForResource(primaryGvr, namespaced, mergedResources)
-      : [];
+    let baseCols: ColumnDef[];
+
+    if (isMixedTypes || gvrKeys.size === 0) {
+      // Mixed resource types — use default columns (Name, Namespace, Age, Labels, Owner)
+      // which work for any K8s resource. Add a Kind column for disambiguation.
+      baseCols = [
+        ...getDefaultColumns(namespaced),
+      ];
+      // Insert Kind column after Name
+      const nameIdx = baseCols.findIndex((c) => c.id === 'name');
+      baseCols.splice(nameIdx + 1, 0, {
+        id: '_kind',
+        header: 'Kind',
+        accessorFn: (r: K8sResource) => r.kind || '',
+        render: (value: unknown) => (
+          <span className="text-xs text-slate-400">{String(value)}</span>
+        ),
+        sortable: true,
+        priority: 1,
+      });
+    } else {
+      // Single resource type — use enhancer columns for rich rendering
+      const gvr = [...gvrKeys][0];
+      baseCols = getColumnsForResource(gvr, namespaced, mergedResources);
+    }
 
     // Add source column when multiple K8s datasources
     if (k8sDatasources.length > 1) {
