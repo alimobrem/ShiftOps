@@ -5,7 +5,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle, ChevronDown, ChevronUp, ChevronRight, Plus, ArrowUpDown, ArrowUp, ArrowDown, Settings2, Eye, EyeOff, Filter, Search, Download, Radio, Pause, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle, ChevronDown, ChevronUp, ChevronRight, Plus, Search, Radio, Pause, Loader2 } from 'lucide-react';
 import { useMultiSourceTable } from '../../hooks/useMultiSourceTable';
 import type { K8sResource } from '../../engine/renderers';
 import { ResourceTable } from '../table/ResourceTable';
@@ -143,12 +143,14 @@ function LiveAgentTable({ spec, onAddToView, refreshInterval }: { spec: DataTabl
     if (gvr && name) navigate(`/r/${gvr}/${ns || '_'}/${name}`);
   }, [navigate]);
 
-  // Custom cell renderer that uses the enhancer's column.render()
+  // O(1) column lookup for cell rendering
+  const columnMap = useMemo(() => new Map(result.columns.map((c) => [c.id, c])), [result.columns]);
+
   const renderCell = useCallback((value: unknown, columnId: string, _type: string | undefined, row: Record<string, unknown>) => {
-    const col = result.columns.find((c) => c.id === columnId);
+    const col = columnMap.get(columnId);
     if (col) return col.render(value, row._resource as K8sResource);
     return <>{String(value ?? '')}</>;
-  }, [result.columns]);
+  }, [columnMap]);
 
   const liveIndicator = (
     <button
@@ -212,15 +214,17 @@ function StaticAgentTable({ spec, onAddToView }: { spec: DataTableSpec; onAddToV
     if (gvr && name) navigate(`/r/${gvr}/${ns || '_'}/${name}`);
   }, [navigate]);
 
+  const renderCell = useCallback((value: unknown, columnId: string, columnType: string | undefined, row: Record<string, unknown>) => (
+    <CellValue value={value} columnId={columnId} columnType={columnType} row={row} />
+  ), []);
+
   return (
     <ResourceTable
       title={spec.title}
       description={spec.description}
       columns={spec.columns}
       rows={spec.rows as Array<Record<string, unknown>>}
-      renderCell={(value, columnId, columnType, row) => (
-        <CellValue value={value} columnId={columnId} columnType={columnType} row={row} />
-      )}
+      renderCell={renderCell}
       onRowClick={spec.rows.some((r) => r._gvr) ? handleRowClick : undefined}
       onAddToView={onAddToView}
       spec={spec}

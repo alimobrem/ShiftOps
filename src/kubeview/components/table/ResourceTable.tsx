@@ -10,8 +10,8 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { compareValues } from '../../views/TableView';
 import {
   ArrowUp, ArrowDown, ArrowUpDown, Search, Download,
   Settings2, Eye, EyeOff, Filter, Plus,
@@ -120,12 +120,10 @@ export function ResourceTable({
       result = result.filter((row) => String(row[colId] ?? '').toLowerCase().includes(lower));
     }
     if (sortCol) {
+      const colType = columns.find((c) => c.id === sortCol)?.type;
+      const sortType = colType === 'age' ? 'date' : (colType === 'cpu' || colType === 'memory' || colType === 'progress') ? 'number' : 'string';
       result.sort((a, b) => {
-        const av = a[sortCol] ?? '';
-        const bv = b[sortCol] ?? '';
-        const cmp = typeof av === 'number' && typeof bv === 'number'
-          ? av - bv
-          : String(av).localeCompare(String(bv), undefined, { numeric: true });
+        const cmp = compareValues(a[sortCol], b[sortCol], sortType);
         return sortDir === 'asc' ? cmp : -cmp;
       });
     }
@@ -145,10 +143,12 @@ export function ResourceTable({
         }).join(','),
       );
       const blob = new Blob([header + '\n' + csvRows.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      a.href = url;
       a.download = `${exportTitle}-${date}.csv`;
       a.click();
+      URL.revokeObjectURL(url);
     } else {
       const data = processedRows.map((row) => {
         const obj: Record<string, unknown> = {};
@@ -156,10 +156,12 @@ export function ResourceTable({
         return obj;
       });
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      a.href = url;
       a.download = `${exportTitle}-${date}.json`;
       a.click();
+      URL.revokeObjectURL(url);
     }
   }, [columns, title, processedRows]);
 
@@ -255,7 +257,7 @@ export function ResourceTable({
       )}
 
       {/* Table body */}
-      <div className={cn('overflow-auto', maxHeight && `max-h-[${maxHeight}]`)} role="region" aria-label={title || 'Data table'}>
+      <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined} role="region" aria-label={title || 'Data table'}>
         <table className="w-full text-xs" role="table">
           <thead>
             <tr className="bg-slate-800/30 sticky top-0 z-[1]">
