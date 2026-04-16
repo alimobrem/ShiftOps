@@ -199,6 +199,7 @@ function LiveAgentTable({ spec, onAddToView, refreshInterval }: { spec: DataTabl
       spec={spec}
       headerExtra={liveIndicator}
       footerExtra={footerExtra}
+      showActions
     />
   );
 }
@@ -229,6 +230,7 @@ function StaticAgentTable({ spec, onAddToView }: { spec: DataTableSpec; onAddToV
       onAddToView={onAddToView}
       spec={spec}
       footerExtra={spec.query ? <span className="truncate" title={spec.query}>Query: {spec.query}</span> : undefined}
+      showActions={spec.rows.some((r) => r._gvr)}
     />
   );
 }

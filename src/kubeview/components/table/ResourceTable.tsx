@@ -10,11 +10,12 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { compareValues } from '../../views/TableView';
 import {
   ArrowUp, ArrowDown, ArrowUpDown, Search, Download,
-  Settings2, Eye, EyeOff, Filter, Plus,
+  Settings2, Eye, EyeOff, Filter, Plus, ExternalLink,
 } from 'lucide-react';
 import type { ComponentSpec } from '../../engine/agentComponents';
 
@@ -54,6 +55,8 @@ export interface ResourceTableProps {
   footerExtra?: React.ReactNode;
   /** Total rows before filtering (for "X of Y" display) */
   totalRows?: number;
+  /** Show inline row actions (navigate to detail view). Requires _gvr, name, namespace in rows. */
+  showActions?: boolean;
 }
 
 export function ResourceTable({
@@ -71,7 +74,9 @@ export function ResourceTable({
   headerExtra,
   footerExtra,
   totalRows,
+  showActions,
 }: ResourceTableProps) {
+  const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -278,6 +283,9 @@ export function ResourceTable({
                   </span>
                 </th>
               ))}
+              {showActions && (
+                <th className="px-3 py-1.5 text-left text-slate-400 font-medium whitespace-nowrap select-none bg-slate-800/80 w-16" />
+              )}
             </tr>
           </thead>
           <tbody>
@@ -302,6 +310,11 @@ export function ResourceTable({
                     </button>
                   </td>
                 ))}
+                {showActions && (
+                  <td className="px-3 py-1.5 whitespace-nowrap">
+                    <RowActions row={row} navigate={navigate} />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -347,4 +360,25 @@ export function ResourceTable({
 function DefaultCellValue({ value }: { value: unknown }) {
   if (value == null) return <span className="text-slate-600">-</span>;
   return <>{String(value)}</>;
+}
+
+/** Inline row actions — navigate to resource detail view */
+function RowActions({ row, navigate }: { row: Record<string, unknown>; navigate: (path: string) => void }) {
+  const gvr = row._gvr ? String(row._gvr) : '';
+  const name = String(row.name || row._name || '');
+  const ns = String(row.namespace || row._namespace || '');
+  if (!gvr || !name) return null;
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate(`/r/${gvr}/${ns || '_'}/${name}`);
+      }}
+      className="p-0.5 text-slate-600 hover:text-blue-400 rounded transition-colors"
+      title="Open detail view"
+    >
+      <ExternalLink className="w-3.5 h-3.5" />
+    </button>
+  );
 }
