@@ -3,9 +3,9 @@
  * Lazy-loaded to keep recharts (~150KB) out of the initial bundle.
  */
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Plus, ChevronDown, Radio, Pause, Loader2 } from 'lucide-react';
+import { Plus, ChevronDown, Radio, Pause, Loader2, Settings, X } from 'lucide-react';
 import { useChartLiveData } from '../../hooks/useChartLiveData';
 import {
   LineChart, BarChart, AreaChart, PieChart, ScatterChart, RadarChart, Treemap,
@@ -54,14 +54,34 @@ export default function AgentChart({ spec, onAddToView, refreshInterval }: { spe
   const [chartType, setChartType] = useState<ChartType>(spec.chartType || 'line');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const height = spec.height || 300;
-  const [editingQuery, setEditingQuery] = useState(false);
-  const [queryDraft, setQueryDraft] = useState(spec.query || '');
-  const [activeQuery, setActiveQuery] = useState(spec.query || '');
-  const queryInputRef = useRef<HTMLInputElement>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
-  // Build a spec with the active (possibly edited) query for the live data hook
-  const activeSpec = useMemo(() => activeQuery !== spec.query ? { ...spec, query: activeQuery } : spec, [spec, activeQuery]);
+  // Editable chart properties
+  const [activeQuery, setActiveQuery] = useState(spec.query || '');
+  const [chartTitle, setChartTitle] = useState(spec.title || '');
+  const [chartDesc, setChartDesc] = useState(spec.description || '');
+  const [chartHeight, setChartHeight] = useState(spec.height || 300);
+  const [yAxisLabel, setYAxisLabel] = useState(spec.yAxisLabel || '');
+  const [xAxisLabel, setXAxisLabel] = useState(spec.xAxisLabel || '');
+  const [timeRange, setTimeRange] = useState(spec.timeRange || '1h');
+  const [showLegend, setShowLegend] = useState(true);
+  const [seriesColors, setSeriesColors] = useState<Record<string, string>>(() => {
+    const colors: Record<string, string> = {};
+    for (const s of spec.series || []) {
+      if (s.color) colors[s.label] = s.color;
+    }
+    return colors;
+  });
+
+  const height = chartHeight;
+  const isEdited = activeQuery !== (spec.query || '') || chartTitle !== (spec.title || '') || chartHeight !== (spec.height || 300);
+
+  // Build a spec with all active (possibly edited) properties for the live data hook
+  const activeSpec = useMemo(() => ({
+    ...spec,
+    query: activeQuery || spec.query,
+    timeRange: timeRange || spec.timeRange,
+  }), [spec, activeQuery, timeRange]);
 
   // Live data hook — fetches fresh Prometheus data when spec.query is set
   const { series: liveSeries, isLive, isFetching, error: liveError, lastUpdated, isPaused, togglePause } = useChartLiveData(activeSpec, refreshInterval);
@@ -228,14 +248,15 @@ export default function AgentChart({ spec, onAddToView, refreshInterval }: { spe
             <XAxis dataKey="time" tickFormatter={formatTimestamp} stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={{ stroke: '#334155' }} />
             <YAxis stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={{ stroke: '#334155' }}
               tickFormatter={formatYValue}
-              label={spec.yAxisLabel ? { value: spec.yAxisLabel, angle: -90, position: 'insideLeft', style: { fill: '#94a3b8', fontSize: 10 } } : undefined} />
+              label={yAxisLabel ? { value: yAxisLabel, angle: -90, position: 'insideLeft', style: { fill: '#94a3b8', fontSize: 10 } } : undefined} />
+            {xAxisLabel && <XAxis dataKey="time" label={{ value: xAxisLabel, position: 'insideBottom', offset: -5, style: { fill: '#94a3b8', fontSize: 10 } }} hide />}
             <Tooltip
               contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 6, fontSize: 11 }}
               labelFormatter={(label) => typeof label === 'number' ? formatTimestamp(label) : String(label)}
               labelStyle={{ color: '#94a3b8' }} />
-            {liveSeries.length > 1 && liveSeries.length <= 6 && <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />}
+            {showLegend && liveSeries.length > 1 && liveSeries.length <= 6 && <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />}
             {liveSeries.map((s, i) => {
-              const color = s.color || CHART_COLORS[i % CHART_COLORS.length];
+              const color = seriesColors[s.label] || s.color || CHART_COLORS[i % CHART_COLORS.length];
               if (chartType === 'bar') return <Bar key={s.label} dataKey={s.label} fill={color} fillOpacity={0.8} />;
               if (chartType === 'area') return <Area key={s.label} dataKey={s.label} stroke={color} fill={color} fillOpacity={0.15} strokeWidth={1.5} dot={false} />;
               return <Line key={s.label} dataKey={s.label} stroke={color} strokeWidth={1.5} dot={false} />;
@@ -250,8 +271,9 @@ export default function AgentChart({ spec, onAddToView, refreshInterval }: { spe
     <div className="my-2 border border-slate-700 rounded-lg overflow-hidden bg-gradient-to-b from-slate-900/80 to-slate-900/40 min-w-0">
       <div className="px-3 py-1.5 border-b border-slate-700 flex items-center justify-between">
         <div className="truncate flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-300">{spec.title || 'Chart'}</span>
-          {spec.description && <span className="text-[10px] text-slate-500">{spec.description}</span>}
+          <span className="text-xs font-medium text-slate-300">{chartTitle || 'Chart'}</span>
+          {chartDesc && <span className="text-[10px] text-slate-500">{chartDesc}</span>}
+          {isEdited && <span className="text-[10px] text-violet-400">(edited)</span>}
           {/* Live indicator */}
           {spec.query && (
             <button
@@ -314,9 +336,16 @@ export default function AgentChart({ spec, onAddToView, refreshInterval }: { spe
               </div>
             )}
           </div>
+          <button
+            onClick={() => setEditorOpen(true)}
+            className="p-0.5 text-slate-500 hover:text-violet-400 hover:bg-slate-800 rounded transition-colors"
+            title="Edit chart"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
           {onAddToView && (
             <button
-              onClick={() => onAddToView({ ...spec, chartType, query: activeQuery || spec.query })}
+              onClick={() => onAddToView({ ...spec, chartType, query: activeQuery || spec.query, title: chartTitle, description: chartDesc, yAxisLabel, xAxisLabel, height: chartHeight })}
               className="p-0.5 text-slate-500 hover:text-emerald-400 hover:bg-slate-800 rounded transition-colors"
               title="Add to View"
             >
@@ -332,47 +361,228 @@ export default function AgentChart({ spec, onAddToView, refreshInterval }: { spe
         </ResponsiveContainer>
       </div>
 
-      {(spec.query || activeQuery) && (
-        <div className="px-3 py-1 border-t border-slate-700 text-[10px]">
-          {editingQuery ? (
-            <div className="flex items-center gap-1">
-              <span className="text-slate-500 shrink-0">PromQL:</span>
-              <input
-                ref={queryInputRef}
-                value={queryDraft}
-                onChange={(e) => setQueryDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && queryDraft.trim()) {
-                    setActiveQuery(queryDraft.trim());
-                    setEditingQuery(false);
-                  }
-                  if (e.key === 'Escape') {
-                    setQueryDraft(activeQuery);
-                    setEditingQuery(false);
-                  }
-                }}
-                onBlur={() => {
-                  if (queryDraft.trim() && queryDraft.trim() !== activeQuery) {
-                    setActiveQuery(queryDraft.trim());
-                  }
-                  setEditingQuery(false);
-                }}
-                className="flex-1 px-1.5 py-0.5 bg-slate-900 border border-violet-500 rounded text-slate-200 text-[10px] font-mono outline-none"
-                autoFocus
+      {activeQuery && (
+        <button
+          onClick={() => setEditorOpen(true)}
+          className="w-full px-3 py-1 border-t border-slate-700 text-[10px] text-slate-600 hover:text-slate-300 truncate text-left transition-colors"
+          title="Click to edit chart"
+        >
+          PromQL: <span className="font-mono">{activeQuery}</span>
+          {isEdited && <span className="text-violet-400 ml-1">(edited)</span>}
+        </button>
+      )}
+
+      {/* Chart Editor Modal */}
+      {editorOpen && (
+        <ChartEditorModal
+          query={activeQuery}
+          title={chartTitle}
+          description={chartDesc}
+          chartType={chartType}
+          chartHeight={chartHeight}
+          yAxisLabel={yAxisLabel}
+          xAxisLabel={xAxisLabel}
+          timeRange={timeRange}
+          showLegend={showLegend}
+          seriesColors={seriesColors}
+          seriesLabels={liveSeries.map((s) => s.label)}
+          onApply={(edits) => {
+            setActiveQuery(edits.query);
+            setChartTitle(edits.title);
+            setChartDesc(edits.description);
+            setChartType(edits.chartType as ChartType);
+            setChartHeight(edits.chartHeight);
+            setYAxisLabel(edits.yAxisLabel);
+            setXAxisLabel(edits.xAxisLabel);
+            setTimeRange(edits.timeRange);
+            setShowLegend(edits.showLegend);
+            setSeriesColors(edits.seriesColors);
+            setEditorOpen(false);
+          }}
+          onClose={() => setEditorOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Chart Editor Modal */
+interface ChartEditorEdits {
+  query: string;
+  title: string;
+  description: string;
+  chartType: string;
+  chartHeight: number;
+  yAxisLabel: string;
+  xAxisLabel: string;
+  timeRange: string;
+  showLegend: boolean;
+  seriesColors: Record<string, string>;
+}
+
+const TIME_RANGE_OPTIONS = ['5m', '15m', '30m', '1h', '3h', '6h', '12h', '24h', '3d', '7d'];
+
+function ChartEditorModal({
+  query, title, description, chartType, chartHeight, yAxisLabel, xAxisLabel,
+  timeRange, showLegend, seriesColors, seriesLabels, onApply, onClose,
+}: {
+  query: string; title: string; description: string; chartType: string;
+  chartHeight: number; yAxisLabel: string; xAxisLabel: string;
+  timeRange: string; showLegend: boolean; seriesColors: Record<string, string>;
+  seriesLabels: string[];
+  onApply: (edits: ChartEditorEdits) => void;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState<ChartEditorEdits>({
+    query, title, description, chartType, chartHeight, yAxisLabel, xAxisLabel,
+    timeRange, showLegend, seriesColors: { ...seriesColors },
+  });
+
+  const update = <K extends keyof ChartEditorEdits>(key: K, value: ChartEditorEdits[K]) =>
+    setDraft((d) => ({ ...d, [key]: value }));
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  const labelClass = 'text-[11px] text-slate-400 font-medium';
+  const inputClass = 'w-full px-2 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded text-slate-200 placeholder-slate-600 outline-none focus:border-violet-500';
+  const sectionClass = 'space-y-2';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60" />
+      <div
+        className="relative bg-slate-950 border border-slate-700 rounded-lg shadow-2xl w-full max-w-lg max-h-[80vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-slate-950 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-100">Edit Chart</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300"><X className="w-4 h-4" /></button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Data */}
+          <div className={sectionClass}>
+            <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Data</div>
+            <div>
+              <label className={labelClass}>PromQL Query</label>
+              <textarea
+                value={draft.query}
+                onChange={(e) => update('query', e.target.value)}
+                rows={3}
+                className={cn(inputClass, 'font-mono resize-y')}
+                placeholder="rate(container_cpu_usage_seconds_total[5m])"
               />
             </div>
-          ) : (
-            <button
-              onClick={() => { setQueryDraft(activeQuery); setEditingQuery(true); }}
-              className="w-full text-left text-slate-600 hover:text-slate-300 truncate transition-colors cursor-text"
-              title="Click to edit PromQL query"
-            >
-              PromQL: <span className="font-mono">{activeQuery}</span>
-              {activeQuery !== spec.query && <span className="text-violet-400 ml-1">(edited)</span>}
-            </button>
-          )}
+            <div>
+              <label className={labelClass}>Time Range</label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {TIME_RANGE_OPTIONS.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => update('timeRange', t)}
+                    className={cn(
+                      'px-2 py-0.5 text-[10px] rounded border transition-colors',
+                      draft.timeRange === t
+                        ? 'bg-violet-600 border-violet-500 text-white'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200',
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Appearance */}
+          <div className={sectionClass}>
+            <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Appearance</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Title</label>
+                <input value={draft.title} onChange={(e) => update('title', e.target.value)} className={inputClass} placeholder="Chart title" />
+              </div>
+              <div>
+                <label className={labelClass}>Chart Type</label>
+                <select
+                  value={draft.chartType}
+                  onChange={(e) => update('chartType', e.target.value)}
+                  className={inputClass}
+                >
+                  {Object.entries(CHART_TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Description</label>
+              <input value={draft.description} onChange={(e) => update('description', e.target.value)} className={inputClass} placeholder="Optional subtitle" />
+            </div>
+            <div>
+              <label className={labelClass}>Height (px)</label>
+              <input type="number" value={draft.chartHeight} onChange={(e) => update('chartHeight', Math.max(100, Math.min(800, Number(e.target.value) || 300)))} className={cn(inputClass, 'w-24')} />
+            </div>
+          </div>
+
+          {/* Axes */}
+          <div className={sectionClass}>
+            <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Axes</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Y-Axis Label</label>
+                <input value={draft.yAxisLabel} onChange={(e) => update('yAxisLabel', e.target.value)} className={inputClass} placeholder="e.g., CPU cores" />
+              </div>
+              <div>
+                <label className={labelClass}>X-Axis Label</label>
+                <input value={draft.xAxisLabel} onChange={(e) => update('xAxisLabel', e.target.value)} className={inputClass} placeholder="e.g., Time" />
+              </div>
+            </div>
+          </div>
+
+          {/* Legend & Colors */}
+          <div className={sectionClass}>
+            <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Legend & Colors</div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={draft.showLegend} onChange={(e) => update('showLegend', e.target.checked)} className="rounded" />
+              <span className="text-xs text-slate-300">Show legend</span>
+            </label>
+            {seriesLabels.length > 0 && (
+              <div className="space-y-1">
+                {seriesLabels.map((label, i) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={draft.seriesColors[label] || CHART_COLORS[i % CHART_COLORS.length]}
+                      onChange={(e) => update('seriesColors', { ...draft.seriesColors, [label]: e.target.value })}
+                      className="w-6 h-6 rounded border border-slate-700 cursor-pointer bg-transparent"
+                    />
+                    <span className="text-xs text-slate-400 truncate">{label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-slate-950 border-t border-slate-800 px-4 py-3 flex items-center justify-end gap-2">
+          <button onClick={onClose} className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 rounded transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={() => onApply(draft)}
+            className="px-3 py-1.5 text-xs bg-violet-600 hover:bg-violet-500 text-white rounded transition-colors font-medium"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
