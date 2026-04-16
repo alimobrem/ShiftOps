@@ -70,7 +70,7 @@ export function ResourceTable({
   rows,
   maxDefaultCols = 6,
   pageSize = 15,
-  maxHeight = '60vh',
+  maxHeight,
   renderCell,
   onRowClick,
   onAddToView,
