@@ -7,11 +7,11 @@
 
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Network } from 'lucide-react';
-import type { TopologySpec } from '../../engine/agentComponents';
+import { Network, Plus } from 'lucide-react';
+import type { TopologySpec, ComponentSpec } from '../../engine/agentComponents';
 import GraphRenderer, { getKindColor } from '../topology/GraphRenderer';
 
-export default function AgentTopology({ spec }: { spec: TopologySpec }) {
+export default function AgentTopology({ spec, onAddToView }: { spec: TopologySpec; onAddToView?: (spec: ComponentSpec) => void }) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
@@ -47,6 +47,15 @@ export default function AgentTopology({ spec }: { spec: TopologySpec }) {
           <span>{spec.edges.length} relationships</span>
           {healthCounts.error > 0 && <span className="text-red-400">{healthCounts.error} errors</span>}
           {healthCounts.warning > 0 && <span className="text-yellow-400">{healthCounts.warning} warnings</span>}
+          {onAddToView && (
+            <button
+              onClick={() => onAddToView(spec)}
+              className="p-0.5 text-slate-500 hover:text-emerald-400 hover:bg-slate-800 rounded transition-colors"
+              title="Add to View"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

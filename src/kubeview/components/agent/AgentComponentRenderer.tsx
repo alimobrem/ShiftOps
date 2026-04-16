@@ -94,7 +94,7 @@ export function AgentComponentRenderer({ spec, depth = 0, onAddToView, refreshIn
     case 'resource_counts':
       return <AgentResourceCounts spec={spec} />;
     case 'topology':
-      return <AgentTopology spec={spec} />;
+      return <AgentTopology spec={spec} onAddToView={onAddToView} />;
     default:
       // Dynamic rendering for unknown kinds — uses layout templates from component registry
       return <DynamicComponentFallback spec={spec} />;
