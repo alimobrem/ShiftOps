@@ -1,6 +1,6 @@
-import MissionControlView from './MissionControlView';
+import PulseAgentView from './PulseAgentView';
 
-/** @deprecated Use MissionControlView. Kept for backward compatibility. */
+/** @deprecated Use PulseAgentView. Kept for backward compatibility. */
 export default function AgentSettingsView() {
-  return <MissionControlView />;
+  return <PulseAgentView />;
 }

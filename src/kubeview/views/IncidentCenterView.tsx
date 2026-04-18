@@ -96,7 +96,7 @@ export default function IncidentCenterView() {
             <button
               onClick={() => navigate('/agent')}
               className="p-2 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200 transition-colors"
-              title="Mission Control"
+              title="Pulse Agent"
             >
               <Settings className="w-4 h-4" />
             </button>

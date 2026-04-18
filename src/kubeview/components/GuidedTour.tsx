@@ -35,8 +35,8 @@ const TOUR_STEPS: TourStep[] = [
     iconBg: 'bg-blue-500/15',
   },
   {
-    title: 'Trust & Autonomy',
-    description: 'Control what the agent can do automatically in Mission Control. Start at Level 1 (observe only).',
+    title: 'Pulse Agent',
+    description: 'Control what the agent can do automatically in Pulse Agent. Start at Level 1 (observe only).',
     icon: Shield,
     iconColor: 'text-emerald-400',
     iconBg: 'bg-emerald-500/15',

@@ -129,9 +129,9 @@ describe('IncidentCenterView', () => {
     expect(screen.getByText('Disconnected')).toBeDefined();
   });
 
-  it('has Mission Control button linking to /agent', () => {
+  it('has Pulse Agent button linking to /agent', () => {
     renderView();
-    expect(screen.getByTitle('Mission Control')).toBeDefined();
+    expect(screen.getByTitle('Pulse Agent')).toBeDefined();
   });
 
   it('has tablist role for accessibility', () => {
@@ -141,6 +141,6 @@ describe('IncidentCenterView', () => {
 
   it('has settings button linking to agent page', () => {
     renderView();
-    expect(screen.getByTitle('Mission Control')).toBeDefined();
+    expect(screen.getByTitle('Pulse Agent')).toBeDefined();
   });
 });

@@ -150,11 +150,15 @@ export function AnalyticsTab() {
         <p className="text-[11px] text-slate-500 mb-4">Raw tool invocation stats across all agent conversations.</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard label="Total Calls" value={stats.total_calls.toLocaleString()} icon={<Database className="w-4 h-4 text-blue-400" />} />
         <StatCard label="Unique Tools" value={String(stats.unique_tools_used)} icon={<Wrench className="w-4 h-4 text-fuchsia-400" />} />
         <StatCard label="Error Rate" value={`${(stats.error_rate * 100).toFixed(1)}%`} icon={<AlertTriangle className="w-4 h-4 text-red-400" />} />
         <StatCard label="Avg Duration" value={`${stats.avg_duration_ms}ms`} icon={<Clock className="w-4 h-4 text-emerald-400" />} />
+        <StatCard label="Avg Result" value={stats.avg_result_bytes >= 1024 ? `${(stats.avg_result_bytes / 1024).toFixed(1)}KB` : `${stats.avg_result_bytes}B`} icon={<FileText className="w-4 h-4 text-slate-400" />} />
+        {stats.by_status && (
+          <StatCard label="Success" value={`${stats.by_status.success ?? 0} / ${stats.total_calls}`} icon={<Bot className="w-4 h-4 text-emerald-400" />} />
+        )}
       </div>
 
       {/* Top tools + by mode/category/source */}

@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import {
-  HeartPulse, Bell, GitPullRequest, Shield, Activity,
+  HeartPulse, Shield, Activity,
   AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,11 +15,9 @@ import { useK8sListWatch } from '../hooks/useK8sListWatch';
 import { useIncidentFeed } from '../hooks/useIncidentFeed';
 import { ReportTab } from './pulse/ReportTab';
 import { FleetReportTab } from './pulse/FleetReportTab';
-import { OvernightActivityFeed } from './pulse/OvernightActivityFeed';
-import { InsightsRail } from './pulse/InsightsRail';
 import { formatRelativeTime } from '../engine/formatters';
 
-const TopologyMap = lazy(() => import('../components/topology/TopologyMap'));
+const ClusterResourceMap = lazy(() => import('../components/topology/TopologyMap'));
 
 type PostureLevel = 'green' | 'yellow' | 'red';
 
@@ -130,9 +128,8 @@ export default function PulseView() {
   const { data: events = [] } = useK8sListWatch({ apiPath: '/api/v1/events', namespace: nsFilter });
 
   const isLoading = nodesLoading || podsLoading || deploysLoading || pvcsLoading || opsLoading;
-  const { pendingReviews, monitorConnected, activeSkill, monitorEnabled, setMonitorEnabled, triggerScan, findings, lastScanTime } =
+  const { monitorConnected, activeSkill, monitorEnabled, setMonitorEnabled, triggerScan, findings, lastScanTime } =
     useMonitorStore(useShallow((s) => ({
-      pendingReviews: s.pendingActions.length,
       monitorConnected: s.connected,
       activeSkill: s.activeSkill,
       monitorEnabled: s.monitorEnabled,
@@ -204,24 +201,8 @@ export default function PulseView() {
               color={readyNodes === typedNodes.length ? 'emerald' : 'amber'}
               onClick={() => go('/compute', 'Compute')}
             />
-            {incidentCounts.total > 0 && (
-              <StatPill
-                icon={<Bell className="w-3 h-3" />}
-                label={`${incidentCounts.total} incident${incidentCounts.total !== 1 ? 's' : ''}`}
-                color={incidentCounts.critical > 0 ? 'red' : 'amber'}
-                onClick={() => go('/incidents', 'Incidents')}
-              />
-            )}
-            {pendingReviews > 0 && (
-              <StatPill
-                icon={<GitPullRequest className="w-3 h-3" />}
-                label={`${pendingReviews} review${pendingReviews !== 1 ? 's' : ''}`}
-                color="violet"
-                onClick={() => go('/incidents?tab=actions', 'Review Queue')}
-              />
-            )}
             <button
-              onClick={() => go('/agent', 'Mission Control')}
+              onClick={() => go('/agent', 'Pulse Agent')}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 text-xs text-slate-300 hover:bg-slate-700 transition-colors"
             >
               <div className={cn('w-1.5 h-1.5 rounded-full', monitorConnected ? 'bg-emerald-400' : 'bg-slate-600')} />
@@ -244,50 +225,39 @@ export default function PulseView() {
           </div>
         </div>
 
-        {/* ── Two-column: main + rail ── */}
-        <div className="flex gap-5">
-          <div className="flex-1 min-w-0 space-y-5">
-            <Suspense fallback={
-              <div className="h-[420px] bg-slate-900 rounded-lg border border-slate-800 animate-pulse" />
-            }>
-              <TopologyMap
-                nodes={nodes as K8sResource[]}
-                pods={pods as K8sResource[]}
-                operators={operators as K8sResource[]}
-                events={events as K8sResource[]}
-                go={go}
-              />
-            </Suspense>
+        <Suspense fallback={
+          <div className="h-[420px] bg-slate-900 rounded-lg border border-slate-800 animate-pulse" />
+        }>
+          <ClusterResourceMap
+            nodes={nodes as K8sResource[]}
+            pods={pods as K8sResource[]}
+            operators={operators as K8sResource[]}
+            events={events as K8sResource[]}
+            go={go}
+          />
+        </Suspense>
 
-            <OvernightActivityFeed />
-
-            {fleetMode === 'multi' ? (
-              <FleetReportTab />
-            ) : isLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-slate-900 rounded-lg border border-slate-800 p-6 animate-pulse">
-                    <div className="h-4 bg-slate-800 rounded w-1/3 mb-3" />
-                    <div className="h-3 bg-slate-800 rounded w-2/3" />
-                  </div>
-                ))}
+        {fleetMode === 'multi' ? (
+          <FleetReportTab />
+        ) : isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-slate-900 rounded-lg border border-slate-800 p-6 animate-pulse">
+                <div className="h-4 bg-slate-800 rounded w-1/3 mb-3" />
+                <div className="h-3 bg-slate-800 rounded w-2/3" />
               </div>
-            ) : (
-              <ReportTab
-                nodes={nodes as K8sResource[]}
-                allPods={pods as K8sResource[]}
-                deployments={deployments as K8sResource[]}
-                pvcs={pvcs as K8sResource[]}
-                operators={operators as K8sResource[]}
-                go={go}
-              />
-            )}
-
+            ))}
           </div>
-
-          {/* ── Right rail: always visible ── */}
-          <InsightsRail className="w-60 shrink-0 hidden lg:block" onNavigate={go} />
-        </div>
+        ) : (
+          <ReportTab
+            nodes={nodes as K8sResource[]}
+            allPods={pods as K8sResource[]}
+            deployments={deployments as K8sResource[]}
+            pvcs={pvcs as K8sResource[]}
+            operators={operators as K8sResource[]}
+            go={go}
+          />
+        )}
       </div>
     </div>
   );

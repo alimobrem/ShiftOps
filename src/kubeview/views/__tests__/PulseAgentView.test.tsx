@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -53,23 +53,23 @@ function createQueryClient() {
 }
 
 async function renderView() {
-  const MissionControlView = (await import('../MissionControlView')).default;
+  const PulseAgentView = (await import('../PulseAgentView')).default;
   return render(
     <QueryClientProvider client={createQueryClient()}>
-      <MemoryRouter initialEntries={['/agent']}>
-        <MissionControlView />
+      <MemoryRouter initialEntries={['/pulse-agent']}>
+        <PulseAgentView />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
-describe('MissionControlView', () => {
+describe('PulseAgentView', () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
   });
 
-  it('renders page header', async () => {
+  it('renders "Pulse Agent" page header', async () => {
     await renderView();
     expect(screen.getByText('Pulse Agent')).toBeDefined();
   });
@@ -100,23 +100,16 @@ describe('MissionControlView', () => {
     expect(await screen.findByText(/111 tools/)).toBeDefined();
   });
 
+  it('hides version info when not available', async () => {
+    mockAnalytics.fetchAgentVersion.mockResolvedValueOnce(null);
+    await renderView();
+    expect(screen.getByText('Pulse Agent')).toBeDefined();
+    expect(screen.queryByText(/v2\.0\.0/)).toBeNull();
+  });
+
   it('renders capability discovery when recommendations exist', async () => {
     await renderView();
     expect(await screen.findByText('Enable cert scanner')).toBeDefined();
-  });
-
-  it('opens eval drawer when quality card is clicked', async () => {
-    await renderView();
-    const qualityCard = (await screen.findByText('Quality Gate')).closest('[class*="cursor-pointer"]');
-    if (qualityCard) fireEvent.click(qualityCard);
-    expect(await screen.findByText('Quality Gate Details')).toBeDefined();
-  });
-
-  it('opens scanner drawer when coverage card is clicked', async () => {
-    await renderView();
-    const coverageCard = (await screen.findByText('Coverage')).closest('[class*="cursor-pointer"]');
-    if (coverageCard) fireEvent.click(coverageCard);
-    expect(await screen.findByText('Scanner Coverage')).toBeDefined();
   });
 
   it('shows error banner when a query fails', async () => {
@@ -124,20 +117,10 @@ describe('MissionControlView', () => {
     await renderView();
     expect(await screen.findByText(/Some analytics data is unavailable/)).toBeDefined();
   });
-});
 
-describe('AgentSettingsView backward compat', () => {
-  afterEach(cleanup);
-
-  it('renders MissionControlView content', async () => {
-    const AgentSettingsView = (await import('../AgentSettingsView')).default;
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <MemoryRouter initialEntries={['/agent']}>
-          <AgentSettingsView />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    expect(screen.getByText('Pulse Agent')).toBeDefined();
+  it('re-exports MissionControlView as default', async () => {
+    const pulseModule = await import('../PulseAgentView');
+    const mcModule = await import('../MissionControlView');
+    expect(pulseModule.default).toBe(mcModule.default);
   });
 });

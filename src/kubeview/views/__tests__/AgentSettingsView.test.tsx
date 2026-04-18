@@ -62,12 +62,12 @@ function renderView() {
   );
 }
 
-describe('AgentSettingsView (redirects to MissionControl)', () => {
+describe('AgentSettingsView (redirects to PulseAgent)', () => {
   afterEach(cleanup);
 
-  it('renders Mission Control page header', () => {
+  it('renders Pulse Agent page header', () => {
     renderView();
-    expect(screen.getByText('Mission Control')).toBeDefined();
+    expect(screen.getByText('Pulse Agent')).toBeDefined();
   });
 
   it('renders trust level selector', () => {

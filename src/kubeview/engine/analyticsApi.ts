@@ -1,4 +1,4 @@
-/** Typed fetch functions for Mission Control + Toolbox analytics endpoints. */
+/** Typed fetch functions for Pulse Agent analytics endpoints. */
 
 const AGENT_BASE = '/api/agent';
 

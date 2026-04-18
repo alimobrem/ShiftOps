@@ -25,7 +25,7 @@ export const GROUP_ORDER: NavItem['group'][] = ['cluster', 'operations', 'admini
 
 export const NAV_ITEMS: NavItem[] = [
   // Cluster
-  { id: 'pulse', label: 'Cluster Pulse', icon: 'Activity', path: '/pulse', group: 'cluster', subtitle: 'Health overview, topology, insights', keywords: ['health', 'overview', 'pulse', 'dashboard', 'status'], color: 'text-emerald-400' },
+  { id: 'pulse', label: 'Cluster Pulse', icon: 'Activity', path: '/pulse', group: 'cluster', subtitle: 'Cluster health verdict and attention items', keywords: ['health', 'overview', 'pulse', 'dashboard', 'status'], color: 'text-emerald-400' },
   { id: 'workloads', label: 'Workloads', icon: 'Package', path: '/workloads', group: 'cluster', subtitle: 'Pods, deployments, statefulsets, jobs, builds', keywords: ['pods', 'deployments', 'statefulsets', 'daemonsets', 'jobs', 'builds', 'replicasets'], color: 'text-blue-400' },
   { id: 'networking', label: 'Networking', icon: 'Globe', path: '/networking', group: 'cluster', subtitle: 'Services, ingresses, routes, network policies', keywords: ['services', 'routes', 'ingresses', 'network', 'dns', 'endpoints'], color: 'text-cyan-400' },
   { id: 'compute', label: 'Compute', icon: 'Server', path: '/compute', group: 'cluster', subtitle: 'Nodes, machines, machine sets, autoscaling', keywords: ['nodes', 'machines', 'capacity', 'autoscaling', 'cluster'], color: 'text-blue-400' },
@@ -33,10 +33,11 @@ export const NAV_ITEMS: NavItem[] = [
 
   // Operations
   { id: 'incidents', label: 'Incident Center', icon: 'Bell', path: '/incidents', group: 'operations', subtitle: 'Real-time incidents, correlation, auto-remediation', keywords: ['incidents', 'alerts', 'timeline', 'postmortems', 'review', 'queue'], color: 'text-red-400' },
-  { id: 'topology', label: 'Impact Analysis', icon: 'Network', path: '/topology', group: 'operations', subtitle: 'Resource dependency graph, blast radius visualization', keywords: ['topology', 'graph', 'dependencies', 'blast', 'radius', 'impact'], color: 'text-cyan-400' },
+  { id: 'topology', label: 'Impact Analysis', icon: 'Network', path: '/topology', group: 'operations', subtitle: 'Dependency graph and blast radius', keywords: ['topology', 'graph', 'dependencies', 'blast', 'radius', 'impact'], color: 'text-cyan-400' },
   { id: 'security', label: 'Security', icon: 'ShieldCheck', path: '/security', group: 'operations', subtitle: 'Pod security, RBAC analysis, image scanning', keywords: ['security', 'audit', 'sccs', 'rbac', 'network', 'policies', 'access', 'scanning'], color: 'text-red-400' },
   { id: 'gitops', label: 'GitOps', icon: 'GitBranch', path: '/gitops', group: 'operations', subtitle: 'ArgoCD applications, sync status, rollouts', keywords: ['argocd', 'sync', 'drift', 'detection', 'rollouts', 'git'], color: 'text-green-400' },
   { id: 'fleet', label: 'Fleet', icon: 'Layers', path: '/fleet', group: 'operations', subtitle: 'Multi-cluster management, compare, drift detection', keywords: ['multi-cluster', 'fleet', 'comparison', 'health', 'scores'], color: 'text-indigo-400' },
+  { id: 'slo', label: 'Service Levels', icon: 'Activity', path: '/slo', group: 'operations', subtitle: 'SLO burn rates and service health targets', keywords: ['slo', 'service level', 'burn rate', 'error budget', 'availability'], color: 'text-teal-400' },
 
   // Administration
   { id: 'admin', label: 'Administration', icon: 'Settings', path: '/admin', group: 'administration', subtitle: 'Operators, config, updates, snapshots, quotas, certificates', keywords: ['operators', 'config', 'updates', 'quotas', 'certificates', 'crds'], color: 'text-slate-400' },
@@ -44,9 +45,8 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'readiness', label: 'Production Readiness', icon: 'Rocket', path: '/readiness', group: 'administration', subtitle: 'Readiness wizard — security, reliability, observability gates', keywords: ['readiness', 'wizard', 'reliability', 'observability', 'gates', 'production'], color: 'text-amber-400' },
 
   // Agent
-  { id: 'agent', label: 'Mission Control', icon: 'Bot', path: '/agent', group: 'agent', subtitle: 'Agent policy, health, accuracy, capability discovery', keywords: ['agent', 'policy', 'accuracy', 'capability', 'mission', 'control'], color: 'text-violet-400' },
+  { id: 'agent', label: 'Pulse Agent', icon: 'Bot', path: '/agent', group: 'agent', subtitle: 'Configure, monitor, and understand the AI assistant', keywords: ['agent', 'ai', 'trust', 'skills', 'tools', 'analytics', 'memory', 'mcp'], color: 'text-violet-400' },
   { id: 'views', label: 'Custom Views', icon: 'LayoutDashboard', path: '/views', group: 'agent', subtitle: 'AI-generated dashboards — manage, share, version history', keywords: ['views', 'dashboards', 'custom', 'ai', 'generated', 'share'], color: 'text-emerald-400' },
-  { id: 'toolbox', label: 'Toolbox', icon: 'Wrench', path: '/toolbox', group: 'agent', subtitle: 'Tools, skills, connections, and analytics', keywords: ['tools', 'skills', 'connections', 'analytics', 'mcp'], color: 'text-fuchsia-400' },
 ];
 
 /** @deprecated Use NAV_ITEMS directly */

@@ -11,18 +11,17 @@ import {
   fetchRecommendations,
   fetchReadinessSummary,
   fetchCapabilities,
-  fetchAgentVersion,
   fetchAgentHealth,
   type AgentHealthStatus,
-} from '../engine/analyticsApi';
-import { fetchAgentEvalStatus } from '../engine/evalStatus';
-import { TrustPolicy } from './mission-control/TrustPolicy';
-import { AgentHealth } from './mission-control/AgentHealth';
-import { AgentAccuracy } from './mission-control/AgentAccuracy';
-import { CapabilityDiscovery } from './mission-control/CapabilityDiscovery';
-import { ScannerDrawer } from './mission-control/ScannerDrawer';
-import { EvalDrawer } from './mission-control/EvalDrawer';
-import { MemoryDrawer } from './mission-control/MemoryDrawer';
+} from '../../engine/analyticsApi';
+import { fetchAgentEvalStatus } from '../../engine/evalStatus';
+import { TrustPolicy } from '../mission-control/TrustPolicy';
+import { AgentHealth } from '../mission-control/AgentHealth';
+import { AgentAccuracy } from '../mission-control/AgentAccuracy';
+import { CapabilityDiscovery } from '../mission-control/CapabilityDiscovery';
+import { ScannerDrawer } from '../mission-control/ScannerDrawer';
+import { EvalDrawer } from '../mission-control/EvalDrawer';
+import { MemoryDrawer } from '../mission-control/MemoryDrawer';
 
 const KPI_EXPLANATIONS: Record<string, string> = {
   mttd: 'Mean Time to Detect — how quickly issues are found. Target: <5min. If failing, check scanner interval or add more scanners.',
@@ -37,7 +36,7 @@ const KPI_EXPLANATIONS: Record<string, string> = {
   routing_accuracy: 'ORCA routing accuracy — how often the right skill handles the query.',
 };
 
-export default function MissionControlView() {
+export function OverviewTab() {
   const [drawerOpen, setDrawerOpen] = useState<'scanner' | 'eval' | 'memory' | null>(null);
 
   const evalQ = useQuery({
@@ -94,12 +93,6 @@ export default function MissionControlView() {
     staleTime: 60_000,
   });
 
-  const versionQ = useQuery({
-    queryKey: ['agent', 'version'],
-    queryFn: fetchAgentVersion,
-    staleTime: 5 * 60_000,
-  });
-
   const kpiQ = useQuery({
     queryKey: ['agent', 'kpi'],
     queryFn: async () => {
@@ -121,18 +114,8 @@ export default function MissionControlView() {
   const anyLoading = dataQueries.every((q) => q.isLoading);
 
   return (
-    <div className="h-full overflow-auto bg-slate-950 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <Bot className="w-6 h-6 text-violet-400" />
-          <h1 className="text-lg font-semibold text-slate-100">Pulse Agent</h1>
-          {versionQ.data && (
-            <span className="text-xs text-slate-500">
-              v{versionQ.data.agent} &middot; Protocol v{versionQ.data.protocol} &middot; {versionQ.data.tools} tools
-            </span>
-          )}
-        </div>
-
+    <>
+      <div className="space-y-6">
         {/* KPI Dashboard */}
         {kpiQ.data?.kpis && (
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
@@ -184,7 +167,6 @@ export default function MissionControlView() {
 
         {healthQ.data && <AgentHealthCard health={healthQ.data} />}
 
-        {/* Agent Intelligence Summary */}
         <AgentIntelligenceCard />
 
         <TrustPolicy
@@ -224,7 +206,7 @@ export default function MissionControlView() {
       {drawerOpen === 'scanner' && <ScannerDrawer coverage={coverageQ.data ?? null} onClose={() => setDrawerOpen(null)} />}
       {drawerOpen === 'eval' && <EvalDrawer evalStatus={evalQ.data} onClose={() => setDrawerOpen(null)} />}
       {drawerOpen === 'memory' && <MemoryDrawer onClose={() => setDrawerOpen(null)} />}
-    </div>
+    </>
   );
 }
 
@@ -243,7 +225,6 @@ function AgentHealthCard({ health }: { health: AgentHealthStatus }) {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-lg px-4 py-3">
       <div className="flex items-center flex-wrap gap-x-6 gap-y-2 text-xs">
-        {/* Circuit breaker */}
         <div className="flex items-center gap-2">
           <span className={cn('inline-block w-2 h-2 rounded-full', cbColor.dot)} />
           <span className="text-slate-500">Circuit Breaker</span>
@@ -252,7 +233,6 @@ function AgentHealthCard({ health }: { health: AgentHealthStatus }) {
           </span>
         </div>
 
-        {/* Error count */}
         <div className="flex items-center gap-2">
           <AlertOctagon className={cn('w-3.5 h-3.5', hasErrors ? 'text-amber-400' : 'text-slate-600')} />
           <span className="text-slate-500">Errors</span>
@@ -261,14 +241,12 @@ function AgentHealthCard({ health }: { health: AgentHealthStatus }) {
           </span>
         </div>
 
-        {/* Active investigations */}
         <div className="flex items-center gap-2">
           <Search className="w-3.5 h-3.5 text-slate-500" />
           <span className="text-slate-500">Investigations</span>
           <span className="font-medium text-slate-300">{investigationCount}</span>
         </div>
 
-        {/* Autofix paused */}
         {health.autofix_paused && (
           <div className="flex items-center gap-1.5 text-amber-400">
             <PauseCircle className="w-3.5 h-3.5" />

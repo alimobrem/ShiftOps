@@ -18,11 +18,10 @@ const FleetAlertsView = lazy(() => import('../views/fleet/FleetAlertsView'));
 const DriftDetectorView = lazy(() => import('../views/fleet/DriftDetectorView').then(m => ({ default: m.DriftDetectorView })));
 const IncidentCenterView = lazy(() => import('../views/IncidentCenterView'));
 const OnboardingView = lazy(() => import('../views/OnboardingView'));
-const MissionControlView = lazy(() => import('../views/MissionControlView'));
+const PulseAgentView = lazy(() => import('../views/PulseAgentView'));
 const ViewsManagement = lazy(() => import('../views/ViewsManagement'));
-// ToolsView deleted — /tools redirects to /toolbox
 const AdminExtensionsView = lazy(() => import('../views/AdminExtensionsView'));
-const ToolboxView = lazy(() => import('../views/ToolboxView'));
+const SloView = lazy(() => import('../views/SloView'));
 const TopologyView = lazy(() => import('../views/TopologyView'));
 
 function LoadingFallback() {
@@ -77,13 +76,14 @@ export function domainRoutes() {
       <Route path="readiness" element={<Lazy><OnboardingView /></Lazy>} />
       <Route path="onboarding" element={<Navigate to="/readiness" replace />} />
       <Route path="reviews" element={<Navigate to="/incidents?tab=actions" replace />} />
-      <Route path="memory" element={<Navigate to="/agent" replace />} />
+      <Route path="memory" element={<Navigate to="/agent?tab=memory" replace />} />
       <Route path="views" element={<Lazy><ViewsManagement /></Lazy>} />
-      <Route path="agent" element={<Lazy><MissionControlView /></Lazy>} />
-      <Route path="toolbox" element={<Lazy><ToolboxView /></Lazy>} />
+      <Route path="agent" element={<Lazy><PulseAgentView /></Lazy>} />
+      <Route path="toolbox" element={<Navigate to="/agent?tab=tools" replace />} />
+      <Route path="slo" element={<Lazy><SloView /></Lazy>} />
       <Route path="topology" element={<Lazy><TopologyView /></Lazy>} />
-      <Route path="tools" element={<Navigate to="/toolbox" replace />} />
-      <Route path="extensions" element={<Navigate to="/toolbox?tab=skills" replace />} />
+      <Route path="tools" element={<Navigate to="/agent?tab=tools" replace />} />
+      <Route path="extensions" element={<Navigate to="/agent?tab=skills" replace />} />
     </>
   );
 }

@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('@/lib/utils', () => ({ cn: (...args: any[]) => args.filter(Boolean).join(' ') }));
 
-vi.mock('../../store/trustStore', () => ({
+vi.mock('../../../store/trustStore', () => ({
   useTrustStore: Object.assign(
     (selector: any) => selector({
       trustLevel: 2,
@@ -22,7 +22,7 @@ vi.mock('../../store/trustStore', () => ({
   TRUST_DESCRIPTIONS: { 0: 'Observe', 1: 'Confirm', 2: 'Batch', 3: 'Bounded', 4: 'Autonomous' },
 }));
 
-vi.mock('../../store/monitorStore', () => ({
+vi.mock('../../../store/monitorStore', () => ({
   useMonitorStore: Object.assign(
     (selector: any) => selector({ connected: true, findings: [] }),
     { getState: () => ({ findings: [] }) },
@@ -38,13 +38,12 @@ const mockAnalytics = {
   fetchRecommendations: vi.fn().mockResolvedValue({ recommendations: [{ type: 'scanner', title: 'Enable cert scanner', description: 'Detect expiring certs', action: { kind: 'enable_scanner', scanner: 'certs' } }] }),
   fetchReadinessSummary: vi.fn().mockResolvedValue({ total_gates: 30, passed: 28, failed: 1, attention: 1, pass_rate: 0.93, attention_items: [] }),
   fetchCapabilities: vi.fn().mockResolvedValue({ max_trust_level: 4 }),
-  fetchAgentVersion: vi.fn().mockResolvedValue({ agent: '2.0.0', protocol: 2, tools: 111 }),
   fetchAgentHealth: vi.fn().mockResolvedValue({ status: 'ok', circuit_breaker: { state: 'closed', failure_count: 0, recovery_timeout: 60 }, errors: { total: 0, by_category: {}, recent: [] }, investigations: {}, autofix_paused: false }),
 };
 
-vi.mock('../../engine/analyticsApi', () => mockAnalytics);
+vi.mock('../../../engine/analyticsApi', () => mockAnalytics);
 
-vi.mock('../../engine/evalStatus', () => ({
+vi.mock('../../../engine/evalStatus', () => ({
   fetchAgentEvalStatus: vi.fn().mockResolvedValue({ quality_gate_passed: true, release: { average_overall: 0.85, dimension_averages: { safety: 0.9, relevance: 0.8 }, blocker_counts: { policy_violation: 0, hallucinated_tool: 0 }, gate_passed: true, scenario_count: 20 } }),
 }));
 
@@ -53,25 +52,20 @@ function createQueryClient() {
 }
 
 async function renderView() {
-  const MissionControlView = (await import('../MissionControlView')).default;
+  const { OverviewTab } = await import('../OverviewTab');
   return render(
     <QueryClientProvider client={createQueryClient()}>
       <MemoryRouter initialEntries={['/agent']}>
-        <MissionControlView />
+        <OverviewTab />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
-describe('MissionControlView', () => {
+describe('OverviewTab', () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
-  });
-
-  it('renders page header', async () => {
-    await renderView();
-    expect(screen.getByText('Pulse Agent')).toBeDefined();
   });
 
   it('renders trust level selector', async () => {
@@ -89,34 +83,9 @@ describe('MissionControlView', () => {
     expect(await screen.findByText('Outcomes')).toBeDefined();
   });
 
-  it('renders agent accuracy section', async () => {
+  it('renders agent health card when data available', async () => {
     await renderView();
-    expect(await screen.findByText('Agent Accuracy')).toBeDefined();
-  });
-
-  it('displays version info when available', async () => {
-    await renderView();
-    expect(await screen.findByText(/v2\.0\.0/)).toBeDefined();
-    expect(await screen.findByText(/111 tools/)).toBeDefined();
-  });
-
-  it('renders capability discovery when recommendations exist', async () => {
-    await renderView();
-    expect(await screen.findByText('Enable cert scanner')).toBeDefined();
-  });
-
-  it('opens eval drawer when quality card is clicked', async () => {
-    await renderView();
-    const qualityCard = (await screen.findByText('Quality Gate')).closest('[class*="cursor-pointer"]');
-    if (qualityCard) fireEvent.click(qualityCard);
-    expect(await screen.findByText('Quality Gate Details')).toBeDefined();
-  });
-
-  it('opens scanner drawer when coverage card is clicked', async () => {
-    await renderView();
-    const coverageCard = (await screen.findByText('Coverage')).closest('[class*="cursor-pointer"]');
-    if (coverageCard) fireEvent.click(coverageCard);
-    expect(await screen.findByText('Scanner Coverage')).toBeDefined();
+    expect(await screen.findByText('Circuit Breaker')).toBeDefined();
   });
 
   it('shows error banner when a query fails', async () => {
@@ -124,20 +93,9 @@ describe('MissionControlView', () => {
     await renderView();
     expect(await screen.findByText(/Some analytics data is unavailable/)).toBeDefined();
   });
-});
 
-describe('AgentSettingsView backward compat', () => {
-  afterEach(cleanup);
-
-  it('renders MissionControlView content', async () => {
-    const AgentSettingsView = (await import('../AgentSettingsView')).default;
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <MemoryRouter initialEntries={['/agent']}>
-          <AgentSettingsView />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    expect(screen.getByText('Pulse Agent')).toBeDefined();
+  it('renders capability discovery when recommendations exist', async () => {
+    await renderView();
+    expect(await screen.findByText('Enable cert scanner')).toBeDefined();
   });
 });
