@@ -55,7 +55,7 @@ export function Shell() {
     })));
 
   return (
-    <div className="flex h-screen flex-col bg-slate-900 text-slate-100">
+    <div className="openshiftpulse flex h-screen flex-col bg-slate-900 text-slate-100">
       {/* Session expired modal */}
       {sessionExpired && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">

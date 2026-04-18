@@ -214,7 +214,7 @@ describe('OpenShift Pulse ResourceBrowser', () => {
     const { container } = renderBrowser();
     const sidebar = container.querySelector('.fixed.flex.flex-col');
     expect(sidebar).not.toBeNull();
-    const scrollBody = sidebar!.querySelector('.flex-1.overflow-auto.thin-scrollbar');
+    const scrollBody = sidebar!.querySelector('.flex-1.overflow-auto');
     expect(scrollBody).not.toBeNull();
   });
 });

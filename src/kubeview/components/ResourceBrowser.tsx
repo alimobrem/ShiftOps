@@ -138,7 +138,7 @@ export function ResourceBrowser() {
         </div>
 
         {/* Scrollable body: views + dashboards + resource groups */}
-        <div className="flex-1 overflow-auto thin-scrollbar">
+        <div className="flex-1 min-h-0 overflow-auto">
           {/* Views section — derived from canonical navRegistry */}
           <div className="border-b border-slate-700 p-3 space-y-3">
             {getNavItemsByGroup().map((section) => (

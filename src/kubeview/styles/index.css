@@ -87,38 +87,17 @@
   overflow: hidden;
 }
 
-/* Scrollbar styling — thin violet globally */
-.openshiftpulse ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
+/* Scrollbar — 4px violet, always visible.
+   Uses ONLY ::-webkit-scrollbar (Chrome/Safari/Edge).
+   Do NOT add scrollbar-color — Chrome 121+ disables ::-webkit-scrollbar when it is set. */
+.openshiftpulse ::-webkit-scrollbar { width: 6px; height: 6px; }
+.openshiftpulse ::-webkit-scrollbar-track { background: rgba(30, 41, 59, 0.5); border-radius: 3px; }
+.openshiftpulse ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.7); border-radius: 3px; }
+.openshiftpulse ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.9); }
 
 /* Hide scrollbar on tab bar */
-.hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
-
-/* Thin violet scrollbar for sidebar and panels */
-.openshiftpulse .thin-scrollbar { scrollbar-width: thin; scrollbar-color: transparent transparent; }
-.openshiftpulse .thin-scrollbar:hover { scrollbar-color: rgba(139, 92, 246, 0.4) transparent; }
-.openshiftpulse .thin-scrollbar::-webkit-scrollbar { width: 4px; }
-.openshiftpulse .thin-scrollbar::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; }
-.openshiftpulse .thin-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.4); }
-.openshiftpulse .thin-scrollbar::-webkit-scrollbar-thumb:active { background: rgba(139, 92, 246, 0.6); }
-
-.openshiftpulse ::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.openshiftpulse { scrollbar-width: thin; scrollbar-color: rgba(139, 92, 246, 0.5) transparent; }
-
-.openshiftpulse ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.5);
-  border-radius: 2px;
-}
-
-.openshiftpulse ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.7);
-}
+.hide-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Micro-animations */
 .openshiftpulse button {
