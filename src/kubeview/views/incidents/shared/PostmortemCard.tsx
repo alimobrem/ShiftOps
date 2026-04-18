@@ -1,15 +1,14 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
 import {
   FileText, ChevronDown, ChevronUp, AlertTriangle, CheckCircle,
-  Target, Clock, Shield, Activity,
+  Target, Clock, Shield, Activity, Copy, Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Card } from '../../components/primitives/Card';
-import { EmptyState } from '../../components/primitives/EmptyState';
-import { formatRelativeTime } from '../../engine/formatters';
+import { Card } from '../../../components/primitives/Card';
+import { formatRelativeTime } from '../../../engine/formatters';
+import { useUIStore } from '../../../store/uiStore';
 
-interface Postmortem {
+export interface Postmortem {
   id: string;
   incident_type: string;
   plan_id: string;
@@ -24,12 +23,6 @@ interface Postmortem {
   generated_at: number;
 }
 
-async function fetchPostmortems(): Promise<{ postmortems: Postmortem[]; total: number }> {
-  const res = await fetch('/api/agent/postmortems');
-  if (!res.ok) return { postmortems: [], total: 0 };
-  return res.json();
-}
-
 const INCIDENT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   crashloop: AlertTriangle,
   oom: Activity,
@@ -37,48 +30,51 @@ const INCIDENT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: stri
   node: Target,
 };
 
-export function PostmortemsTab() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['postmortems'],
-    queryFn: fetchPostmortems,
-    refetchInterval: 60_000,
-  });
-
-  const postmortems = data?.postmortems ?? [];
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-48">
-        <span className="text-slate-500 text-sm">Loading postmortems...</span>
-      </div>
-    );
-  }
-
-  if (postmortems.length === 0) {
-    return (
-      <EmptyState
-        icon={<FileText className="w-8 h-8 text-slate-500" />}
-        title="No postmortems yet"
-        description="Postmortems are auto-generated after investigation plans complete. They will appear here as the agent resolves incidents."
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <p className="text-xs text-slate-500">
-        Auto-generated after each investigation. Includes timeline, root cause analysis, and prevention recommendations.
-      </p>
-      {postmortems.map((pm) => (
-        <PostmortemCard key={pm.id} postmortem={pm} />
-      ))}
-    </div>
-  );
-}
-
-function PostmortemCard({ postmortem }: { postmortem: Postmortem }) {
+export function PostmortemCard({
+  postmortem,
+  onInvestigate,
+}: {
+  postmortem: Postmortem;
+  onInvestigate?: (query: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const IconComponent = INCIDENT_TYPE_ICONS[postmortem.incident_type] || FileText;
+
+  const handleCopyMarkdown = () => {
+    const md = [
+      `# Postmortem: ${postmortem.incident_type}`,
+      `**Plan:** ${postmortem.plan_id}`,
+      `**Confidence:** ${Math.round(postmortem.confidence * 100)}%`,
+      '',
+      '## Timeline',
+      postmortem.timeline || 'N/A',
+      '',
+      '## Root Cause',
+      postmortem.root_cause || 'N/A',
+      '',
+      '## Contributing Factors',
+      ...postmortem.contributing_factors.map((f) => `- ${f}`),
+      '',
+      '## Impact / Blast Radius',
+      ...postmortem.blast_radius.map((r) => `- \`${r}\``),
+      '',
+      '## Actions Taken',
+      ...postmortem.actions_taken.map((a) => `- ${a}`),
+      '',
+      '## Prevention Recommendations',
+      ...postmortem.prevention.map((p) => `- ${p}`),
+      '',
+      '## Metrics Impact',
+      postmortem.metrics_impact || 'N/A',
+    ].join('\n');
+    navigator.clipboard.writeText(md);
+    useUIStore.getState().addToast({ type: 'success', title: 'Copied postmortem as Markdown' });
+  };
+
+  const handleInvestigate = () => {
+    const query = `Investigate further: the postmortem for ${postmortem.incident_type} (plan ${postmortem.plan_id}) identified root cause "${postmortem.root_cause}". What else should we check or prevent?`;
+    onInvestigate?.(query);
+  };
 
   return (
     <Card>
@@ -118,21 +114,38 @@ function PostmortemCard({ postmortem }: { postmortem: Postmortem }) {
       </button>
       {expanded && (
         <div className="px-4 pb-4 border-t border-slate-800 pt-3 space-y-4">
-          {/* Timeline */}
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyMarkdown}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded transition-colors"
+            >
+              <Copy className="w-3 h-3" />
+              Copy as Markdown
+            </button>
+            {onInvestigate && (
+              <button
+                onClick={handleInvestigate}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 rounded transition-colors"
+              >
+                <Bot className="w-3 h-3" />
+                Investigate Further
+              </button>
+            )}
+          </div>
+
           {postmortem.timeline && (
             <Section title="Timeline" icon={Clock}>
               <p className="text-xs text-slate-300 whitespace-pre-wrap">{postmortem.timeline}</p>
             </Section>
           )}
 
-          {/* Root Cause */}
           {postmortem.root_cause && (
             <Section title="Root Cause" icon={Target}>
               <p className="text-xs text-slate-300 whitespace-pre-wrap">{postmortem.root_cause}</p>
             </Section>
           )}
 
-          {/* Contributing Factors */}
           {postmortem.contributing_factors.length > 0 && (
             <Section title="Contributing Factors" icon={AlertTriangle}>
               <ul className="space-y-1">
@@ -146,7 +159,6 @@ function PostmortemCard({ postmortem }: { postmortem: Postmortem }) {
             </Section>
           )}
 
-          {/* Blast Radius */}
           {postmortem.blast_radius.length > 0 && (
             <Section title="Impact / Blast Radius" icon={Activity}>
               <div className="flex flex-wrap gap-1">
@@ -159,7 +171,6 @@ function PostmortemCard({ postmortem }: { postmortem: Postmortem }) {
             </Section>
           )}
 
-          {/* Actions Taken */}
           {postmortem.actions_taken.length > 0 && (
             <Section title="Actions Taken" icon={CheckCircle}>
               <ul className="space-y-1">
@@ -173,7 +184,6 @@ function PostmortemCard({ postmortem }: { postmortem: Postmortem }) {
             </Section>
           )}
 
-          {/* Prevention */}
           {postmortem.prevention.length > 0 && (
             <Section title="Prevention Recommendations" icon={Shield}>
               <ul className="space-y-1">
@@ -187,7 +197,6 @@ function PostmortemCard({ postmortem }: { postmortem: Postmortem }) {
             </Section>
           )}
 
-          {/* Metrics Impact */}
           {postmortem.metrics_impact && (
             <Section title="Metrics Impact" icon={Activity}>
               <p className="text-xs text-slate-400">{postmortem.metrics_impact}</p>

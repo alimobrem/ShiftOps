@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState } from 'react';
 import {
-  CheckCircle, XCircle, Clock, Play, Search, RotateCcw, ArrowUp,
+  CheckCircle, XCircle, Clock, Search, Eye, AlertTriangle, Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '../../engine/formatters';
@@ -8,9 +8,7 @@ import { Card } from '../../components/primitives/Card';
 import { EmptyState } from '../../components/primitives/EmptyState';
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog';
 import { useMonitorStore } from '../../store/monitorStore';
-import { requestRollback } from '../../engine/fixHistory';
 import type { ActionReport } from '../../engine/monitorClient';
-import { fetchResolutions, type ResolutionRecord } from '../../engine/analyticsApi';
 
 const STATUS_COLORS: Record<string, string> = {
   proposed: 'bg-blue-900/50 text-blue-300',
@@ -20,10 +18,24 @@ const STATUS_COLORS: Record<string, string> = {
   rolled_back: 'bg-slate-700 text-slate-300',
 };
 
+interface SimulationResult {
+  tool: string;
+  risk: string;
+  description: string;
+  reversible: boolean;
+  estimatedDuration: string;
+  fixBlastRadius?: Array<{ id: string; kind: string; name: string; namespace: string }>;
+  fixUpstreamDeps?: Array<{ id: string; kind: string; name: string; namespace: string }>;
+}
+
+const RISK_COLORS: Record<string, string> = {
+  high: 'bg-red-900/50 text-red-300',
+  medium: 'bg-amber-900/50 text-amber-300',
+  low: 'bg-emerald-900/50 text-emerald-300',
+};
 
 export function ActionsTab() {
   const pendingActions = useMonitorStore((s) => s.pendingActions);
-  const recentActions = useMonitorStore((s) => s.recentActions);
   const approveAction = useMonitorStore((s) => s.approveAction);
   const rejectAction = useMonitorStore((s) => s.rejectAction);
 
@@ -36,25 +48,18 @@ export function ActionsTab() {
     const fn = action === 'approve' ? approveAction : rejectAction;
     for (const a of pendingActions) {
       fn(a.id);
-      await new Promise((r) => setTimeout(r, 100)); // throttle to avoid flooding WS
+      await new Promise((r) => setTimeout(r, 100));
     }
     setBulkProcessing(false);
     setConfirmBulk(null);
   };
 
-  const filteredRecent = useMemo(() => {
-    const sorted = [...recentActions].reverse();
-    if (!searchQuery) return sorted;
-    const q = searchQuery.toLowerCase();
-    return sorted.filter(
-      (a) =>
-        a.tool.toLowerCase().includes(q) ||
-        (a.reasoning || '').toLowerCase().includes(q),
-    );
-  }, [recentActions, searchQuery]);
-
-  const hasPending = pendingActions.length > 0;
-  const hasRecent = filteredRecent.length > 0;
+  const filteredPending = searchQuery
+    ? pendingActions.filter((a) => {
+        const q = searchQuery.toLowerCase();
+        return a.tool.toLowerCase().includes(q) || (a.reasoning || '').toLowerCase().includes(q);
+      })
+    : pendingActions;
 
   return (
     <div className="space-y-6">
@@ -65,7 +70,7 @@ export function ActionsTab() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search actions..."
+          placeholder="Search pending actions..."
           className="w-full pl-9 pr-3 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
       </div>
@@ -88,7 +93,7 @@ export function ActionsTab() {
             </div>
           )}
         </div>
-        {!hasPending ? (
+        {filteredPending.length === 0 ? (
           <EmptyState
             icon={<CheckCircle className="w-8 h-8 text-green-400" />}
             title="No pending actions"
@@ -96,7 +101,7 @@ export function ActionsTab() {
             className="py-8"
           />
         ) : (
-          pendingActions.map((action) => (
+          filteredPending.map((action) => (
             <PendingActionCard
               key={action.id}
               action={action}
@@ -106,47 +111,6 @@ export function ActionsTab() {
           ))
         )}
       </div>
-
-      {/* Recent actions */}
-      <Card>
-        <div className="px-4 py-3 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-            <Play className="w-4 h-4 text-violet-400" />
-            Recent Actions ({recentActions.length})
-          </h2>
-        </div>
-        {!hasRecent ? (
-          <EmptyState
-            icon={<Clock className="w-8 h-8" />}
-            title="No recent actions"
-            description="Executed actions will appear here."
-            className="py-8"
-          />
-        ) : (
-          <div className="divide-y divide-slate-800">
-            {filteredRecent.map((action) => (
-              <RecentActionCard
-                key={action.id}
-                action={action}
-              />
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* Resolution History */}
-      <Card>
-        <div className="px-4 py-3 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-400" />
-            Resolution History
-          </h2>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            Every auto-fix outcome — whether the fix resolved the issue, how long it took, and what was done.
-          </p>
-        </div>
-        <ResolutionHistoryList />
-      </Card>
 
       {/* Bulk action confirmation */}
       <ConfirmDialog
@@ -163,14 +127,18 @@ export function ActionsTab() {
   );
 }
 
-function ActionCardHeader({ action, statusOverride }: { action: ActionReport; statusOverride?: string }) {
-  const status = statusOverride || action.status;
+function ActionCardHeader({ action }: { action: ActionReport }) {
   return (
     <div className="flex items-center gap-2 mb-1 flex-wrap">
       <span className="text-sm font-medium text-slate-200 font-mono">{action.tool}</span>
-      <span className={cn('text-xs px-1.5 py-0.5 rounded', STATUS_COLORS[status])}>
-        {status}
+      <span className={cn('text-xs px-1.5 py-0.5 rounded', STATUS_COLORS[action.status])}>
+        {action.status}
       </span>
+      {action.causeCategory && (
+        <span className="text-xs px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">
+          {action.causeCategory}
+        </span>
+      )}
       {action.confidence != null && (
         <span
           className={cn(
@@ -200,11 +168,35 @@ function PendingActionCard({
   onReject: () => void;
 }) {
   const [confirmApprove, setConfirmApprove] = useState(false);
+  const [confirmReject, setConfirmReject] = useState(false);
+  const [simulation, setSimulation] = useState<SimulationResult | null>(null);
+  const [simLoading, setSimLoading] = useState(false);
 
-  // Derive resource from beforeState or tool name
   const resource = action.beforeState
     ? action.beforeState.split('\n')[0].slice(0, 60)
     : action.tool;
+
+  const handlePreviewImpact = async () => {
+    if (simulation) { setSimulation(null); return; }
+    setSimLoading(true);
+    try {
+      const res = await fetch('/api/agent/monitor/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool: action.tool,
+          input: action.input,
+        }),
+      });
+      if (res.ok) {
+        setSimulation(await res.json());
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setSimLoading(false);
+    }
+  };
 
   return (
     <Card>
@@ -212,8 +204,16 @@ function PendingActionCard({
         <Clock className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <ActionCardHeader action={action} />
+          {action.fixDescription && (
+            <p className="text-xs text-slate-300 mb-1">{action.fixDescription}</p>
+          )}
           {action.reasoning && (
             <p className="text-xs text-slate-400 mb-2">{action.reasoning}</p>
+          )}
+          {action.fixStrategy && (
+            <div className="text-xs text-slate-500 mb-2">
+              Strategy: <span className="text-slate-400">{action.fixStrategy}</span>
+            </div>
           )}
           {action.beforeState && (
             <pre className="text-xs text-slate-500 bg-slate-800 rounded p-2 mb-2 overflow-x-auto font-mono max-h-24">
@@ -221,8 +221,62 @@ function PendingActionCard({
             </pre>
           )}
           <span className="text-xs text-slate-500">{formatRelativeTime(action.timestamp)}</span>
+
+          {/* Simulation preview */}
+          {simulation && (
+            <div className="mt-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', RISK_COLORS[simulation.risk] || 'bg-slate-800 text-slate-400')}>
+                  {simulation.risk} risk
+                </span>
+                <span className={cn('text-xs px-1.5 py-0.5 rounded', simulation.reversible ? 'bg-emerald-900/40 text-emerald-300' : 'bg-red-900/40 text-red-300')}>
+                  {simulation.reversible ? 'Reversible' : 'Irreversible'}
+                </span>
+                <span className="text-xs text-slate-500">{simulation.estimatedDuration}</span>
+              </div>
+              <p className="text-xs text-slate-300">{simulation.description}</p>
+              {simulation.fixBlastRadius && simulation.fixBlastRadius.length > 0 && (
+                <div>
+                  <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    Fix affects ({simulation.fixBlastRadius.length} resources)
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {simulation.fixBlastRadius.map((r) => (
+                      <span key={r.id} className="text-xs font-mono px-1.5 py-0.5 bg-amber-900/20 text-amber-300 rounded border border-amber-800/30">
+                        {r.kind}/{r.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {simulation.fixUpstreamDeps && simulation.fixUpstreamDeps.length > 0 && (
+                <div>
+                  <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    Depends on
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {simulation.fixUpstreamDeps.map((r) => (
+                      <span key={r.id} className="text-xs font-mono px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">
+                        {r.kind}/{r.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={handlePreviewImpact}
+            disabled={simLoading}
+            className="px-2.5 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            {simLoading ? 'Loading...' : simulation ? 'Hide Impact' : 'Preview Impact'}
+          </button>
           <button
             onClick={() => setConfirmApprove(true)}
             className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded flex items-center gap-1.5 transition-colors"
@@ -231,7 +285,7 @@ function PendingActionCard({
             Approve
           </button>
           <button
-            onClick={onReject}
+            onClick={() => setConfirmReject(true)}
             className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded flex items-center gap-1.5 transition-colors"
           >
             <XCircle className="w-3.5 h-3.5" />
@@ -240,7 +294,6 @@ function PendingActionCard({
         </div>
       </div>
 
-      {/* Approve Confirmation Dialog */}
       <ConfirmDialog
         open={confirmApprove}
         onClose={() => setConfirmApprove(false)}
@@ -253,168 +306,19 @@ function PendingActionCard({
           setConfirmApprove(false);
         }}
       />
-    </Card>
-  );
-}
-
-function RecentActionCard({
-  action,
-}: {
-  action: ActionReport;
-}) {
-  const [confirmRollback, setConfirmRollback] = useState(false);
-  const [rolling, setRolling] = useState(false);
-  const [rolledBack, setRolledBack] = useState(action.status === 'rolled_back');
-
-  async function handleRollback() {
-    setRolling(true);
-    try {
-      await requestRollback(action.id);
-      setRolledBack(true);
-    } catch (err) {
-      console.error('Rollback failed:', err);
-    } finally {
-      setRolling(false);
-      setConfirmRollback(false);
-    }
-  }
-
-  return (
-    <>
-      <div className="px-4 py-3 flex items-start gap-3">
-        {(action.status === 'completed' && !rolledBack) ? (
-          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-        ) : rolledBack ? (
-          <RotateCcw className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
-        ) : action.status === 'failed' ? (
-          <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-        ) : (
-          <Clock className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
-        )}
-        <div className="flex-1 min-w-0">
-          <ActionCardHeader action={action} statusOverride={rolledBack ? 'rolled_back' : undefined} />
-          {action.reasoning && (
-            <p className="text-xs text-slate-400 mb-1">{action.reasoning}</p>
-          )}
-          {action.error && (
-            <p className="text-xs text-red-400 mb-1">{action.error}</p>
-          )}
-          {action.verificationStatus && (
-            <div className={cn(
-              'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs mb-1.5',
-              action.verificationStatus === 'verified'
-                ? 'bg-emerald-950/40 border border-emerald-800/40'
-                : action.verificationStatus === 'improved'
-                  ? 'bg-blue-950/40 border border-blue-800/40'
-                  : 'bg-amber-950/30 border border-amber-800/30',
-            )}>
-              <span className={cn(
-                'font-semibold uppercase tracking-wider text-[10px]',
-                action.verificationStatus === 'verified' ? 'text-emerald-400' :
-                action.verificationStatus === 'improved' ? 'text-blue-400' : 'text-amber-400',
-              )}>
-                {action.verificationStatus === 'verified' ? 'Resolved' :
-                 action.verificationStatus === 'improved' ? 'Improved' : 'Still Failing'}
-              </span>
-              <span className="text-slate-500">
-                {action.verificationStatus === 'verified'
-                  ? 'Issue resolved on next scan — fix worked'
-                  : action.verificationStatus === 'improved'
-                    ? 'Partial improvement detected'
-                    : 'Issue persists after fix — may need manual intervention'}
-              </span>
-            </div>
-          )}
-          <span className="text-xs text-slate-500">{formatRelativeTime(action.timestamp)}</span>
-        </div>
-        {action.status === 'completed' && !rolledBack && (
-          action.rollbackAvailable ? (
-            <button
-              onClick={() => setConfirmRollback(true)}
-              className="flex items-center gap-1 px-2 py-1 text-xs bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 rounded transition-colors flex-shrink-0"
-            >
-              <RotateCcw className="w-3 h-3" />
-              Rollback
-            </button>
-          ) : (
-            <span
-              className="text-xs text-slate-500 flex-shrink-0 italic"
-              title="This action type cannot be rolled back"
-            >
-              No rollback
-            </span>
-          )
-        )}
-      </div>
 
       <ConfirmDialog
-        open={confirmRollback}
-        onClose={() => !rolling && setConfirmRollback(false)}
-        onConfirm={handleRollback}
-        title="Rollback Action"
-        description={`Roll back "${action.tool}"? This will attempt to undo the fix.`}
-        confirmLabel="Rollback"
-        variant="warning"
-        loading={rolling}
+        open={confirmReject}
+        onClose={() => setConfirmReject(false)}
+        title="Reject Action"
+        description={`Reject this action? The agent proposed ${action.tool} on ${resource} — this will not be executed.`}
+        confirmLabel="Reject"
+        variant="danger"
+        onConfirm={() => {
+          onReject();
+          setConfirmReject(false);
+        }}
       />
-    </>
-  );
-}
-
-function ResolutionHistoryList() {
-  const [resolutions, setResolutions] = useState<ResolutionRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchResolutions(7, 20)
-      .then((data) => setResolutions(data.resolutions))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="px-4 py-6 text-xs text-slate-500 text-center">Loading resolution history...</div>;
-  if (resolutions.length === 0) return <div className="px-4 py-6 text-xs text-slate-500 text-center">No resolution data yet. Auto-fix outcomes will appear here after the next scan cycle verifies fixes.</div>;
-
-  return (
-    <div className="divide-y divide-slate-800">
-      {resolutions.map((r) => (
-        <div key={r.id} className="px-4 py-3 flex items-center gap-3">
-          <div className={cn(
-            'flex items-center justify-center w-6 h-6 rounded-full shrink-0',
-            r.outcome === 'verified' ? 'bg-emerald-500/15' :
-            r.outcome === 'improved' ? 'bg-blue-500/15' : 'bg-amber-500/15',
-          )}>
-            {r.outcome === 'verified' ? (
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-            ) : r.outcome === 'improved' ? (
-              <ArrowUp className="w-3.5 h-3.5 text-blue-400" />
-            ) : (
-              <XCircle className="w-3.5 h-3.5 text-amber-400" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-200 truncate">{r.reasoning || r.tool}</span>
-              <span className={cn(
-                'text-[10px] px-1.5 py-0.5 rounded font-medium uppercase',
-                r.outcome === 'verified' ? 'bg-emerald-900/40 text-emerald-400' :
-                r.outcome === 'improved' ? 'bg-blue-900/40 text-blue-400' :
-                'bg-amber-900/40 text-amber-400',
-              )}>
-                {r.outcome === 'verified' ? 'Resolved' : r.outcome === 'improved' ? 'Improved' : 'Failed'}
-              </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">{r.category}</span>
-            </div>
-            {r.evidence && <div className="text-[11px] text-slate-500 mt-0.5 truncate">{r.evidence}</div>}
-          </div>
-          <div className="text-right shrink-0">
-            <div className="text-xs text-slate-500">{formatRelativeTime(r.timestamp)}</div>
-            {r.timeToVerifyMs != null && r.timeToVerifyMs > 0 && (
-              <div className="text-[10px] text-slate-600">verified in {Math.round(r.timeToVerifyMs / 1000)}s</div>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
+    </Card>
   );
 }

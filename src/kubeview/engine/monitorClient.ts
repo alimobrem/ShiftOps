@@ -59,6 +59,9 @@ export interface ActionReport {
   verificationStatus?: 'verified' | 'still_failing' | 'improved';
   verificationEvidence?: string;
   verificationTimestamp?: number;
+  fixStrategy?: string;
+  causeCategory?: string;
+  fixDescription?: string;
 }
 
 export interface Prediction {
@@ -93,6 +96,7 @@ export interface InvestigationReport {
   alternativesConsidered?: string[];
   error?: string;
   timestamp: number;
+  securityFollowup?: { issues: string[]; riskLevel: string };
 }
 
 export interface VerificationReport {

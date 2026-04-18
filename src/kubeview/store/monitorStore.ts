@@ -44,6 +44,7 @@ interface MonitorState {
   // Data
   findings: Finding[];
   dismissedFindingIds: string[];
+  acknowledgedIds: string[];
   predictions: Prediction[];
   investigations: InvestigationReport[];
   verifications: VerificationReport[];
@@ -74,6 +75,8 @@ interface MonitorState {
   triggerScan: () => void;
   setDisabledScanners: (scannerIds: string[]) => void;
   dismissFinding: (id: string) => void;
+  acknowledgeFinding: (id: string) => void;
+  unacknowledgeFinding: (id: string) => void;
   approveAction: (actionId: string) => void;
   rejectAction: (actionId: string) => void;
   setMonitorEnabled: (enabled: boolean) => void;
@@ -105,6 +108,7 @@ export const useMonitorStore = create<MonitorState>()(
       // Data
       findings: [],
       dismissedFindingIds: [],
+      acknowledgedIds: [],
       predictions: [],
       investigations: [],
       verifications: [],
@@ -332,6 +336,20 @@ export const useMonitorStore = create<MonitorState>()(
         });
       },
 
+      acknowledgeFinding: (id) => {
+        set((s) => ({
+          acknowledgedIds: s.acknowledgedIds.includes(id)
+            ? s.acknowledgedIds
+            : [...s.acknowledgedIds, id].slice(-500),
+        }));
+      },
+
+      unacknowledgeFinding: (id) => {
+        set((s) => ({
+          acknowledgedIds: s.acknowledgedIds.filter((ackId) => ackId !== id),
+        }));
+      },
+
       approveAction: (actionId) => {
         if (client) client.approveAction(actionId);
       },
@@ -390,6 +408,7 @@ export const useMonitorStore = create<MonitorState>()(
         monitorEnabled: state.monitorEnabled,
         // H11: autoFixCategories persisted via trustStore, not here
         dismissedFindingIds: state.dismissedFindingIds,
+        acknowledgedIds: state.acknowledgedIds,
         findings: state.findings.slice(-MAX_FINDINGS),
         predictions: state.predictions.slice(-MAX_PREDICTIONS),
         investigations: state.investigations.slice(-MAX_INVESTIGATIONS),

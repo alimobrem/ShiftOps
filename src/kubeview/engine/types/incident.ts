@@ -116,7 +116,7 @@ export function findingToIncident(f: Finding, now = Date.now()): IncidentItem {
     namespace: f.resources[0]?.namespace,
     resources: f.resources,
     category: f.category,
-    autoFixable: false,
+    autoFixable: f.autoFixable ?? false,
     correlationKey: f.resources[0]
       ? `${f.resources[0].kind}/${f.resources[0].name}/${f.resources[0].namespace ?? '_'}`
       : `finding:${f.id}`,
