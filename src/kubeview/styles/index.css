@@ -109,15 +109,15 @@
   background: transparent;
 }
 
-.openshiftpulse { scrollbar-width: thin; scrollbar-color: rgba(139, 92, 246, 0.3) transparent; }
+.openshiftpulse { scrollbar-width: thin; scrollbar-color: rgba(139, 92, 246, 0.5) transparent; }
 
 .openshiftpulse ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.5);
   border-radius: 2px;
 }
 
 .openshiftpulse ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.7);
 }
 
 /* Micro-animations */
