@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Server, Plus, RefreshCw, CheckCircle2, XCircle, X,
-  Check, ChevronDown, Trash2,
+  Check, ChevronDown, Trash2, BarChart3, Clock, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useShallow } from 'zustand/react/shallow';
 import { useToolUsageStore } from '../../store/toolUsageStore';
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog';
 import { AddMcpServerDialog } from './AddMcpServerDialog';
@@ -31,6 +32,11 @@ export function ConnectionsTab() {
 
   const connections = mcpData?.connections || [];
   const availableToolsets = mcpData?.available_toolsets || [];
+
+  const { stats: toolStats } = useToolUsageStore(useShallow((s) => ({ stats: s.stats })));
+  const mcpUsage = Array.isArray(toolStats?.by_source)
+    ? (toolStats.by_source as Array<{ source: string; count: number; error_count: number; error_rate: number; avg_duration_ms: number; unique_tools: number }>).find((s) => s.source === 'mcp')
+    : null;
 
   const [mcpStatus, setMcpStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -108,6 +114,34 @@ export function ConnectionsTab() {
           <div className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-center">
             <div className="text-lg font-bold text-slate-100">{activeToolsets}</div>
             <div className="text-[10px] text-slate-500">Toolsets</div>
+          </div>
+        </div>
+      )}
+
+      {/* MCP Tool Usage */}
+      {mcpUsage && mcpUsage.count > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-lg px-4 py-3">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-xs font-medium text-slate-300">MCP Tool Usage</span>
+          </div>
+          <div className="flex items-center gap-6 text-xs">
+            <div>
+              <span className="text-slate-500">Calls: </span>
+              <span className="text-slate-200 font-medium">{mcpUsage.count}</span>
+            </div>
+            <div>
+              <span className="text-slate-500">Tools: </span>
+              <span className="text-slate-200 font-medium">{mcpUsage.unique_tools}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3 text-slate-500" />
+              <span className="text-slate-200">{mcpUsage.avg_duration_ms}ms avg</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <AlertTriangle className={cn('w-3 h-3', mcpUsage.error_rate > 0.05 ? 'text-red-400' : 'text-slate-500')} />
+              <span className={mcpUsage.error_rate > 0.05 ? 'text-red-400' : 'text-slate-200'}>{(mcpUsage.error_rate * 100).toFixed(1)}% errors</span>
+            </div>
           </div>
         </div>
       )}

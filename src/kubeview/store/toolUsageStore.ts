@@ -50,6 +50,15 @@ export interface ToolStat {
   avg_result_bytes: number;
 }
 
+export interface SourceStats {
+  source: string;
+  count: number;
+  error_count: number;
+  error_rate: number;
+  avg_duration_ms: number;
+  unique_tools: number;
+}
+
 export interface UsageStats {
   total_calls: number;
   unique_tools_used: number;
@@ -60,6 +69,7 @@ export interface UsageStats {
   by_mode: Array<{ mode: string; count: number }>;
   by_category: Array<{ category: string; count: number }>;
   by_status: Record<string, number>;
+  by_source?: SourceStats[];
 }
 
 export interface ChainBigram {
