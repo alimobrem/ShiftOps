@@ -2,7 +2,7 @@ import { useState, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  Brain, XCircle, Activity, Send,
+  Brain, Send,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAgentStore } from '../../store/agentStore';
@@ -59,6 +59,7 @@ export function DashboardMode() {
 
   const recentActivity = useMemo(
     () => [...investigations, ...recentActions]
+      .filter((item) => ('tool' in item ? item.tool : item.category))
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 3),
     [investigations, recentActions],
@@ -67,8 +68,15 @@ export function DashboardMode() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto thin-scrollbar px-4 py-3 space-y-4">
-        {/* Agent Status */}
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
+        {/* Agent Status — clickable to Incident Center when findings exist */}
+        <div
+          className={cn(
+            'flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50',
+            status.findingsCount > 0 && 'cursor-pointer hover:bg-slate-800 transition-colors',
+          )}
+          onClick={status.findingsCount > 0 ? () => navigate('/incidents') : undefined}
+          role={status.findingsCount > 0 ? 'button' : undefined}
+        >
           <StatusIcon className={cn(
             'w-4 h-4 shrink-0', status.color,
             status.type === 'streaming' && 'animate-spin',
@@ -77,12 +85,12 @@ export function DashboardMode() {
           <span className={cn('text-xs font-medium', status.color)}>{status.text}</span>
         </div>
 
-        {/* Quick Prompts */}
+        {/* Quick Prompts — max 3, deduplicated */}
         {smartPrompts.length > 0 && (
           <div>
             <h3 className="text-[10px] text-slate-500 uppercase tracking-wider font-medium mb-2">Suggestions</h3>
             <div className="flex flex-wrap gap-1.5">
-              {smartPrompts.slice(0, 4).map((p, i) => (
+              {smartPrompts.slice(0, 3).map((p, i) => (
                 <button
                   key={i}
                   onClick={() => handlePromptClick(p.prompt)}
@@ -93,30 +101,6 @@ export function DashboardMode() {
               ))}
             </div>
           </div>
-        )}
-
-        {/* Active Findings */}
-        {status.findingsCount > 0 && (
-          <button
-            onClick={() => navigate('/incidents')}
-            className="w-full text-left px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 transition-colors"
-          >
-            <h3 className="text-[10px] text-slate-500 uppercase tracking-wider font-medium mb-1.5">Active Findings</h3>
-            <div className="flex items-center gap-3">
-              {status.criticalCount > 0 && (
-                <div className="flex items-center gap-1">
-                  <XCircle className="w-3 h-3 text-red-400" />
-                  <span className="text-xs text-red-400 font-medium">{status.criticalCount}</span>
-                </div>
-              )}
-              {status.findingsCount - status.criticalCount > 0 && (
-                <div className="flex items-center gap-1">
-                  <Activity className="w-3 h-3 text-amber-400" />
-                  <span className="text-xs text-amber-400 font-medium">{status.findingsCount - status.criticalCount}</span>
-                </div>
-              )}
-            </div>
-          </button>
         )}
 
         {/* Recent Activity */}
