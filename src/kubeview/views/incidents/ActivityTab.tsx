@@ -22,6 +22,7 @@ import { CorrelationGroupRow } from './shared/CorrelationGroupRow';
 import { HistoryEntryCard, CATEGORY_CONFIG } from './shared/HistoryEntryCard';
 import { InvestigationCard } from './shared/InvestigationCard';
 import { PostmortemCard, type Postmortem } from './shared/PostmortemCard';
+import { IncidentLifecycleDrawer } from './IncidentLifecycleDrawer';
 
 const TIME_RANGES: TimeRange[] = ['15m', '1h', '6h', '24h', '3d', '7d'];
 
@@ -54,6 +55,7 @@ export function ActivityTab() {
     () => new Set(['events', 'alerts', 'agent', 'rollouts', 'config']),
   );
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [lifecycleFindingId, setLifecycleFindingId] = useState<string | null>(null);
 
   const toggleCategory = (cat: ActivityCategory) => {
     setActiveCategories((prev) => {
@@ -279,7 +281,7 @@ export function ActivityTab() {
               </div>
               <div className="divide-y divide-slate-800">
                 {filteredInvestigations.slice(0, 10).map((report) => (
-                  <InvestigationCard key={report.id} report={report} />
+                  <InvestigationCard key={report.id} report={report} onClickFinding={setLifecycleFindingId} />
                 ))}
               </div>
             </Card>
@@ -399,6 +401,10 @@ export function ActivityTab() {
             </div>
           )}
         </>
+      )}
+
+      {lifecycleFindingId && (
+        <IncidentLifecycleDrawer findingId={lifecycleFindingId} onClose={() => setLifecycleFindingId(null)} />
       )}
     </div>
   );

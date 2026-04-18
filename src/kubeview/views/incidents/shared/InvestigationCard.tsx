@@ -3,12 +3,25 @@ import { ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { InvestigationReport } from '../../../engine/monitorClient';
 
-export function InvestigationCard({ report }: { report: InvestigationReport }) {
+export function InvestigationCard({
+  report,
+  onClickFinding,
+}: {
+  report: InvestigationReport;
+  onClickFinding?: (findingId: string) => void;
+}) {
   const [altExpanded, setAltExpanded] = useState(false);
   const hasAlternatives = report.alternativesConsidered && report.alternativesConsidered.length > 0;
+  const clickable = !!onClickFinding && !!report.findingId;
 
   return (
-    <div className="px-4 py-3">
+    <div
+      className={cn('px-4 py-3', clickable && 'cursor-pointer hover:bg-slate-800/30 transition-colors')}
+      onClick={clickable ? () => onClickFinding(report.findingId) : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClickFinding(report.findingId); } } : undefined}
+    >
       <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
         <span className={cn('px-1.5 py-0.5 rounded', report.status === 'completed' ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300')}>
           {report.status}
@@ -82,7 +95,7 @@ export function InvestigationCard({ report }: { report: InvestigationReport }) {
 
       {hasAlternatives && (
         <button
-          onClick={() => setAltExpanded(!altExpanded)}
+          onClick={(e) => { e.stopPropagation(); setAltExpanded(!altExpanded); }}
           className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 mt-2 transition-colors"
         >
           {altExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
