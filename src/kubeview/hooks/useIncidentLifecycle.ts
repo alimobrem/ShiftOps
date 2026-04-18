@@ -52,14 +52,22 @@ export interface IncidentLifecycle {
   isLoading: boolean;
 }
 
-async function fetchImpact(findingId: string): Promise<ImpactAnalysis | null> {
-  const res = await fetch(`/api/agent/incidents/${findingId}/impact`);
+async function fetchImpact(findingId: string, resource?: { kind: string; name: string; namespace?: string }): Promise<ImpactAnalysis | null> {
+  const params = new URLSearchParams();
+  if (resource) {
+    params.set('kind', resource.kind);
+    params.set('name', resource.name);
+    if (resource.namespace) params.set('namespace', resource.namespace);
+  }
+  const qs = params.toString();
+  const res = await fetch(`/api/agent/incidents/${findingId}/impact${qs ? `?${qs}` : ''}`);
   if (!res.ok) return null;
   return res.json();
 }
 
-async function fetchLearning(findingId: string): Promise<LearningArtifacts | null> {
-  const res = await fetch(`/api/agent/incidents/${findingId}/learning`);
+async function fetchLearning(findingId: string, category?: string): Promise<LearningArtifacts | null> {
+  const qs = category ? `?category=${encodeURIComponent(category)}` : '';
+  const res = await fetch(`/api/agent/incidents/${findingId}/learning${qs}`);
   if (!res.ok) return null;
   return res.json();
 }
@@ -102,16 +110,17 @@ export function useIncidentLifecycle(findingId: string): IncidentLifecycle {
     }, [findingId]),
   );
 
+  const firstResource = detection?.resources?.[0];
   const { data: impact, isLoading: impactLoading } = useQuery({
-    queryKey: ['incident-impact', findingId],
-    queryFn: () => fetchImpact(findingId),
+    queryKey: ['incident-impact', findingId, firstResource?.kind, firstResource?.name],
+    queryFn: () => fetchImpact(findingId, firstResource ? { kind: firstResource.kind, name: firstResource.name, namespace: firstResource.namespace } : undefined),
     enabled: !!findingId,
     staleTime: 60_000,
   });
 
   const { data: learning, isLoading: learningLoading } = useQuery({
     queryKey: ['incident-learning', findingId],
-    queryFn: () => fetchLearning(findingId),
+    queryFn: () => fetchLearning(findingId, detection?.category),
     enabled: !!findingId,
     staleTime: 60_000,
   });
