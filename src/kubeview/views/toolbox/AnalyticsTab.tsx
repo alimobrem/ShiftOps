@@ -94,6 +94,29 @@ export function AnalyticsTab() {
       <div className="space-y-6">
         <OrcaAnalyticsSection />
         <div className="text-center py-8 text-sm text-slate-500">No tool usage data yet. Tool call analytics will appear once the agent handles conversations.</div>
+
+        {/* Agent health sections always render even without tool usage data */}
+        <div className="border-t border-slate-800 pt-6">
+          <AgentHealth
+            evalStatus={evalQ.data ?? null}
+            coverage={coverageQ.data ?? null}
+            fixSummary={fixQ.data ?? null}
+            confidence={confidenceQ.data ?? null}
+            costStats={costQ.data ?? null}
+            readiness={readinessQ.data ?? null}
+            onOpenScannerDrawer={() => setDrawerOpen('scanner')}
+            onOpenEvalDrawer={() => setDrawerOpen('eval')}
+            onOpenMemoryDrawer={() => setDrawerOpen('memory')}
+            memoryPatternCount={accuracyQ.data?.learning?.total_patterns ?? 0}
+          />
+        </div>
+        <AgentAccuracy accuracy={accuracyQ.data ?? null} onOpenMemoryDrawer={() => setDrawerOpen('memory')} />
+        {recsQ.data?.recommendations && recsQ.data.recommendations.length > 0 && (
+          <CapabilityDiscovery recommendations={recsQ.data.recommendations} />
+        )}
+        {drawerOpen === 'scanner' && <ScannerDrawer coverage={coverageQ.data ?? null} onClose={() => setDrawerOpen(null)} />}
+        {drawerOpen === 'eval' && <EvalDrawer evalStatus={evalQ.data} onClose={() => setDrawerOpen(null)} />}
+        {drawerOpen === 'memory' && <MemoryDrawer onClose={() => setDrawerOpen(null)} />}
       </div>
     );
   }

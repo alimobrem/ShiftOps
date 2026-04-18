@@ -4,11 +4,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { useToolUsageStore } from '../../store/toolUsageStore';
 import type { ToolInfo } from '../../store/toolUsageStore';
 import { ToolCard } from './ToolCard';
+import { ToolDetailDrawer } from './ToolDetailDrawer';
 
 interface McpToolInfo extends ToolInfo {
   source: string;
   mcp_server?: string;
 }
+
+type EnrichedTool = ToolInfo & { source: string; mcp_server?: string };
 
 export function CatalogTab() {
   const { tools, toolsLoading, loadTools } = useToolUsageStore(useShallow((s) => ({
@@ -16,11 +19,12 @@ export function CatalogTab() {
   })));
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [selectedTool, setSelectedTool] = useState<EnrichedTool | null>(null);
 
   useEffect(() => { loadTools(); }, [loadTools]);
 
   const allTools = useMemo(() => {
-    const result: Array<ToolInfo & { source: string; mcp_server?: string }> = [];
+    const result: EnrichedTool[] = [];
     if (!tools) return result;
     const seen = new Set<string>();
     for (const t of tools.sre) { seen.add(t.name); result.push({ ...t, source: (t as unknown as { source?: string }).source || 'native' }); }
@@ -85,13 +89,17 @@ export function CatalogTab() {
               <div key={cat}>
                 <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">{cat}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {catTools.map((t) => <ToolCard key={t.name} tool={t} source={t.source} mcpServer={t.mcp_server} />)}
+                  {catTools.map((t) => (
+                    <ToolCard key={t.name} tool={t} source={t.source} mcpServer={t.mcp_server} onClick={() => setSelectedTool(t)} />
+                  ))}
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {selectedTool && <ToolDetailDrawer tool={selectedTool} onClose={() => setSelectedTool(null)} />}
     </div>
   );
 }

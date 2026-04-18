@@ -2,10 +2,18 @@ import { cn } from '@/lib/utils';
 import type { ToolInfo } from '../../store/toolUsageStore';
 import { SourceBadge } from './SourceBadge';
 
-export function ToolCard({ tool, source, mcpServer }: { tool: ToolInfo; source?: string; mcpServer?: string }) {
+export function ToolCard({ tool, source, mcpServer, onClick }: {
+  tool: ToolInfo;
+  source?: string;
+  mcpServer?: string;
+  onClick?: () => void;
+}) {
   const skills = (tool as unknown as { skills?: string[] }).skills || [];
   return (
-    <div className="bg-slate-900/50 border border-slate-800/50 rounded-md px-3 py-2 space-y-0.5">
+    <button
+      onClick={onClick}
+      className="bg-slate-900/50 border border-slate-800/50 rounded-md px-3 py-2 space-y-0.5 text-left w-full hover:border-slate-700 hover:bg-slate-900 transition-colors cursor-pointer"
+    >
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-xs font-mono text-slate-200">{tool.name}</span>
         {tool.requires_confirmation && (
@@ -26,6 +34,6 @@ export function ToolCard({ tool, source, mcpServer }: { tool: ToolInfo; source?:
         ))}
       </div>
       <p className="text-[11px] text-slate-500 line-clamp-1">{tool.description}</p>
-    </div>
+    </button>
   );
 }
