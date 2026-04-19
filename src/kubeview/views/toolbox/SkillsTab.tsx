@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Wrench, Shield, LayoutDashboard, TrendingUp, Puzzle, Bot, Database, Target,
-  RefreshCw, Play, ArrowRight, BarChart3, Activity,
+  RefreshCw, Play, ArrowRight, BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SkillDetailDrawer } from './SkillDetailDrawer';

@@ -5,7 +5,7 @@
  * Supports layout types: stat_card, grid, bar_list, progress_list, key_value, status_list
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { fetchComponentRegistry, type ComponentKindDef, type ComponentLayout } from '../../engine/componentRegistry';

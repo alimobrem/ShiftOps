@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { HelpCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import type { MetricExplanation } from '../../engine/analyticsExplanations';
 
 export function StatCard({ label, value, icon, explanation }: {

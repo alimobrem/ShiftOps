@@ -3,7 +3,7 @@
  * Lazy-loaded to keep recharts (~150KB) out of the initial bundle.
  */
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Plus, ChevronDown, Radio, Pause, Loader2, Settings, X } from 'lucide-react';
@@ -51,7 +51,7 @@ const CHART_TYPE_LABELS: Record<ChartType, string> = {
   radar: 'Radar', treemap: 'Treemap',
 };
 
-export default function AgentChart({ spec, onAddToView, refreshInterval, globalTimeRange, hoverTimestamp, onHoverTimestamp, onSpecChange }: {
+export default function AgentChart({ spec, onAddToView, refreshInterval, globalTimeRange, hoverTimestamp, onHoverTimestamp: _onHoverTimestamp, onSpecChange }: {
   spec: ChartSpec; onAddToView?: (spec: ComponentSpec) => void; refreshInterval?: number;
   globalTimeRange?: string; hoverTimestamp?: number | null; onHoverTimestamp?: (ts: number | null) => void;
   onSpecChange?: (spec: ComponentSpec) => void;

@@ -3,12 +3,12 @@
  * Captures a live snapshot from each cluster and shows a diff table.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Loader2, GitCompare, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardBody } from '../../components/primitives/Card';
 import { captureSnapshot, compareSnapshots, type ClusterSnapshot, type DiffRow } from '../../engine/snapshot';
-import { getAllConnections, type ClusterConnection } from '../../engine/clusterConnection';
+import { getAllConnections } from '../../engine/clusterConnection';
 
 interface CompareViewProps {
   clusterA?: string;

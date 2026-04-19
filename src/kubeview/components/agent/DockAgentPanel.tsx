@@ -14,7 +14,6 @@ import { useSmartPrompts } from '../../hooks/useSmartPrompts';
 import { useMonitorStore } from '../../store/monitorStore';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
-import { AgentComponentRenderer } from './AgentComponentRenderer';
 import { ConfirmationCard } from './ConfirmationCard';
 import { ConfirmDialog } from '../feedback/ConfirmDialog';
 import { PromptPill } from './AIBranding';
@@ -59,14 +58,7 @@ async function deleteSession(sessionId: string): Promise<void> {
   if (!res.ok) throw new Error('Failed to delete session');
 }
 
-async function renameSession(sessionId: string, title: string): Promise<void> {
-  const res = await fetch(`${AGENT_BASE}/chat/sessions/${sessionId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title }),
-  });
-  if (!res.ok) throw new Error('Failed to rename session');
-}
+
 
 /* ---- Follow-Up Suggestions ---- */
 

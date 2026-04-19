@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
-import { X, AlertTriangle, Activity, Info } from 'lucide-react';
+import { X, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '../store/uiStore';
 import { useK8sListWatch } from '../hooks/useK8sListWatch';

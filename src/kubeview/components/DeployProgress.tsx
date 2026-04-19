@@ -33,7 +33,7 @@ export default function DeployProgress({ type, name, namespace, mode = 'deploy',
   const isDelete = mode === 'delete';
 
   // Poll the resource (null = gone)
-  const { data: resource, dataUpdatedAt } = useQuery({
+  const { data: resource, dataUpdatedAt: _dataUpdatedAt } = useQuery({
     queryKey: ['deploy-progress', type, namespace, name],
     queryFn: () => {
       const path = type === 'deployment'

@@ -5,7 +5,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle, ChevronDown, ChevronUp, ChevronRight, Plus, Search, Radio, Pause, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Clock, HelpCircle, ChevronDown, ChevronUp, ChevronRight, Plus, Radio, Pause, Loader2 } from 'lucide-react';
 import { useMultiSourceTable } from '../../hooks/useMultiSourceTable';
 import type { K8sResource } from '../../engine/renderers';
 import { ResourceTable } from '../table/ResourceTable';
@@ -19,7 +19,6 @@ import type {
   BadgeListSpec,
   StatusListSpec,
   KeyValueSpec,
-  ChartSpec,
   TabsSpec,
   GridSpec,
   SectionSpec,
@@ -27,13 +26,11 @@ import type {
   LogViewerSpec,
   YamlViewerSpec,
   MetricCardSpec,
-  NodeMapSpec,
   BarListSpec,
   ProgressListSpec,
   StatCardSpec,
   TimelineSpec,
   ResourceCountsSpec,
-  TopologySpec,
 } from '../../engine/agentComponents';
 const LazyAgentNodeMap = lazy(() => import('./AgentNodeMap').then(m => ({ default: m.AgentNodeMap })));
 const LazyAgentTopology = lazy(() => import('./AgentTopology'));

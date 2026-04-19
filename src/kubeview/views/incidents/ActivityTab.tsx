@@ -15,11 +15,10 @@ import { useNavigateTab } from '../../hooks/useNavigateTab';
 import { resourceDetailUrl } from '../../engine/gvr';
 import { formatRelativeTime } from '../../engine/formatters';
 import { getDateKey } from '../../engine/dateUtils';
-import { fetchLearningFeed, type LearningEvent } from '../../engine/analyticsApi';
+import { fetchLearningFeed } from '../../engine/analyticsApi';
 import type { TimelineEntry, TimelineCategory, CorrelationGroup } from '../../engine/types/timeline';
-import type { InvestigationReport } from '../../engine/monitorClient';
 import { CorrelationGroupRow } from './shared/CorrelationGroupRow';
-import { HistoryEntryCard, CATEGORY_CONFIG } from './shared/HistoryEntryCard';
+import { HistoryEntryCard } from './shared/HistoryEntryCard';
 import { InvestigationCard } from './shared/InvestigationCard';
 import { PostmortemCard, type Postmortem } from './shared/PostmortemCard';
 import { IncidentLifecycleDrawer } from './IncidentLifecycleDrawer';
@@ -78,7 +77,7 @@ export function ActivityTab() {
 
   const timeline = useIncidentTimeline({ timeRange, namespace: nsFilter, categories: timelineCategories });
   const investigations = useMonitorStore((s) => s.investigations);
-  const recentActions = useMonitorStore((s) => s.recentActions);
+  const _recentActions = useMonitorStore((s) => s.recentActions);
   const fixHistory = useMonitorStore((s) => s.fixHistory);
   const loadFixHistory = useMonitorStore((s) => s.loadFixHistory);
   const findings = useMonitorStore((s) => s.findings);

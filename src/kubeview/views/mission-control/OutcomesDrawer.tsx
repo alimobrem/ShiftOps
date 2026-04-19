@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  X, CheckCircle, XCircle, AlertTriangle, ArrowUp, Clock,
+  X, CheckCircle, XCircle, ArrowUp, Clock,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import { fetchResolutions, fetchFixHistorySummary, type ResolutionRecord, type FixHistorySummary } from '../../engine/analyticsApi';
+import { fetchResolutions, fetchFixHistorySummary } from '../../engine/analyticsApi';
 import { formatRelativeTime } from '../../engine/formatters';
 import { IncidentLifecycleDrawer } from '../incidents/IncidentLifecycleDrawer';
 

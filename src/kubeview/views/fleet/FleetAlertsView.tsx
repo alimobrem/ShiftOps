@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Loader2, Globe, Bell, AlertTriangle, XCircle, Search,
+  Loader2, Bell, XCircle, Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAllConnections } from '../../engine/clusterConnection';
@@ -13,7 +13,7 @@ import { getClusterBase } from '../../engine/clusterConnection';
 import { useFleetStore } from '../../store/fleetStore';
 import { useNavigateTab } from '../../hooks/useNavigateTab';
 import { formatDuration } from '../../engine/dateUtils';
-import { Card, CardHeader, CardBody } from '../../components/primitives/Card';
+import { CardHeader, CardBody } from '../../components/primitives/Card';
 import type { FleetAlert } from '../../engine/types/incident';
 
 export default function FleetAlertsView() {

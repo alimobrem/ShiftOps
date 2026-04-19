@@ -7,12 +7,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Shield, RefreshCw, Loader2, CheckCircle, XCircle,
-  Lock, Key, Users, Network, Eye, AlertTriangle, Clock,
-  FileWarning, GitCompare,
+  Lock, Users, AlertTriangle,
+  GitCompare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardBody } from '../../components/primitives/Card';
-import { getAllConnections, type ClusterConnection } from '../../engine/clusterConnection';
+import { getAllConnections } from '../../engine/clusterConnection';
 import { k8sGet, k8sList } from '../../engine/query';
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { useState, useCallback, lazy, Suspense } from 'react';
-import { Play, Save, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Play, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCustomViewStore } from '../../store/customViewStore';
 import type { ComponentSpec } from '../../engine/agentComponents';

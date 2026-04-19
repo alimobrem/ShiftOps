@@ -6,7 +6,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Loader2, Globe, ChevronUp, ChevronDown, Server,
+  Search, ChevronUp, ChevronDown, Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fleetList, type FleetResult } from '../../engine/fleet';
@@ -15,7 +15,6 @@ import { timeAgo } from '../../engine/dateUtils';
 import { getAllConnections, type ClusterConnection } from '../../engine/clusterConnection';
 import { useFleetStore } from '../../store/fleetStore';
 import { useUIStore } from '../../store/uiStore';
-import { Card } from '../../components/primitives/Card';
 import type { K8sResource } from '../../engine/renderers/index';
 
 interface FleetResourceViewProps {

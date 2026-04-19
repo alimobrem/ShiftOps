@@ -355,7 +355,7 @@ function getCommandItems(
   mode: string,
   query: string,
   resourceRegistry: Map<string, ResourceType> | null,
-  currentPath: string = '/',
+  _currentPath: string = '/',
   smartPrompts: SmartPromptItem[] = [],
   customViewsList: Array<{ id: string; title: string; description?: string; layout?: any[] }> = [],
 ): CommandItem[] {

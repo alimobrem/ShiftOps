@@ -3,7 +3,6 @@ import {
   FileText, ChevronDown, ChevronUp, AlertTriangle, CheckCircle,
   Target, Clock, Shield, Activity, Copy, Bot,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Card } from '../../../components/primitives/Card';
 import { formatRelativeTime } from '../../../engine/formatters';
 import { useUIStore } from '../../../store/uiStore';

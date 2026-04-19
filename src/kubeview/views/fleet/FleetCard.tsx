@@ -5,8 +5,8 @@
 
 import React from 'react';
 import {
-  Server, AlertTriangle, CheckCircle, XCircle, Wifi, WifiOff,
-  ArrowRight, GitBranch, Clock,
+  AlertTriangle, Wifi, WifiOff,
+  ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ClusterConnection } from '../../engine/clusterConnection';

@@ -144,7 +144,7 @@ export default function ProductionReadiness() {
     staleTime: 60000,
   });
 
-  const { data: dns } = useQuery({
+  const { data: _dns } = useQuery({
     queryKey: ['readiness', 'dns'],
     queryFn: () => safeQuery(() => k8sGet<any>('/apis/config.openshift.io/v1/dnses/cluster')),
     staleTime: 60000,
@@ -461,7 +461,7 @@ export default function ProductionReadiness() {
     const hasGitOps = subNames.some(n => n.includes('gitops') || n.includes('argocd') || n.includes('openshift-gitops'));
 
     // GITOPS
-    const argoCDAvailable = useArgoCDStore.getState().available;
+    const _argoCDAvailable = useArgoCDStore.getState().available;
     const gitOpsConfigured = (() => {
       try { return !!useArgoCDStore.getState().namespace; } catch { return false; }
     })();
@@ -558,7 +558,7 @@ export default function ProductionReadiness() {
   }, [checks]);
 
   const scoreColor = score >= 80 ? 'text-green-400' : score >= 60 ? 'text-yellow-400' : 'text-red-400';
-  const scoreBg = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-red-500';
+  const _scoreBg = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-red-500';
 
   return (
     <div className="space-y-6">

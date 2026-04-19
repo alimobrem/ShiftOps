@@ -5,7 +5,7 @@ import {
   HeartPulse, ArrowRight, CheckCircle, Lock,
   ChevronRight, ChevronDown, Info, FileText,
   Activity, Database, Gauge, Calendar,
-  ArrowUpCircle, Clock, Sparkles, Eye,
+  ArrowUpCircle, Clock, Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { k8sList, k8sGet } from '../../engine/query';
@@ -22,7 +22,7 @@ import { MetricGrid } from '../../components/primitives/MetricGrid';
 import { diagnoseResource, type Diagnosis } from '../../engine/diagnosis';
 import { resourceDetailUrl } from '../../engine/gvr';
 import type { K8sResource } from '../../engine/renderers';
-import type { Node, Pod, ClusterOperator, ClusterVersion, Condition, ContainerStatus, Event, Secret } from '../../engine/types';
+import type { Node, Pod, ClusterOperator, ClusterVersion, Condition, Event, Secret } from '../../engine/types';
 import { useClusterStore } from '../../store/clusterStore';
 import { useArgoCDStore } from '../../store/argoCDStore';
 import { Card } from '../../components/primitives/Card';
@@ -458,7 +458,7 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
   }, [operators, isHyperShift]);
 
   // Diagnosed resources (for Zone 3 issues)
-  const diagnosedResources = useMemo(() => {
+  const _diagnosedResources = useMemo(() => {
     const all = [...userPods, ...deployments, ...nodes, ...pvcs];
     const results: { resource: K8sResource; diagnoses: Diagnosis[]; maxSeverity: 'critical' | 'warning' | 'info' }[] = [];
     for (const resource of all) {

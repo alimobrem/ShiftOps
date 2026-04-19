@@ -25,8 +25,8 @@ export function CatalogTab() {
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [selectedTool, setSelectedTool] = useState<EnrichedTool | null>(null);
 
-  const { stats, statsLoading, loadStats, chains, chainsLoading, loadChains } = useToolUsageStore(useShallow((s) => ({
-    stats: s.stats, statsLoading: s.statsLoading, loadStats: s.loadStats,
+  const { stats, loadStats, chains, chainsLoading, loadChains } = useToolUsageStore(useShallow((s) => ({
+    stats: s.stats, loadStats: s.loadStats,
     chains: s.chains, chainsLoading: s.chainsLoading, loadChains: s.loadChains,
   })));
 

@@ -102,10 +102,12 @@ data:
         {{- end }}
 
         {{- if .Values.agent.enabled }}
-        {{- /* Resolve WS token at template time: literal value > lookup from secret > placeholder fallback */ -}}
+        {{- /* Resolve WS token at template time: secret lookup > placeholder fallback.
+             Never embed a literal token in ConfigMap — use __AGENT_TOKEN__ placeholder
+             and let the entrypoint inject from the mounted secret at runtime. */ -}}
         {{- $agentSvc := .Values.agent.serviceName | default (printf "%s-openshift-sre-agent" .Release.Name) -}}
-        {{- $wsToken := .Values.agent.wsToken -}}
-        {{- if and (not $wsToken) .Values.agent.wsTokenSecret -}}
+        {{- $wsToken := "" -}}
+        {{- if .Values.agent.wsTokenSecret -}}
           {{- $secret := lookup "v1" "Secret" .Release.Namespace .Values.agent.wsTokenSecret -}}
           {{- if $secret -}}
             {{- $key := .Values.agent.wsTokenSecretKey | default "token" -}}

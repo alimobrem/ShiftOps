@@ -85,6 +85,8 @@ function splitTrailingQuestion(content: string): [string, string | null] {
 /** Detect HTML documents in content and render them in a sandboxed iframe */
 export function RichContent({ content, components, onAddToView }: { content: string; components?: ComponentSpec[]; onAddToView?: (spec: ComponentSpec) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [showComponents, setShowComponents] = useState(false);
+  const [body, trailingQuestion] = useMemo(() => splitTrailingQuestion(content), [content]);
 
   const htmlMatch = content.match(/<!DOCTYPE html[\s\S]*<\/html>/i)
     || content.match(/```html\s*\n(<!DOCTYPE html[\s\S]*?<\/html>)\s*\n```/i);
@@ -123,9 +125,6 @@ export function RichContent({ content, components, onAddToView }: { content: str
       </>
     );
   }
-
-  const [showComponents, setShowComponents] = useState(false);
-  const [body, trailingQuestion] = useMemo(() => splitTrailingQuestion(content), [content]);
 
   return (
     <>

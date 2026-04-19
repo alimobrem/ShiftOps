@@ -28,7 +28,7 @@ export function GitOpsConfig() {
     pathPrefix: config?.pathPrefix || '',
   });
   const [showToken, setShowToken] = useState(false);
-  const [testing, setTesting] = useState(false);
+  const [_testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -45,7 +45,7 @@ export function GitOpsConfig() {
     }
   }, [config]);
 
-  const handleTest = async () => {
+  const _handleTest = async () => {
     setTesting(true);
     setTestResult(null);
     const result = await testConnection(form);

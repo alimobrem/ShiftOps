@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Loader2, Globe, Box, Layers, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { fleetList, type FleetResult } from '../../engine/fleet';
+import { fleetList } from '../../engine/fleet';
 import { useFleetStore } from '../../store/fleetStore';
 import { useNavigateTab } from '../../hooks/useNavigateTab';
 import { Card, CardHeader, CardBody } from '../../components/primitives/Card';

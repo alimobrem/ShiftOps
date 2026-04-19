@@ -5,7 +5,7 @@ import { useUIStore } from '../store/uiStore';
 import { useClusterStore } from '../store/clusterStore';
 import { useCustomViewStore } from '../store/customViewStore';
 import { getResourceIcon, getResourceIconName } from '../engine/iconRegistry';
-import { NAV_ITEMS, getNavItemsByGroup } from '../engine/navRegistry';
+import { getNavItemsByGroup } from '../engine/navRegistry';
 
 interface GroupedResources {
   [groupName: string]: Array<{
