@@ -75,7 +75,7 @@ export function AISidebar() {
     prevActiveSkill.current = activeSkill;
   }, [activeSkill, setMode]);
 
-  // Auto-return to dashboard after 30s of inactivity post-conversation
+  // Auto-return to dashboard after 5 min of inactivity post-conversation
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (mode !== 'chat' || streaming) {
@@ -86,7 +86,7 @@ export function AISidebar() {
       if (!useAgentStore.getState().streaming) {
         setMode('dashboard');
       }
-    }, 60_000);
+    }, 300_000);
     return () => { if (idleTimerRef.current) clearTimeout(idleTimerRef.current); };
   }, [mode, streaming, setMode]);
 
