@@ -16,8 +16,30 @@ import type { K8sResource, ColumnDef } from '../engine/renderers';
 import type { TableDatasource, K8sDatasource, PromQLDatasource, LogDatasource } from '../engine/agentComponents';
 import { useK8sListWatch } from './useK8sListWatch';
 import { buildApiPath } from './useResourceUrl';
-import { queryInstant } from '../components/metrics/prometheus';
+import { queryInstant, queryRange } from '../components/metrics/prometheus';
 import { getColumnsForResource } from '../engine/enhancers';
+
+function Sparkline({ values, width = 48, height = 16 }: { values: number[]; width?: number; height?: number }) {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const points = values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * width;
+      const y = height - ((v - min) / range) * (height - 2) - 1;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  const last = values[values.length - 1];
+  const prev = values[values.length - 2];
+  const color = last > prev ? '#22c55e' : last < prev ? '#ef4444' : '#64748b';
+  return (
+    <svg width={width} height={height} className="shrink-0">
+      <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 import { getDefaultColumns } from '../engine/renderers';
 import { getImpersonationHeaders } from '../engine/query';
 
@@ -130,7 +152,7 @@ export function useMultiSourceTable(
 
   const watchResults = [watch0, watch1, watch2, watch3, watch4];
 
-  // PromQL enrichment — single query that batches all promql datasources
+  // PromQL enrichment — instant values + sparkline range data
   const {
     data: promqlData,
     dataUpdatedAt: promqlUpdatedAt,
@@ -142,6 +164,36 @@ export function useMultiSourceTable(
         promqlDatasources.map(async (ds) => {
           try {
             results[ds.id] = await queryInstant(ds.query);
+          } catch {
+            results[ds.id] = [];
+          }
+        }),
+      );
+      return results;
+    },
+    enabled: promqlDatasources.length > 0 && !isPaused,
+    refetchInterval: isPaused ? false : enrichmentIntervalMs,
+    placeholderData: (prev) => prev,
+    retry: 1,
+    staleTime: enrichmentIntervalMs / 2,
+  });
+
+  // Sparkline data — range query for last 15 minutes (15 points at 60s step)
+  const { data: sparklineData } = useQuery({
+    queryKey: ['multi-table-sparkline', promqlDatasources.map((ds) => ds.query)],
+    queryFn: async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const start = now - 900; // 15 minutes
+      const step = 60;
+      const results: Record<string, Array<{ metric: Record<string, string>; values: number[] }>> = {};
+      await Promise.all(
+        promqlDatasources.map(async (ds) => {
+          try {
+            const series = await queryRange(ds.query, start, now, step);
+            results[ds.id] = series.map((s) => ({
+              metric: s.metric,
+              values: s.values.map(([, v]) => parseFloat(v)),
+            }));
           } catch {
             results[ds.id] = [];
           }
@@ -244,7 +296,7 @@ export function useMultiSourceTable(
       if (promqlData) {
         for (const ds of promqlDatasources) {
           const results = promqlData[ds.id] || [];
-          const match = results.find((m) => {
+          const matchRow = (m: { metric: Record<string, string> }) => {
             const labelValue = m.metric[ds.joinLabel] || '';
             const rowValue = String(
               ds.joinColumn === 'name'
@@ -254,13 +306,21 @@ export function useMultiSourceTable(
                   : (r as Record<string, unknown>)[ds.joinColumn] || '',
             );
             return labelValue === rowValue;
-          });
+          };
+          const match = results.find(matchRow);
           if (match) {
             enriched[ds.columnId] = ds.unit
               ? `${match.value.toFixed(2)} ${ds.unit}`
               : match.value.toFixed(2);
           } else {
             enriched[ds.columnId] = '-';
+          }
+          // Attach sparkline data
+          if (sparklineData) {
+            const sparkSeries = (sparklineData[ds.id] || []).find(matchRow);
+            if (sparkSeries) {
+              enriched[`${ds.columnId}__spark`] = sparkSeries.values;
+            }
           }
         }
       }
@@ -276,7 +336,7 @@ export function useMultiSourceTable(
 
       return enriched as K8sResource;
     });
-  }, [mergedResources, promqlData, logData, promqlDatasources, logDatasources]);
+  }, [mergedResources, promqlData, sparklineData, logData, promqlDatasources, logDatasources]);
 
   // Build columns — use enhancer for single resource type, default columns for mixed types
   const columns = useMemo(() => {
@@ -332,15 +392,21 @@ export function useMultiSourceTable(
       ];
     }
 
-    // Add enrichment columns
+    // Add enrichment columns with sparklines
     for (const ds of promqlDatasources) {
       baseCols.push({
         id: ds.columnId,
         header: ds.columnHeader,
         accessorFn: (r: K8sResource) => (r as Record<string, unknown>)[ds.columnId] ?? '-',
-        render: (value: unknown) => (
-          <span className="font-mono text-sm text-slate-300">{String(value)}</span>
-        ),
+        render: (value: unknown, resource: K8sResource) => {
+          const sparkPoints = (resource as Record<string, unknown>)[`${ds.columnId}__spark`] as number[] | undefined;
+          return (
+            <div className="flex items-center gap-1.5">
+              {sparkPoints && sparkPoints.length > 1 && <Sparkline values={sparkPoints} />}
+              <span className="font-mono text-sm text-slate-300">{String(value)}</span>
+            </div>
+          );
+        },
         sortable: true,
         sortType: 'number',
         priority: 80,
