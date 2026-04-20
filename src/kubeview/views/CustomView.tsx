@@ -98,10 +98,11 @@ export default function CustomView() {
     };
   }, [viewId]);
 
-  // Trigger grid width recalculation when the AI sidebar toggles
+  // Force grid remount when sidebar toggles so WidthProvider remeasures
   const sidebarExpanded = useUIStore((s) => s.aiSidebarExpanded);
+  const [gridKey, setGridKey] = useState(0);
   useEffect(() => {
-    const timer = setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+    const timer = setTimeout(() => setGridKey((k) => k + 1), 350);
     return () => clearTimeout(timer);
   }, [sidebarExpanded]);
 
@@ -358,6 +359,7 @@ export default function CustomView() {
           />
         ) : (
           <ResponsiveGrid
+            key={gridKey}
             layouts={{ lg: currentLayout }}
             breakpoints={{ lg: 1024, md: 768, sm: 480 }}
             cols={{ lg: 4, md: 2, sm: 1 }}
