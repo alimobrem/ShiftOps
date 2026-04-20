@@ -32,6 +32,10 @@ interface AgentState {
   streamingComponents: ComponentSpec[];
   /** Skills running in parallel (empty when single-skill) */
   activeSkills: string[];
+  /** Tools that finished during parallel execution (for amber→green transition) */
+  completedTools: Set<string>;
+  /** Skills that finished (for checkmark display) */
+  completedSkills: Set<string>;
   pendingConfirm: ConfirmRequest | null;
   error: string | null;
   /** Brief toast shown when agent acknowledges feedback */
@@ -112,6 +116,8 @@ export const useAgentStore = create<AgentState>()(
       activeTools: [],
       streamingComponents: [],
       activeSkills: [],
+      completedTools: new Set<string>(),
+      completedSkills: new Set<string>(),
       pendingConfirm: null,
       error: null,
       feedbackToast: null,
@@ -206,12 +212,25 @@ export const useAgentStore = create<AgentState>()(
               set((s) => ({ streamingComponents: [...s.streamingComponents, event.spec] }));
               break;
             case 'multi_skill_start':
-              set({ activeSkills: event.skills });
+              set({ activeSkills: event.skills, completedTools: new Set(), completedSkills: new Set() });
               break;
             case 'skill_progress':
-              if (event.tool && event.status === 'tool_use') {
+              if (event.status === 'tool_use' && event.tool) {
                 const toolLabel = `${event.skill}:${event.tool}`;
                 set((s) => ({ activeTools: [...s.activeTools, toolLabel] }));
+              } else if (event.status === 'tool_complete' && event.tool) {
+                const toolLabel = `${event.skill}:${event.tool}`;
+                set((s) => {
+                  const next = new Set(s.completedTools);
+                  next.add(toolLabel);
+                  return { completedTools: next };
+                });
+              } else if (event.status === 'complete') {
+                set((s) => {
+                  const next = new Set(s.completedSkills);
+                  next.add(event.skill);
+                  return { completedSkills: next };
+                });
               }
               break;
             case 'confirm_request':

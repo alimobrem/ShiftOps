@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Brain, Wrench, Cpu, GitBranch, ChevronDown, ChevronRight } from 'lucide-react';
+import { Brain, Wrench, Cpu, GitBranch, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ThinkingIndicatorProps {
@@ -8,6 +8,10 @@ interface ThinkingIndicatorProps {
   activeTools: string[];
   /** Skills running in parallel (empty for single-skill) */
   activeSkills?: string[];
+  /** Tools that completed (for amber → green transition) */
+  completedTools?: Set<string>;
+  /** Skills that completed (for checkmark display) */
+  completedSkills?: Set<string>;
   /** Compact mode for InlineAgent (no border glow, smaller) */
   compact?: boolean;
 }
@@ -25,6 +29,8 @@ export function ThinkingIndicator({
   streamingText,
   activeTools,
   activeSkills = [],
+  completedTools = new Set(),
+  completedSkills = new Set(),
   compact = false,
 }: ThinkingIndicatorProps) {
   const [elapsed, setElapsed] = useState(0);
@@ -153,19 +159,22 @@ export function ThinkingIndicator({
           <div className="flex flex-wrap gap-1.5">
             {toolHistory.map((tool) => {
               const isActive = activeTools.includes(tool);
+              const isCompleted = completedTools.has(tool);
               return (
                 <span
                   key={tool}
                   className={cn(
                     'inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md transition-all',
-                    isActive
-                      ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 thinking-tool-active'
-                      : 'bg-slate-800 text-slate-400 border border-slate-700/50',
+                    isCompleted
+                      ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                      : isActive
+                        ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 thinking-tool-active'
+                        : 'bg-slate-800 text-slate-400 border border-slate-700/50',
                   )}
                 >
-                  <Wrench className="h-2.5 w-2.5" />
+                  {isCompleted ? <Check className="h-2.5 w-2.5" /> : <Wrench className="h-2.5 w-2.5" />}
                   {tool}
-                  {isActive && <span className="thinking-tool-dot" />}
+                  {isActive && !isCompleted && <span className="thinking-tool-dot" />}
                 </span>
               );
             })}
@@ -175,16 +184,25 @@ export function ThinkingIndicator({
         {/* Parallel skill badges */}
         {isParallel && (
           <div className="flex flex-wrap gap-1.5">
-            {activeSkills.map((skill) => (
-              <span
-                key={skill}
-                className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 thinking-tool-active"
-              >
-                <GitBranch className="h-2.5 w-2.5" />
-                {skill}
-                <span className="thinking-tool-dot" />
-              </span>
-            ))}
+            {activeSkills.map((skill) => {
+              const isDone = completedSkills.has(skill);
+              return (
+                <span
+                  key={skill}
+                  className={cn(
+                    'inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md',
+                    isDone
+                      ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 thinking-tool-active',
+                  )}
+                >
+                  {isDone ? <Check className="h-2.5 w-2.5" /> : <GitBranch className="h-2.5 w-2.5" />}
+                  {skill}
+                  {isDone ? ' ✓' : ''}
+                  {!isDone && <span className="thinking-tool-dot" />}
+                </span>
+              );
+            })}
           </div>
         )}
 

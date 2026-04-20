@@ -290,12 +290,15 @@ function ChatHistoryPanel({
 export function DockAgentPanel() {
   const {
     connected, mode, messages, streaming, streamingText, thinkingText,
-    activeTools, activeSkills, streamingComponents, pendingConfirm, error, feedbackToast,
+    activeTools, activeSkills, completedTools, completedSkills,
+    streamingComponents, pendingConfirm, error, feedbackToast,
     connect, sendMessage, confirmAction, cancelQuery, clearChat,
   } = useAgentStore(useShallow((s) => ({
     connected: s.connected, mode: s.mode, messages: s.messages,
     streaming: s.streaming, streamingText: s.streamingText, thinkingText: s.thinkingText,
-    activeTools: s.activeTools, activeSkills: s.activeSkills, streamingComponents: s.streamingComponents,
+    activeTools: s.activeTools, activeSkills: s.activeSkills,
+    completedTools: s.completedTools, completedSkills: s.completedSkills,
+    streamingComponents: s.streamingComponents,
     pendingConfirm: s.pendingConfirm, error: s.error, feedbackToast: s.feedbackToast,
     connect: s.connect, sendMessage: s.sendMessage, confirmAction: s.confirmAction,
     cancelQuery: s.cancelQuery, clearChat: s.clearChat,
@@ -505,6 +508,8 @@ export function DockAgentPanel() {
             streamingText={streamingText}
             activeTools={activeTools}
             activeSkills={activeSkills}
+            completedTools={completedTools}
+            completedSkills={completedSkills}
           />
         )}
 
