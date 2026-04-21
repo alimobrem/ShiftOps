@@ -38,23 +38,27 @@ export function InboxLifecycleBadge({
   const currentIdx = steps.findIndex((s) => s.key === status);
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="inline-flex items-center gap-px rounded-md bg-slate-800/80 border border-slate-700/50 px-1 py-0.5">
       {steps.map((step, idx) => {
         const isCurrent = step.key === status;
         const isPast = idx < currentIdx;
+        const isLast = idx === steps.length - 1;
 
         return (
-          <div key={step.key} className="flex items-center gap-0.5">
-            <div
+          <div key={step.key} className="flex items-center">
+            <span
               className={cn(
-                'h-1.5 rounded-full transition-colors',
-                idx === 0 ? 'w-3' : 'w-2.5',
-                isCurrent && 'bg-violet-500',
-                isPast && 'bg-emerald-500',
-                !isCurrent && !isPast && 'bg-slate-700',
+                'px-1.5 py-0.5 text-[10px] leading-none rounded-sm',
+                isCurrent && 'bg-violet-600 text-white font-medium',
+                isPast && 'text-emerald-400',
+                !isCurrent && !isPast && 'text-slate-600',
               )}
-              title={step.label}
-            />
+            >
+              {step.label}
+            </span>
+            {!isLast && (
+              <span className={cn('text-[8px]', isPast ? 'text-emerald-600' : 'text-slate-700')}>›</span>
+            )}
           </div>
         );
       })}
