@@ -100,8 +100,18 @@ export function InboxItem({
               {item.namespace && (
                 <Badge variant="outline" className="text-xs">{item.namespace}</Badge>
               )}
-              {!!item.metadata?.triaged && (
-                <Tooltip content={`AI: ${(item.metadata.triage_action as string) || 'triaged'} · ${(item.metadata.triage_urgency as string) || ''}`}>
+              {item.status === 'agent_reviewing' && (
+                <Tooltip content="Agent is investigating">
+                  <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse flex-shrink-0" />
+                </Tooltip>
+              )}
+              {item.status === 'agent_cleared' && (
+                <Tooltip content={String(item.metadata?.dismiss_reason || 'Cleared by agent')}>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                </Tooltip>
+              )}
+              {item.status !== 'agent_reviewing' && item.status !== 'agent_cleared' && !!item.metadata?.triaged && (
+                <Tooltip content={`AI: ${String(item.metadata.triage_action || 'triaged')} · ${String(item.metadata.triage_urgency || '')}`}>
                   <span className="w-2 h-2 rounded-full bg-violet-500 flex-shrink-0" />
                 </Tooltip>
               )}

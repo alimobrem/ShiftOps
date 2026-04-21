@@ -4,13 +4,13 @@ import { Badge } from '../../components/primitives/Badge';
 import { Button } from '../../components/primitives/Button';
 import { useInboxStore } from '../../store/inboxStore';
 
-type Preset = 'active_incidents' | 'needs_approval' | 'my_items' | 'unclaimed';
+type Preset = 'needs_attention' | 'agent_cleared' | 'my_items' | 'all';
 
 const PRESETS: Array<{ id: Preset; label: string; countKey: string }> = [
-  { id: 'active_incidents', label: 'Active Incidents', countKey: 'investigating' },
-  { id: 'needs_approval', label: 'Needs Approval', countKey: 'pending_approval' },
+  { id: 'needs_attention', label: 'Needs Attention', countKey: 'total' },
+  { id: 'agent_cleared', label: 'Agent Cleared', countKey: 'agent_cleared' },
   { id: 'my_items', label: 'My Items', countKey: 'claimed' },
-  { id: 'unclaimed', label: 'Unclaimed', countKey: 'unclaimed' },
+  { id: 'all', label: 'All', countKey: 'total' },
 ];
 
 const SEVERITY_BADGES: Array<{ key: string; label: string; color: string }> = [

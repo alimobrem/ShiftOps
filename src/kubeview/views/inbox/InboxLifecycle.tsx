@@ -4,6 +4,7 @@ import type { InboxItemType, InboxStatus } from '../../engine/inboxApi';
 const LIFECYCLES: Record<string, Array<{ key: string; label: string }>> = {
   finding: [
     { key: 'new', label: 'New' },
+    { key: 'agent_reviewing', label: 'AI Review' },
     { key: 'acknowledged', label: 'Ack' },
     { key: 'investigating', label: 'Investigating' },
     { key: 'action_taken', label: 'Action' },
@@ -12,16 +13,19 @@ const LIFECYCLES: Record<string, Array<{ key: string; label: string }>> = {
   ],
   task: [
     { key: 'new', label: 'New' },
+    { key: 'agent_reviewing', label: 'AI Review' },
     { key: 'in_progress', label: 'In Progress' },
     { key: 'resolved', label: 'Done' },
   ],
   alert: [
     { key: 'new', label: 'New' },
+    { key: 'agent_reviewing', label: 'AI Review' },
     { key: 'acknowledged', label: 'Ack' },
     { key: 'resolved', label: 'Resolved' },
   ],
   assessment: [
     { key: 'new', label: 'New' },
+    { key: 'agent_reviewing', label: 'AI Review' },
     { key: 'acknowledged', label: 'Ack' },
     { key: 'escalated', label: 'Escalated' },
   ],
@@ -49,7 +53,8 @@ export function InboxLifecycleBadge({
             <span
               className={cn(
                 'px-1.5 py-0.5 text-[10px] leading-none rounded-sm',
-                isCurrent && 'bg-violet-600 text-white font-medium',
+                isCurrent && step.key === 'agent_reviewing' && 'bg-violet-600 text-white font-medium animate-pulse',
+                isCurrent && step.key !== 'agent_reviewing' && 'bg-violet-600 text-white font-medium',
                 isPast && 'text-emerald-400',
                 !isCurrent && !isPast && 'text-slate-600',
               )}

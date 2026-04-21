@@ -7,10 +7,11 @@
 
 export type InboxItemType = 'finding' | 'task' | 'alert' | 'assessment';
 export type InboxSeverity = 'critical' | 'warning' | 'info';
-export type FindingStatus = 'new' | 'acknowledged' | 'investigating' | 'action_taken' | 'verifying' | 'resolved' | 'archived';
-export type TaskStatus = 'new' | 'in_progress' | 'resolved' | 'archived';
-export type AlertStatus = 'new' | 'acknowledged' | 'resolved' | 'archived';
-export type AssessmentStatus = 'new' | 'acknowledged' | 'escalated';
+export type AgentStatus = 'agent_reviewing' | 'agent_cleared';
+export type FindingStatus = 'new' | 'acknowledged' | 'investigating' | 'action_taken' | 'verifying' | 'resolved' | 'archived' | AgentStatus;
+export type TaskStatus = 'new' | 'in_progress' | 'resolved' | 'archived' | AgentStatus;
+export type AlertStatus = 'new' | 'acknowledged' | 'resolved' | 'archived' | AgentStatus;
+export type AssessmentStatus = 'new' | 'acknowledged' | 'escalated' | AgentStatus;
 export type InboxStatus = FindingStatus | TaskStatus | AlertStatus | AssessmentStatus;
 
 export interface InboxItem {
@@ -141,4 +142,22 @@ export async function escalateInboxItem(id: string): Promise<{ finding_id: strin
 
 export async function pinInboxItem(id: string): Promise<void> {
   await _fetch(`${AGENT_BASE}/inbox/${id}/pin`, { method: 'POST' });
+}
+
+export async function restoreInboxItem(id: string): Promise<void> {
+  await _fetch(`${AGENT_BASE}/inbox/${id}/restore`, { method: 'POST' });
+}
+
+export interface InvestigationReport {
+  id: string;
+  summary: string;
+  suspected_cause: string;
+  recommended_fix: string;
+  confidence: number;
+  evidence: string[];
+  alternatives_considered: string[];
+}
+
+export async function fetchInboxInvestigation(id: string): Promise<InvestigationReport> {
+  return _fetch(`${AGENT_BASE}/inbox/${id}/investigation`);
 }

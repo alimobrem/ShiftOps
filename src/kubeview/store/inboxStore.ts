@@ -16,6 +16,7 @@ import {
   resolveInboxItem,
   pinInboxItem,
   createInboxTask,
+  restoreInboxItem,
   type InboxItem,
   type InboxGroup,
   type InboxFilters,
@@ -23,13 +24,13 @@ import {
 import { handleAuthError } from '../engine/auth';
 import { useUIStore } from './uiStore';
 
-type Preset = 'active_incidents' | 'needs_approval' | 'my_items' | 'unclaimed' | null;
+type Preset = 'needs_attention' | 'agent_cleared' | 'my_items' | 'all' | null;
 
 const PRESET_FILTERS: Record<string, InboxFilters> = {
-  active_incidents: { type: 'finding', status: 'investigating' },
-  needs_approval: { status: 'new', type: 'finding' },
+  needs_attention: {},
+  agent_cleared: { status: 'agent_cleared' },
   my_items: { claimed_by: '__current_user__' },
-  unclaimed: { claimed_by: '__unclaimed__' },
+  all: {},
 };
 
 function _toast(type: 'success' | 'error', title: string) {
@@ -62,6 +63,7 @@ interface InboxState {
   dismiss: (id: string) => Promise<boolean>;
   resolve: (id: string) => Promise<boolean>;
   pin: (id: string) => Promise<boolean>;
+  restore: (id: string) => Promise<boolean>;
   createTask: (data: { title: string; summary?: string; namespace?: string }) => Promise<boolean>;
 }
 
@@ -71,7 +73,7 @@ export const useInboxStore = create<InboxState>((set, get) => ({
   stats: {},
   total: 0,
   filters: {},
-  activePreset: null,
+  activePreset: 'needs_attention',
   groupBy: null,
   selectedItemId: null,
   loading: false,
@@ -201,6 +203,18 @@ export const useInboxStore = create<InboxState>((set, get) => ({
       return true;
     } catch {
       _toast('error', 'Failed to pin');
+      return false;
+    }
+  },
+
+  restore: async (id) => {
+    try {
+      await restoreInboxItem(id);
+      get().refresh();
+      _toast('success', 'Item restored to inbox');
+      return true;
+    } catch {
+      _toast('error', 'Failed to restore');
       return false;
     }
   },
