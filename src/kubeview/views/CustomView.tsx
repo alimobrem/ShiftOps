@@ -379,7 +379,7 @@ export default function CustomView() {
             compactType="vertical"
           >
             {view.layout.map((spec, i) => (
-              <div key={String(i)} className={`rounded-lg border bg-slate-900/80 p-3 relative group overflow-hidden transition-all duration-200 ${editMode ? 'border-slate-700 border-dashed' : 'border-slate-800 hover:border-slate-600 hover:shadow-[0_0_15px_rgba(37,99,235,0.06)]'}`} style={{ animationDelay: `${i * 50}ms` }}>
+              <div key={String(i)} className={`rounded-lg border bg-slate-900/80 p-3 relative group overflow-y-auto transition-all duration-200 ${editMode ? 'border-slate-700 border-dashed' : 'border-slate-800 hover:border-slate-600 hover:shadow-[0_0_15px_rgba(37,99,235,0.06)]'}`} style={{ animationDelay: `${i * 50}ms` }}>
                 {editMode && (
                   <>
                     <div className="widget-drag-handle absolute inset-x-0 top-0 h-6 cursor-grab active:cursor-grabbing flex items-center px-2 bg-slate-800/30 rounded-t-lg z-10">
