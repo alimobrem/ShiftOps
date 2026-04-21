@@ -36,4 +36,9 @@ spec:
   tls:
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect
+    {{- $caBundle := lookup "v1" "ConfigMap" "openshift-service-ca" "signing-cabundle" }}
+    {{- if $caBundle }}
+    destinationCACertificate: |
+{{ index $caBundle.data "ca-bundle.crt" | indent 6 }}
+    {{- end }}
 {{- end }}
