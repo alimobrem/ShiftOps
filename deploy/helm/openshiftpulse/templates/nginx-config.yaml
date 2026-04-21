@@ -44,12 +44,11 @@ data:
           proxy_pass https://kubernetes.default.svc/;
           proxy_ssl_verify on;
           proxy_ssl_trusted_certificate /var/run/secrets/kubernetes.io/serviceaccount/ca.crt;
-          # Use UI pod SA token (openshiftpulse-reader ClusterRole) so all
-          # authenticated users get read access regardless of their personal RBAC.
-          # Falls back to user OAuth token if SA token is empty.
-          set $k8s_token '__SA_TOKEN__';
+          # Use the authenticated user's OAuth token so Kubernetes RBAC is enforced.
+          # Falls back to SA token when no OAuth token is present (e.g. direct access).
+          set $k8s_token $http_x_forwarded_access_token;
           if ($k8s_token = '') {
-            set $k8s_token $http_x_forwarded_access_token;
+            set $k8s_token '__SA_TOKEN__';
           }
           proxy_set_header Authorization "Bearer $k8s_token";
           proxy_set_header Upgrade $http_upgrade;
