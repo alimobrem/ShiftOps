@@ -605,10 +605,12 @@ export function TaskDetailDrawer({
           {item.status === 'acknowledged' && (
             <>
               {!item.claimed_by ? (
-                <Button size="sm" onClick={() => claim(item.id)}>
-                  <CheckCircle2 className="w-4 h-4 mr-1" />
-                  Claim
-                </Button>
+                <Tooltip content="Take ownership — assign this to yourself to investigate and resolve">
+                  <Button size="sm" onClick={() => claim(item.id)}>
+                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                    Claim
+                  </Button>
+                </Tooltip>
               ) : (
                 <>
                   {item.item_type === 'finding' && (
@@ -626,19 +628,25 @@ export function TaskDetailDrawer({
                 </>
               )}
               {item.item_type === 'assessment' && (
-                <Button size="sm" variant="ghost" onClick={handleEscalate}>
-                  <ArrowUpCircle className="w-4 h-4 mr-1" />
-                  Escalate
-                </Button>
+                <Tooltip content="Promote to a formal finding — the agent will investigate and build an action plan">
+                  <Button size="sm" variant="ghost" onClick={handleEscalate}>
+                    <ArrowUpCircle className="w-4 h-4 mr-1" />
+                    Escalate
+                  </Button>
+                </Tooltip>
               )}
-              <Button size="sm" variant="ghost" onClick={handleInvestigate}>
-                <Bot className="w-4 h-4 mr-1" />
-                Deep Dive
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => dismiss(item.id)}>
-                <Archive className="w-4 h-4 mr-1" />
-                Dismiss
-              </Button>
+              <Tooltip content="Open the agent chat to investigate this item interactively">
+                <Button size="sm" variant="ghost" onClick={handleInvestigate}>
+                  <Bot className="w-4 h-4 mr-1" />
+                  Deep Dive
+                </Button>
+              </Tooltip>
+              <Tooltip content="Archive — will be deleted after 30 days">
+                <Button size="sm" variant="ghost" onClick={() => dismiss(item.id)}>
+                  <Archive className="w-4 h-4 mr-1" />
+                  Dismiss
+                </Button>
+              </Tooltip>
             </>
           )}
 
