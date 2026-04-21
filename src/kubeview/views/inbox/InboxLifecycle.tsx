@@ -39,11 +39,17 @@ export function InboxLifecycleBadge({
   status: InboxStatus;
 }) {
   const steps = LIFECYCLES[itemType] || LIFECYCLES.finding;
-  const currentIdx = steps.findIndex((s) => s.key === status);
+  const isCleared = status === 'agent_cleared';
+  const currentIdx = isCleared ? steps.length : steps.findIndex((s) => s.key === status);
 
   return (
     <div className="inline-flex items-center gap-px rounded-md bg-slate-800/80 border border-slate-700/50 px-1 py-0.5">
-      {steps.map((step, idx) => {
+      {isCleared && (
+        <span className="px-1.5 py-0.5 text-[10px] leading-none rounded-sm text-emerald-400 font-medium">
+          Cleared ✓
+        </span>
+      )}
+      {!isCleared && steps.map((step, idx) => {
         const isCurrent = step.key === status;
         const isPast = idx < currentIdx;
         const isLast = idx === steps.length - 1;
@@ -79,13 +85,14 @@ export function InboxLifecycleStepper({
   status: InboxStatus;
 }) {
   const steps = LIFECYCLES[itemType] || LIFECYCLES.finding;
-  const currentIdx = steps.findIndex((s) => s.key === status);
+  const isCleared = status === 'agent_cleared';
+  const currentIdx = isCleared ? steps.length : steps.findIndex((s) => s.key === status);
 
   return (
     <div className="flex items-center gap-1">
       {steps.map((step, idx) => {
-        const isCurrent = step.key === status;
-        const isPast = idx < currentIdx;
+        const isCurrent = !isCleared && step.key === status;
+        const isPast = isCleared || idx < currentIdx;
         const isLast = idx === steps.length - 1;
 
         return (
