@@ -266,10 +266,12 @@ export function TaskDetailDrawer({
 
           {item.status === 'acknowledged' && (
             <>
-              <Button size="sm" onClick={handleInvestigate}>
-                <Bot className="w-4 h-4 mr-1" />
-                Investigate with AI
-              </Button>
+              {!item.claimed_by && (
+                <Button size="sm" onClick={() => claim(item.id)}>
+                  <CheckCircle2 className="w-4 h-4 mr-1" />
+                  Claim
+                </Button>
+              )}
               {item.item_type === 'task' && (
                 <Button size="sm" variant="ghost" onClick={() => handleAdvance('in_progress')}>
                   <ArrowRight className="w-4 h-4 mr-1" />
@@ -282,6 +284,14 @@ export function TaskDetailDrawer({
                   Escalate
                 </Button>
               )}
+              <Button size="sm" variant="ghost" onClick={() => dismiss(item.id)}>
+                <Archive className="w-4 h-4 mr-1" />
+                Dismiss
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleInvestigate}>
+                <Bot className="w-4 h-4 mr-1" />
+                Deep Dive
+              </Button>
             </>
           )}
 
@@ -340,7 +350,7 @@ export function TaskDetailDrawer({
             </Button>
           )}
 
-          {!item.claimed_by && !['agent_cleared', 'agent_reviewing', 'resolved', 'archived'].includes(item.status) && (
+          {!item.claimed_by && !['acknowledged', 'agent_cleared', 'agent_reviewing', 'resolved', 'archived', 'escalated'].includes(item.status) && (
             <Button size="sm" variant="ghost" onClick={() => claim(item.id)}>Claim</Button>
           )}
         </div>

@@ -1,5 +1,6 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '../../components/primitives/Tooltip';
 import { useInboxStore } from '../../store/inboxStore';
 
 const TYPE_OPTIONS = [
@@ -131,6 +132,21 @@ export function InboxFilterBar() {
         onChange={(v) => setFilters({ ...filters, type: v || undefined, status: undefined })}
         active={!!currentType}
       />
+      <Tooltip
+        content={
+          <div className="space-y-1.5 max-w-xs">
+            <div><span className="font-medium text-slate-200">Finding</span> — something is broken now (crashloop, OOM)</div>
+            <div><span className="font-medium text-slate-200">Assessment</span> — something will need attention (cert expiry, RBAC drift)</div>
+            <div><span className="font-medium text-slate-200">Alert</span> — Prometheus alert fired (threshold breach)</div>
+            <div><span className="font-medium text-slate-200">Task</span> — manually created to-do item</div>
+          </div>
+        }
+        side="bottom"
+      >
+        <button className="text-slate-600 hover:text-slate-400 transition-colors" aria-label="Item type definitions">
+          <HelpCircle className="w-3.5 h-3.5" />
+        </button>
+      </Tooltip>
       <FilterSelect
         label="Filter by status"
         value={currentStatus}
