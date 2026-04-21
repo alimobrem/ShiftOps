@@ -27,9 +27,9 @@ type Preset = 'active_incidents' | 'needs_approval' | 'my_items' | 'unclaimed' |
 
 const PRESET_FILTERS: Record<string, InboxFilters> = {
   active_incidents: { type: 'finding', status: 'investigating' },
-  needs_approval: {},
+  needs_approval: { status: 'new', type: 'finding' },
   my_items: { claimed_by: '__current_user__' },
-  unclaimed: {},
+  unclaimed: { claimed_by: '__unclaimed__' },
 };
 
 function _toast(type: 'success' | 'error', title: string) {

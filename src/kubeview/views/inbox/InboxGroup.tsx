@@ -23,6 +23,7 @@ export function InboxGroup({
     <div className="space-y-1">
       <button
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
         className="flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors text-left"
       >
         {expanded ? (

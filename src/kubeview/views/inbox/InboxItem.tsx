@@ -71,11 +71,7 @@ export function InboxItem({
 
   const onDismissClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (severity === 'critical') {
-      setConfirmDismiss(true);
-    } else {
-      dismiss(item.id);
-    }
+    setConfirmDismiss(true);
   };
 
   const snoozeItems = SNOOZE_ITEMS.map((opt) => ({
@@ -194,7 +190,7 @@ export function InboxItem({
         onClose={() => setConfirmDismiss(false)}
         onConfirm={handleDismiss}
         title="Dismiss critical item?"
-        description={`"${item.title}" is critical severity. This will permanently remove it from your inbox.`}
+        description={`"${item.title}" will be permanently removed from your inbox.`}
         variant="danger"
       />
     </>

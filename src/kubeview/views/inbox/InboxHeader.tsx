@@ -6,11 +6,17 @@ import { useInboxStore } from '../../store/inboxStore';
 
 type Preset = 'active_incidents' | 'needs_approval' | 'my_items' | 'unclaimed';
 
-const PRESETS: Array<{ id: Preset; label: string }> = [
-  { id: 'active_incidents', label: 'Active Incidents' },
-  { id: 'needs_approval', label: 'Needs Approval' },
-  { id: 'my_items', label: 'My Items' },
-  { id: 'unclaimed', label: 'Unclaimed' },
+const PRESETS: Array<{ id: Preset; label: string; countKey: string }> = [
+  { id: 'active_incidents', label: 'Active Incidents', countKey: 'investigating' },
+  { id: 'needs_approval', label: 'Needs Approval', countKey: 'pending_approval' },
+  { id: 'my_items', label: 'My Items', countKey: 'claimed' },
+  { id: 'unclaimed', label: 'Unclaimed', countKey: 'unclaimed' },
+];
+
+const SEVERITY_BADGES: Array<{ key: string; label: string; color: string }> = [
+  { key: 'critical', label: 'Critical', color: 'bg-red-500/15 text-red-400' },
+  { key: 'warning', label: 'Warning', color: 'bg-yellow-500/15 text-yellow-400' },
+  { key: 'info', label: 'Info', color: 'bg-blue-500/15 text-blue-400' },
 ];
 
 export function InboxHeader({
@@ -25,6 +31,8 @@ export function InboxHeader({
   const newCount = stats.new ?? 0;
   const totalOpen = (stats.total ?? 0) - (stats.resolved ?? 0) - (stats.archived ?? 0);
 
+  const hasSeverityData = SEVERITY_BADGES.some((s) => (stats[s.key] ?? 0) > 0);
+
   return (
     <div className="px-4 py-3 border-b border-slate-800">
       <div className="flex items-center justify-between mb-3">
@@ -38,6 +46,19 @@ export function InboxHeader({
           {totalOpen > 0 && (
             <span className="text-xs text-slate-500">{totalOpen} open</span>
           )}
+          {hasSeverityData && (
+            <div className="flex items-center gap-1.5 ml-2">
+              {SEVERITY_BADGES.map((sev) => {
+                const count = stats[sev.key] ?? 0;
+                if (count === 0) return null;
+                return (
+                  <span key={sev.key} className={cn('px-2 py-0.5 rounded-full text-xs font-medium', sev.color)}>
+                    {count} {sev.label}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
         <Button size="sm" onClick={onNewTask}>
           <Plus className="w-4 h-4 mr-1" />
@@ -45,21 +66,34 @@ export function InboxHeader({
         </Button>
       </div>
 
-      <div className="flex items-center gap-2">
-        {PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            onClick={() => setPreset(activePreset === preset.id ? null : preset.id)}
-            className={cn(
-              'px-3 py-1.5 text-xs rounded-full transition-colors',
-              activePreset === preset.id
-                ? 'bg-violet-600 text-white'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300',
-            )}
-          >
-            {preset.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-2" role="group" aria-label="Quick filters">
+        {PRESETS.map((preset) => {
+          const count = stats[preset.countKey] ?? 0;
+          const isActive = activePreset === preset.id;
+          return (
+            <button
+              key={preset.id}
+              onClick={() => setPreset(isActive ? null : preset.id)}
+              aria-pressed={isActive}
+              className={cn(
+                'px-3 py-1.5 text-xs rounded-full transition-colors inline-flex items-center gap-1.5',
+                isActive
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300',
+              )}
+            >
+              {preset.label}
+              {count > 0 && (
+                <span className={cn(
+                  'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+                  isActive ? 'bg-white/20' : 'bg-slate-700 text-slate-300',
+                )}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

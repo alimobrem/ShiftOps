@@ -1,58 +1,95 @@
-import { FilterButtonGroup } from '../../components/primitives/FilterButtonGroup';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useInboxStore } from '../../store/inboxStore';
 
 const TYPE_OPTIONS = [
-  { key: null, label: 'All' },
-  { key: 'finding', label: 'Finding' },
-  { key: 'task', label: 'Task' },
-  { key: 'alert', label: 'Alert' },
-  { key: 'assessment', label: 'Assessment' },
+  { value: '', label: 'All types' },
+  { value: 'finding', label: 'Findings' },
+  { value: 'task', label: 'Tasks' },
+  { value: 'alert', label: 'Alerts' },
+  { value: 'assessment', label: 'Assessments' },
 ];
 
-const STATUS_OPTIONS: Record<string, Array<{ key: string | null; label: string }>> = {
+const STATUS_OPTIONS: Record<string, Array<{ value: string; label: string }>> = {
   finding: [
-    { key: null, label: 'All' },
-    { key: 'new', label: 'New' },
-    { key: 'acknowledged', label: 'Acknowledged' },
-    { key: 'investigating', label: 'Investigating' },
-    { key: 'action_taken', label: 'Action Taken' },
-    { key: 'verifying', label: 'Verifying' },
+    { value: '', label: 'Any status' },
+    { value: 'new', label: 'New' },
+    { value: 'acknowledged', label: 'Acknowledged' },
+    { value: 'investigating', label: 'Investigating' },
+    { value: 'action_taken', label: 'Action Taken' },
+    { value: 'verifying', label: 'Verifying' },
   ],
   task: [
-    { key: null, label: 'All' },
-    { key: 'new', label: 'New' },
-    { key: 'in_progress', label: 'In Progress' },
+    { value: '', label: 'Any status' },
+    { value: 'new', label: 'New' },
+    { value: 'in_progress', label: 'In Progress' },
   ],
   alert: [
-    { key: null, label: 'All' },
-    { key: 'new', label: 'New' },
-    { key: 'acknowledged', label: 'Acknowledged' },
+    { value: '', label: 'Any status' },
+    { value: 'new', label: 'New' },
+    { value: 'acknowledged', label: 'Acknowledged' },
   ],
   assessment: [
-    { key: null, label: 'All' },
-    { key: 'new', label: 'New' },
-    { key: 'acknowledged', label: 'Acknowledged' },
+    { value: '', label: 'Any status' },
+    { value: 'new', label: 'New' },
+    { value: 'acknowledged', label: 'Acknowledged' },
   ],
   default: [
-    { key: null, label: 'All' },
-    { key: 'new', label: 'New' },
-    { key: 'acknowledged', label: 'Acknowledged' },
-    { key: 'in_progress', label: 'In Progress' },
-    { key: 'investigating', label: 'Investigating' },
+    { value: '', label: 'Any status' },
+    { value: 'new', label: 'New' },
+    { value: 'acknowledged', label: 'Acknowledged' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'investigating', label: 'Investigating' },
   ],
 };
 
 const SEVERITY_OPTIONS = [
-  { key: null, label: 'All' },
-  { key: 'critical', label: 'Critical' },
-  { key: 'warning', label: 'Warning' },
-  { key: 'info', label: 'Info' },
+  { value: '', label: 'Any severity' },
+  { value: 'critical', label: 'Critical' },
+  { value: 'warning', label: 'Warning' },
+  { value: 'info', label: 'Info' },
 ];
 
 const GROUP_OPTIONS = [
-  { key: null, label: 'None' },
-  { key: 'correlation', label: 'Correlation' },
+  { value: '', label: 'No grouping' },
+  { value: 'correlation', label: 'Group by correlation' },
 ];
+
+function FilterSelect({
+  value,
+  options,
+  onChange,
+  active,
+  label,
+}: {
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  active?: boolean;
+  label: string;
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className={cn(
+          'appearance-none pl-3 pr-7 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
+          'border focus:outline-none focus:ring-1 focus:ring-violet-500',
+          active
+            ? 'bg-violet-600/20 text-violet-300 border-violet-700/50'
+            : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600 hover:text-slate-300',
+        )}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500 pointer-events-none" />
+    </div>
+  );
+}
 
 export function InboxFilterBar() {
   const filters = useInboxStore((s) => s.filters);
@@ -60,33 +97,51 @@ export function InboxFilterBar() {
   const groupBy = useInboxStore((s) => s.groupBy);
   const setGroupBy = useInboxStore((s) => s.setGroupBy);
 
-  const currentType = filters.type || null;
-  const currentStatus = filters.status || null;
-  const currentSeverity = filters.severity || null;
-  const statusOptions = STATUS_OPTIONS[currentType || ''] || STATUS_OPTIONS.default;
+  const currentType = filters.type || '';
+  const currentStatus = filters.status || '';
+  const currentSeverity = filters.severity || '';
+  const statusOptions = STATUS_OPTIONS[currentType] || STATUS_OPTIONS.default;
+
+  const hasActiveFilters = currentType || currentStatus || currentSeverity;
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-2 border-b border-slate-800">
-      <FilterButtonGroup
-        options={TYPE_OPTIONS}
+    <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-800">
+      <FilterSelect
+        label="Filter by type"
         value={currentType}
-        onChange={(value) => setFilters({ ...filters, type: value || undefined, status: undefined })}
+        options={TYPE_OPTIONS}
+        onChange={(v) => setFilters({ ...filters, type: v || undefined, status: undefined })}
+        active={!!currentType}
       />
-      <FilterButtonGroup
-        options={statusOptions}
+      <FilterSelect
+        label="Filter by status"
         value={currentStatus}
-        onChange={(value) => setFilters({ ...filters, status: value || undefined })}
+        options={statusOptions}
+        onChange={(v) => setFilters({ ...filters, status: v || undefined })}
+        active={!!currentStatus}
       />
-      <FilterButtonGroup
-        options={SEVERITY_OPTIONS}
+      <FilterSelect
+        label="Filter by severity"
         value={currentSeverity}
-        onChange={(value) => setFilters({ ...filters, severity: value || undefined })}
+        options={SEVERITY_OPTIONS}
+        onChange={(v) => setFilters({ ...filters, severity: v || undefined })}
+        active={!!currentSeverity}
       />
+      {hasActiveFilters && (
+        <button
+          onClick={() => setFilters({})}
+          className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          Clear
+        </button>
+      )}
       <div className="ml-auto">
-        <FilterButtonGroup
+        <FilterSelect
+          label="Group items"
+          value={groupBy || ''}
           options={GROUP_OPTIONS}
-          value={groupBy}
-          onChange={(value) => setGroupBy(value)}
+          onChange={(v) => setGroupBy(v || null)}
+          active={!!groupBy}
         />
       </div>
     </div>
