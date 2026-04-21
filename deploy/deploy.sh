@@ -504,7 +504,7 @@ helm upgrade --install "$RELEASE" deploy/helm/pulse/ \
   -n "$NAMESPACE" --create-namespace \
   --values "$VALUES_FILE" \
   ${HELM_SETS[@]+"${HELM_SETS[@]}"} \
-  --timeout 300s \
+  --timeout 600s \
   --rollback-on-failure
 info "Helm release: $RELEASE (umbrella)"
 
