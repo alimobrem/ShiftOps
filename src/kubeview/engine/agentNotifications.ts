@@ -46,21 +46,17 @@ async function detectProtocol(): Promise<'2' | '1' | null> {
 
 function showFindingToast(finding: Finding) {
   const store = useUIStore.getState();
+  const activeTab = store.tabs.find(t => t.id === store.activeTabId);
+  if (activeTab?.path === '/inbox') return;
+
   store.addToast({
     type: finding.severity === 'critical' ? 'error' : 'warning',
-    title: `Monitor: ${finding.title}`,
-    detail: finding.summary,
-    duration: 15000,
+    title: finding.title,
+    duration: 8000,
     action: {
-      label: 'Investigate',
+      label: 'View in Inbox',
       onClick: () => {
-        store.expandAISidebar(); store.setAISidebarMode('chat');
-        const agentStore = useAgentStore.getState();
-        if (agentStore.connected) {
-          agentStore.sendMessage(
-            `The monitor detected this issue:\n\n"${finding.title}: ${finding.summary}"\n\nInvestigate this further. What is the root cause and what should I do to fix it?`,
-          );
-        }
+        store.setActiveTab('inbox');
       },
     },
   });
