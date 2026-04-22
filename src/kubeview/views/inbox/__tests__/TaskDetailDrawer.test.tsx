@@ -127,10 +127,10 @@ describe('TaskDetailDrawer — no dead-end states', () => {
     expect(screen.getAllByText(/Claim/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('claimed shows Start Working button', () => {
+  it('claimed shows Deep Dive button', () => {
     const item = makeItem({ status: 'claimed', claimed_by: 'user' });
     render(<TaskDetailDrawer item={item} onClose={vi.fn()} />);
-    expect(screen.getAllByText(/Start Working/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Deep Dive/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('in_progress shows Resolve button', () => {

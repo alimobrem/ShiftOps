@@ -124,7 +124,14 @@ function ActionPlanSection({
   item: InboxItem;
   onClose: () => void;
 }) {
+  const advanceToInProgress = () => {
+    if (item.status === 'claimed') {
+      useInboxStore.getState().advanceStatus(item.id, 'in_progress');
+    }
+  };
+
   const openAgentWithPrompt = (prompt: string) => {
+    advanceToInProgress();
     useAgentStore.getState().connectAndSend(prompt);
     useUIStore.getState().expandAISidebar();
     useUIStore.getState().setAISidebarMode('chat');
@@ -333,6 +340,7 @@ export function TaskDetailDrawer({
   const agentError = String(item.metadata?.agent_error || '');
 
   const handleInvestigate = () => {
+    if (item.status === 'claimed') advanceStatus(item.id, 'in_progress');
     useAgentStore.getState().connectAndSend(buildInvestigatePrompt(item));
     onClose();
     const uiState = useUIStore.getState();
@@ -353,6 +361,9 @@ export function TaskDetailDrawer({
         {item.view_id && (
           <a
             href={`/custom/${item.view_id}`}
+            onClick={() => {
+              if (item.status === 'claimed') advanceStatus(item.id, 'in_progress');
+            }}
             className="flex items-center gap-2 w-full rounded-lg border border-blue-800/50 bg-blue-950/30 px-3 py-2.5 text-sm font-medium text-blue-300 hover:bg-blue-900/30 transition-colors"
           >
             <Search className="w-4 h-4" />
@@ -609,16 +620,16 @@ export function TaskDetailDrawer({
 
           {item.status === 'claimed' && (
             <>
-              <Tooltip content="Begin working on this item">
-                <Button size="sm" onClick={() => handleAdvance('in_progress')}>
-                  <ArrowRight className="w-4 h-4 mr-1" />
-                  Start Working
-                </Button>
-              </Tooltip>
               <Tooltip content="Open the agent chat to investigate interactively">
-                <Button size="sm" variant="ghost" onClick={handleInvestigate}>
+                <Button size="sm" onClick={handleInvestigate}>
                   <Bot className="w-4 h-4 mr-1" />
                   Deep Dive
+                </Button>
+              </Tooltip>
+              <Tooltip content="Mark as resolved">
+                <Button size="sm" variant="ghost" onClick={() => resolve(item.id)}>
+                  <CheckCircle2 className="w-4 h-4 mr-1" />
+                  Resolve
                 </Button>
               </Tooltip>
               <Tooltip content="Archive — will be deleted after 30 days">
