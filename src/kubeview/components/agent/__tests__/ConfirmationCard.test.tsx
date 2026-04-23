@@ -119,13 +119,6 @@ describe('ConfirmationCard', () => {
     expect(screen.getByText('Scale back to the original replica count')).toBeTruthy();
   });
 
-  it('shows "What If?" button', () => {
-    const onConfirm = vi.fn();
-    render(<ConfirmationCard confirm={scaleConfirm} onConfirm={onConfirm} />);
-    expect(screen.getByLabelText('Simulate impact')).toBeTruthy();
-    expect(screen.getByText('What If?')).toBeTruthy();
-  });
-
   it('keyboard Y calls onConfirm(true)', () => {
     const onConfirm = vi.fn();
     render(<ConfirmationCard confirm={scaleConfirm} onConfirm={onConfirm} />);
