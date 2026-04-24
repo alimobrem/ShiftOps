@@ -204,14 +204,33 @@ export default function PulseView() {
               color={readyNodeCount === nodes.length ? 'emerald' : 'amber'}
               onClick={() => go('/compute', 'Compute')}
             />
-            <button
-              onClick={() => go('/agent', 'Pulse Agent')}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 text-xs text-slate-300 hover:bg-slate-700 transition-colors"
-            >
-              <div className={cn('w-1.5 h-1.5 rounded-full', monitorConnected ? 'bg-emerald-400' : 'bg-slate-600')} />
-              Agent &middot; Trust {trustLevel}
-              {activeSkill && <span className="text-violet-400">&middot; {activeSkill}</span>}
-            </button>
+            <div className="relative group">
+              <button
+                onClick={() => go('/agent', 'Pulse Agent')}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 text-xs text-slate-300 hover:bg-slate-700 transition-colors"
+              >
+                <div className={cn('w-1.5 h-1.5 rounded-full', monitorConnected ? 'bg-emerald-400' : 'bg-slate-600')} />
+                Agent &middot; Trust {trustLevel}
+                {activeSkill && <span className="text-violet-400">&middot; {activeSkill}</span>}
+              </button>
+              <div className="absolute top-full right-0 mt-2 w-64 rounded-lg border border-slate-700 bg-slate-800 shadow-2xl p-3 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
+                <div className="text-xs font-semibold text-slate-200 mb-2">Trust Levels</div>
+                <div className="space-y-1.5 text-xs">
+                  {([
+                    [0, 'Observe', 'agent watches only'],
+                    [1, 'Confirm', 'you approve each action'],
+                    [2, 'Batch', 'agent proposes fixes for review'],
+                    [3, 'Bounded', 'auto-fixes within guardrails'],
+                    [4, 'Autonomous', 'agent acts independently'],
+                  ] as const).map(([level, label, hint]) => (
+                    <div key={level} className={cn('flex items-start gap-2', level === trustLevel ? 'text-blue-400' : 'text-slate-400')}>
+                      <span className="font-mono font-bold w-4 shrink-0">{level}</span>
+                      <span>{label} — {hint}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
             <button
               onClick={handleScanNow}
               disabled={!monitorConnected || scanning}

@@ -505,7 +505,12 @@ export function ReportTab({ nodes, allPods, deployments, pvcs, operators, go }: 
     if (outOfSync.length > 0) {
       items.push({ severity: 'warning', title: `${outOfSync.length} ArgoCD app${outOfSync.length > 1 ? 's' : ''} out of sync`, detail: outOfSync.map(a => a.metadata.name).slice(0, 3).join(', '), path: '/gitops', pathTitle: 'GitOps' });
     }
-    return items;
+    const seen = new Set<string>();
+    return items.filter((item) => {
+      if (seen.has(item.title)) return false;
+      seen.add(item.title);
+      return true;
+    });
   }, [degradedOperators, unhealthyNodes, criticalAlerts, failedPods, certsExpiringSoon7]);
 
   const pendingPods = useMemo(() => userPods.filter((p) => p.status?.phase === 'Pending'), [userPods]);

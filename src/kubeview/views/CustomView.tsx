@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
-import { Trash2, Plus, LayoutDashboard, Bot, Share2, Check, GripVertical, Pencil, Eye, RefreshCw, Settings2, Clock } from 'lucide-react';
+import { Trash2, Plus, LayoutDashboard, Bot, Share2, Check, GripVertical, Pencil, Eye, RefreshCw, Settings2, Clock, Inbox, X } from 'lucide-react';
+import { useNavigateTab } from '../hooks/useNavigateTab';
 import { ChartEditPopover } from '../components/agent/ChartEditPopover';
 import { useCustomViewStore } from '../store/customViewStore';
 import { useUIStore } from '../store/uiStore';
@@ -82,6 +83,7 @@ export default function CustomView() {
 
   // Update tab title to match view title
   const updateTab = useUIStore((s) => s.updateTab);
+  const go = useNavigateTab();
   useEffect(() => {
     if (view?.title) {
       const tabs = useUIStore.getState().tabs;
@@ -181,13 +183,35 @@ export default function CustomView() {
   );
 
   if (!view) {
+    const handleCloseTab = () => {
+      const tabs = useUIStore.getState().tabs;
+      const tab = tabs.find((t) => t.path === `/custom/${viewId}`);
+      if (tab) useUIStore.getState().closeTab(tab.id);
+      go('/inbox', 'Inbox');
+    };
     return (
       <div className="h-full flex items-center justify-center bg-slate-950">
-        <EmptyState
-          icon={<LayoutDashboard className="w-12 h-12 text-slate-600" />}
-          title="View not found"
-          description="This custom view may have been deleted."
-        />
+        <div className="text-center max-w-md">
+          <LayoutDashboard className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-200 text-sm font-medium">View not found</p>
+          <p className="text-slate-500 text-xs mt-2">This custom view may have been deleted.</p>
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <button
+              onClick={() => go('/inbox', 'Inbox')}
+              className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <Inbox className="w-4 h-4" />
+              Go to Inbox
+            </button>
+            <button
+              onClick={handleCloseTab}
+              className="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <X className="w-4 h-4" />
+              Close Tab
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
