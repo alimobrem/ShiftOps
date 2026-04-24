@@ -52,6 +52,7 @@ function showFindingToast(finding: Finding) {
   store.addToast({
     type: finding.severity === 'critical' ? 'error' : 'warning',
     title: finding.title,
+    tier: 'system',
     duration: 8000,
     action: {
       label: 'View in Inbox',
@@ -94,8 +95,6 @@ function subscribeToMonitorToasts() {
 // --- v2: Toast notifications for action reports ---
 
 let unsubscribeActionReports: (() => void) | null = null;
-const _recentFailureToasts = new Map<string, number>();
-const _FAILURE_TOAST_COOLDOWN = 300_000; // 5min dedup for repeated failures
 
 function subscribeToActionReportToasts() {
   const toastedActionIds = new Set(
@@ -113,25 +112,22 @@ function subscribeToActionReportToasts() {
         toastedActionIds.add(action.id);
         const store = useUIStore.getState();
         if (action.status === 'completed') {
-          const resource = action.findingId; // best available resource identifier
+          const resource = action.findingId;
           store.addToast({
             type: 'success',
+            tier: 'system',
             title: `Auto-fix: ${action.tool} completed on ${resource}`,
             detail: action.reasoning ?? '',
             duration: 10000,
           });
         } else if (action.status === 'failed') {
-          const failKey = `${action.tool}:${action.error ?? ''}`;
-          const lastShown = _recentFailureToasts.get(failKey) || 0;
-          if (Date.now() - lastShown > _FAILURE_TOAST_COOLDOWN) {
-            _recentFailureToasts.set(failKey, Date.now());
-            store.addToast({
-              type: 'error',
-              title: `Auto-fix failed: ${action.error ?? 'Unknown error'}`,
-              detail: `Tool: ${action.tool}`,
-              duration: 15000,
-            });
-          }
+          store.addToast({
+            type: 'error',
+            tier: 'system',
+            title: `Auto-fix failed: ${action.error ?? 'Unknown error'}`,
+            detail: `Tool: ${action.tool}`,
+            duration: 15000,
+          });
         }
       }
     }
@@ -201,6 +197,7 @@ async function poll() {
       const store = useUIStore.getState();
       store.addToast({
         type: 'warning',
+        tier: 'background',
         title: 'AI Insight',
         detail: trimmed,
         duration: 15000,

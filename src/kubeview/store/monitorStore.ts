@@ -244,6 +244,7 @@ export const useMonitorStore = create<MonitorState>()(
               if (resolution.resolvedBy === 'auto-fix') {
                 useUIStore.getState().addToast({
                   type: 'success',
+                  tier: 'system',
                   title: `${resolution.title || 'Issue resolved'}`,
                   detail: 'Auto-fixed',
                 });
@@ -302,6 +303,7 @@ export const useMonitorStore = create<MonitorState>()(
               if (event.severity === 'critical') {
                 useUIStore.getState().addToast({
                   type: 'warning',
+                  tier: 'system',
                   title: event.title || 'New critical inbox item',
                 });
               }

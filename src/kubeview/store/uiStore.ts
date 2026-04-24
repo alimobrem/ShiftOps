@@ -17,6 +17,7 @@ export interface ToastData {
   title: string;
   detail?: string;
   duration?: number; // ms, 0 = persistent
+  tier?: 'action' | 'system' | 'background';
   action?: {
     label: string;
     onClick: () => void;
@@ -163,6 +164,8 @@ const TOAST_DURATIONS = {
 };
 
 const MAX_VISIBLE_TOASTS = 3;
+const SYSTEM_TOAST_COOLDOWN = 300_000; // 5min cooldown for system-tier toasts
+const _systemToastHistory = new Map<string, { count: number; lastShown: number }>();
 
 export const useUIStore = create<UIState>()(
   persist<
@@ -355,10 +358,33 @@ export const useUIStore = create<UIState>()(
       toasts: [],
 
       addToast: (toast) => {
+        const tier = toast.tier || 'action';
+
+        // Background tier — suppress entirely
+        if (tier === 'background') return '';
+
         // Deduplicate: skip if a toast with the same title and type already exists
         const existing = get().toasts;
         if (existing.some((t) => t.title === toast.title && t.type === toast.type)) {
           return existing.find((t) => t.title === toast.title && t.type === toast.type)!.id;
+        }
+
+        // System tier — cooldown-based throttling
+        if (tier === 'system') {
+          const key = `${toast.type}:${toast.title}`;
+          const entry = _systemToastHistory.get(key);
+          const now = Date.now();
+          if (entry && now - entry.lastShown < SYSTEM_TOAST_COOLDOWN) {
+            entry.count++;
+            return '';
+          }
+          _systemToastHistory.set(key, { count: 0, lastShown: now });
+          // Evict old entries
+          if (_systemToastHistory.size > 100) {
+            for (const [k, v] of _systemToastHistory) {
+              if (now - v.lastShown > SYSTEM_TOAST_COOLDOWN) _systemToastHistory.delete(k);
+            }
+          }
         }
 
         const id = `toast-${++toastIdCounter}`;
@@ -367,7 +393,6 @@ export const useUIStore = create<UIState>()(
         const newToast: ToastData = { ...toast, id };
         set((state) => {
           const updated = [...state.toasts, newToast];
-          // Cap visible toasts — drop oldest when over limit
           if (updated.length > MAX_VISIBLE_TOASTS) {
             return { toasts: updated.slice(-MAX_VISIBLE_TOASTS) };
           }

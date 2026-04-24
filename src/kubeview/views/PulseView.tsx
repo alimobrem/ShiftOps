@@ -168,6 +168,7 @@ export default function PulseView() {
       const f = useMonitorStore.getState().findings;
       useUIStore.getState().addToast({
         type: f.length > 0 ? 'warning' : 'success',
+        tier: 'system',
         title: 'Scan complete',
         detail: f.length > 0
           ? `Found ${f.length} issue${f.length !== 1 ? 's' : ''}.`

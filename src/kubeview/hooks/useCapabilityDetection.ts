@@ -88,6 +88,7 @@ export function useCapabilityDetection() {
 
       useUIStore.getState().addToast({
         type: 'success',
+        tier: 'background',
         title: `${parts.join(' and ')} available`,
         detail: 'Check the Toolbox for details',
         duration: 8000,
