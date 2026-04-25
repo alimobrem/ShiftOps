@@ -162,6 +162,9 @@ export interface InvestigationReport {
   alternatives_considered: string[];
 }
 
-export async function fetchInboxInvestigation(id: string): Promise<InvestigationReport> {
-  return _fetch(`${AGENT_BASE}/inbox/${id}/investigation`);
+export async function fetchInboxInvestigation(id: string): Promise<InvestigationReport | null> {
+  const res = await fetch(`${AGENT_BASE}/inbox/${id}/investigation`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Inbox API error: ${res.status} ${res.statusText}`);
+  return res.json();
 }
