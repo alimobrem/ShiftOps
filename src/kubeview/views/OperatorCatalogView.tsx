@@ -69,6 +69,8 @@ export default function OperatorCatalogView() {
   const [visibleCount, setVisibleCount] = useState(60);
   const [uninstalling, setUninstalling] = useState(false);
   const [showUninstallDialog, setShowUninstallDialog] = useState(false);
+  const [orphanedCrds, setOrphanedCrds] = useState<Array<{ name: string; kind: string }>>([]);
+  const [cleaningCrds, setCleaningCrds] = useState(false);
 
   // Fetch all package manifests
   const { data: packages = [], isLoading } = useQuery<PackageManifest[]>({
@@ -191,6 +193,9 @@ export default function OperatorCatalogView() {
     setUninstalling(true);
     setShowUninstallDialog(false);
 
+    // Capture owned CRDs before deleting CSV
+    const ownedCrds = installedCsv?.spec?.customresourcedefinitions?.owned || [];
+
     try {
       const subNs = selectedSub.metadata.namespace;
       const subName = selectedSub.metadata.name;
@@ -211,6 +216,22 @@ export default function OperatorCatalogView() {
       const displayName = selectedOp.status.channels?.[0]?.currentCSVDesc?.displayName || selectedOp.metadata.name;
       addToast({ type: 'success', title: 'Operator uninstalled', detail: `${displayName} has been removed` });
 
+      // Check which CRDs are still on the cluster
+      if (ownedCrds.length > 0) {
+        const stillPresent: Array<{ name: string; kind: string }> = [];
+        for (const crd of ownedCrds) {
+          try {
+            await k8sGet(`/apis/apiextensions.k8s.io/v1/customresourcedefinitions/${crd.name}`);
+            stillPresent.push({ name: crd.name, kind: crd.kind });
+          } catch {
+            // CRD already gone
+          }
+        }
+        if (stillPresent.length > 0) {
+          setOrphanedCrds(stillPresent);
+        }
+      }
+
       // Invalidate cache and clear selection
       queryClient.invalidateQueries({ queryKey: ['readiness', 'subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['operator-sub', selectedOp.metadata.name] });
@@ -220,6 +241,22 @@ export default function OperatorCatalogView() {
     }
 
     setUninstalling(false);
+  };
+
+  const handleCleanupCrds = async () => {
+    setCleaningCrds(true);
+    let cleaned = 0;
+    for (const crd of orphanedCrds) {
+      try {
+        await k8sDelete(`/apis/apiextensions.k8s.io/v1/customresourcedefinitions/${crd.name}`);
+        cleaned++;
+      } catch {
+        // best effort
+      }
+    }
+    addToast({ type: 'success', title: `Cleaned up ${cleaned} CRD${cleaned !== 1 ? 's' : ''}` });
+    setOrphanedCrds([]);
+    setCleaningCrds(false);
   };
 
   // Catalog source counts (must be before conditional return)
@@ -711,7 +748,7 @@ export default function OperatorCatalogView() {
           onClose={() => setShowUninstallDialog(false)}
           onConfirm={handleUninstall}
           title={`Uninstall ${desc?.displayName || selectedOp.metadata.name}?`}
-          description="This will remove the operator subscription and its ClusterServiceVersion. Custom Resource Definitions (CRDs) and existing custom resources will remain on the cluster."
+          description="This will remove the operator subscription and its ClusterServiceVersion. You'll be offered the option to clean up orphaned CRDs afterward."
           confirmLabel="Uninstall"
           variant="danger"
           loading={uninstalling}
@@ -730,6 +767,47 @@ export default function OperatorCatalogView() {
 
         {installProgressBanner}
         {whatNextPanel}
+
+        {/* Orphaned CRDs banner */}
+        {orphanedCrds.length > 0 && (
+          <div className="rounded-lg border border-amber-800 bg-amber-950/30 p-4">
+            <div className="flex items-start gap-3">
+              <Trash2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="text-sm font-medium text-amber-200">
+                  {orphanedCrds.length} orphaned CRD{orphanedCrds.length !== 1 ? 's' : ''} left behind
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  These Custom Resource Definitions were owned by the uninstalled operator.
+                  Removing them will also delete any existing custom resources of these types.
+                </p>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {orphanedCrds.map((crd) => (
+                    <span key={crd.name} className="text-xs font-mono px-2 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">
+                      {crd.kind}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 mt-3">
+                  <button
+                    onClick={handleCleanupCrds}
+                    disabled={cleaningCrds}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-amber-600 hover:bg-amber-500 text-white rounded disabled:opacity-50"
+                  >
+                    {cleaningCrds ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    {cleaningCrds ? 'Cleaning...' : 'Delete CRDs'}
+                  </button>
+                  <button
+                    onClick={() => setOrphanedCrds([])}
+                    className="text-xs text-slate-500 hover:text-slate-300"
+                  >
+                    Keep them
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Search + filters */}
         <div className="flex items-center gap-3 flex-wrap">
