@@ -11,7 +11,8 @@
 
 import { test, expect, type Page } from 'playwright/test';
 
-const AGENT_BASE = '/api/agent';
+const BASE_URL = process.env.PULSE_URL || 'http://localhost:9000';
+const AGENT_BASE = `${BASE_URL}/api/agent`;
 const AGENT_TOKEN = process.env.E2E_AGENT_TOKEN || 'e2e-test-token';
 
 function withToken(url: string): string {
@@ -19,16 +20,21 @@ function withToken(url: string): string {
   return `${url}${sep}token=${AGENT_TOKEN}`;
 }
 
+const API_HEADERS = { 'X-Forwarded-User': 'e2e-test-user' };
+
 async function createView(page: Page, title: string, layout: any[]) {
   const resp = await page.request.post(withToken(`${AGENT_BASE}/views`), {
     data: { title, layout, description: 'Visual regression test view' },
+    headers: API_HEADERS,
   });
   const body = await resp.json();
-  return body.view_id as string;
+  return (body.view_id || body.id) as string;
 }
 
 async function deleteView(page: Page, viewId: string) {
-  await page.request.delete(withToken(`${AGENT_BASE}/views/${viewId}`));
+  await page.request.delete(withToken(`${AGENT_BASE}/views/${viewId}`), {
+    headers: API_HEADERS,
+  });
 }
 
 test.describe('Visual Regression', () => {
@@ -81,11 +87,8 @@ test.describe('Visual Regression', () => {
       },
     ]);
 
-    await page.goto(`/views/${viewId}`);
-    await page.waitForSelector('[data-testid="view-content"], [data-testid="widget-grid"], .view-layout', {
-      timeout: 10_000,
-    });
-    await page.waitForTimeout(500);
+    await page.goto(`${BASE_URL}/custom/${viewId}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(3000);
 
     await expect(page).toHaveScreenshot('dashboard-mixed-widgets.png', {
       maxDiffPixelRatio: 0.02,
@@ -94,9 +97,8 @@ test.describe('Visual Regression', () => {
   });
 
   test('empty state — no views', async ({ page }) => {
-    await page.goto('/views');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(300);
+    await page.goto(`${BASE_URL}/views`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(3000);
 
     await expect(page).toHaveScreenshot('views-empty-state.png', {
       maxDiffPixelRatio: 0.02,
@@ -122,11 +124,8 @@ test.describe('Visual Regression', () => {
       },
     ]);
 
-    await page.goto(`/views/${viewId}`);
-    await page.waitForSelector('[data-testid="view-content"], [data-testid="widget-grid"], .view-layout', {
-      timeout: 10_000,
-    });
-    await page.waitForTimeout(500);
+    await page.goto(`${BASE_URL}/custom/${viewId}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(3000);
 
     await expect(page).toHaveScreenshot('table-sorted-by-restarts.png', {
       maxDiffPixelRatio: 0.02,
@@ -147,11 +146,8 @@ test.describe('Visual Regression', () => {
       },
     ]);
 
-    await page.goto(`/views/${viewId}`);
-    await page.waitForSelector('[data-testid="view-content"], [data-testid="widget-grid"], .view-layout', {
-      timeout: 10_000,
-    });
-    await page.waitForTimeout(500);
+    await page.goto(`${BASE_URL}/custom/${viewId}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(3000);
 
     await expect(page).toHaveScreenshot('info-cards-severity.png', {
       maxDiffPixelRatio: 0.02,
