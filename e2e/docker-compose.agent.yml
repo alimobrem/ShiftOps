@@ -21,7 +21,7 @@ services:
 
   agent:
     build:
-      context: ../../pulse-agent
+      context: ${AGENT_REPO_PATH:-../../pulse-agent}
       dockerfile: Dockerfile
     environment:
       PULSE_AGENT_HOST: "0.0.0.0"

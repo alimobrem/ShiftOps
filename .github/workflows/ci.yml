@@ -156,6 +156,8 @@ jobs:
       - name: Start mock agent stack
         run: docker compose -f e2e/docker-compose.agent.yml up -d --build --wait
         timeout-minutes: 5
+        env:
+          AGENT_REPO_PATH: ${{ github.workspace }}/pulse-agent
 
       - name: Run E2E tests
         env:
