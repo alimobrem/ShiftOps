@@ -31,7 +31,7 @@ export function InsightsRail({ className, onNavigate }: { className?: string; on
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Issues</h3>
           {counts.total > 0 && (
             <button
-              onClick={() => onNavigate?.('/incidents', 'Incidents')}
+              onClick={() => onNavigate?.('/inbox', 'Inbox')}
               className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors"
             >
               View all ({counts.total})
@@ -57,7 +57,7 @@ export function InsightsRail({ className, onNavigate }: { className?: string; on
               return (
                 <button
                   key={inc.id}
-                  onClick={() => onNavigate?.('/incidents', 'Incidents')}
+                  onClick={() => onNavigate?.('/inbox', 'Inbox')}
                   className={cn(
                     'w-full text-left rounded-lg border bg-slate-900 p-2.5 transition-colors cursor-pointer',
                     cfg.borderClass,

@@ -50,7 +50,7 @@ export function DashboardMode() {
             'flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50',
             status.findingsCount > 0 && 'cursor-pointer hover:bg-slate-800 transition-colors',
           )}
-          onClick={status.findingsCount > 0 ? () => navigate('/incidents') : undefined}
+          onClick={status.findingsCount > 0 ? () => navigate('/inbox') : undefined}
           role={status.findingsCount > 0 ? 'button' : undefined}
         >
           <StatusIcon className={cn(

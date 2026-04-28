@@ -193,7 +193,7 @@ export default function PulseView() {
           incidentCounts={incidentCounts}
           lastScanTime={lastScanTime}
           monitorConnected={monitorConnected}
-          onInvestigate={() => go('/incidents', 'Incidents')}
+          onInvestigate={() => go('/inbox', 'Inbox')}
         />
 
         {/* ── Header with inline stats ── */}

@@ -465,7 +465,7 @@ export function DockAgentPanel() {
 
       {/* Monitor status bar */}
       <button
-        onClick={() => go('/incidents', 'Incidents')}
+        onClick={() => go('/inbox', 'Inbox')}
         className={cn(
           'flex items-center gap-1.5 px-3 py-1 text-xs border-b border-slate-800 transition-colors hover:bg-slate-800/50 w-full text-left',
           monitorConnected

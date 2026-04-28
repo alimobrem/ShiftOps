@@ -61,7 +61,7 @@ export function OvernightActivityFeed({ className }: { className?: string }) {
         <Moon className="h-4 w-4 text-indigo-400" />
         <h3 className="text-sm font-semibold text-slate-100">Overnight Activity</h3>
         <button
-          onClick={() => go('/incidents', 'Incidents')}
+          onClick={() => go('/inbox', 'Inbox')}
           className="ml-auto text-[11px] text-violet-400 hover:text-violet-300 transition-colors"
         >
           {items.length} actions
@@ -75,7 +75,7 @@ export function OvernightActivityFeed({ className }: { className?: string }) {
           return (
             <button
               key={item.id}
-              onClick={() => go('/incidents', 'Incidents')}
+              onClick={() => go('/inbox', 'Inbox')}
               className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-slate-800/70 transition-colors text-left"
             >
               {cfg.icon}
