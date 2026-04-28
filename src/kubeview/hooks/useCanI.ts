@@ -47,13 +47,9 @@ async function checkAccess(spec: AccessReviewSpec): Promise<boolean> {
   }
 }
 
-/**
- * Check if the current user can perform an action.
- * Returns { allowed, isLoading }.
- * Fails open (returns allowed=true) if the API call fails.
- */
 export function useCanI(verb: string, group: string, resource: string, namespace?: string) {
-  const { data: allowed = true, isLoading } = useQuery({
+  const failOpen = !WRITE_VERBS.has(verb);
+  const { data: allowed = failOpen, isLoading } = useQuery({
     queryKey: ['rbac', 'can-i', verb, group, resource, namespace],
     queryFn: () => checkAccess({ verb, group, resource, namespace }),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
