@@ -28,7 +28,7 @@ vi.mock('../../engine/agentClient', () => ({
 const connectAndSendMock = vi.fn();
 vi.mock('../../store/agentStore', () => ({
   useAgentStore: Object.assign(
-    function useAgentStore(sel: any) { return sel({}); },
+    function useAgentStore(sel: any) { return sel({ connected: true }); },
     { getState: () => ({ connectAndSend: connectAndSendMock }) },
   ),
 }));

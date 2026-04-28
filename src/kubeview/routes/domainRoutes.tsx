@@ -1,5 +1,7 @@
 import { Navigate, Route, useParams } from 'react-router-dom';
 import React, { Suspense, lazy } from 'react';
+import { LoadingFallback } from '../components/LoadingFallback';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const StorageView = lazy(() => import('../views/StorageView'));
 const AdminView = lazy(() => import('../views/AdminView'));
@@ -28,16 +30,13 @@ const TimelineView = lazy(() => import('../views/TimelineView'));
 const SloView = lazy(() => import('../views/SloView'));
 const TopologyView = lazy(() => import('../views/TopologyView'));
 
-function LoadingFallback() {
-  return (
-    <div className="flex items-center justify-center h-full">
-      <div className="kv-skeleton w-8 h-8 rounded-full" />
-    </div>
-  );
-}
 
-function Lazy({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<LoadingFallback />}>{children}</Suspense>;
+function Lazy({ children, fallbackTitle }: { children: React.ReactNode; fallbackTitle?: string }) {
+  return (
+    <ErrorBoundary fallbackTitle={fallbackTitle}>
+      <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+    </ErrorBoundary>
+  );
 }
 
 function FleetResourceRoute() {
@@ -54,43 +53,43 @@ function DynamicViewRedirectRoute() {
 export function domainRoutes() {
   return (
     <>
-      <Route path="workloads" element={<Lazy><WorkloadsView /></Lazy>} />
-      <Route path="networking" element={<Lazy><NetworkingView /></Lazy>} />
-      <Route path="compute" element={<Lazy><ComputeView /></Lazy>} />
-      <Route path="storage" element={<Lazy><StorageView /></Lazy>} />
+      <Route path="workloads" element={<Lazy fallbackTitle="Workloads"><WorkloadsView /></Lazy>} />
+      <Route path="networking" element={<Lazy fallbackTitle="Networking"><NetworkingView /></Lazy>} />
+      <Route path="compute" element={<Lazy fallbackTitle="Compute"><ComputeView /></Lazy>} />
+      <Route path="storage" element={<Lazy fallbackTitle="Storage"><StorageView /></Lazy>} />
       <Route path="builds" element={<Navigate to="/workloads?tab=builds" replace />} />
       <Route path="crds" element={<Navigate to="/admin?tab=crds" replace />} />
-      <Route path="security" element={<Lazy><SecurityView /></Lazy>} />
+      <Route path="security" element={<Lazy fallbackTitle="Security"><SecurityView /></Lazy>} />
       <Route path="access-control" element={<Navigate to="/identity?tab=rbac" replace />} />
       <Route path="users" element={<Navigate to="/identity?tab=users" replace />} />
-      <Route path="identity" element={<Lazy><IdentityView /></Lazy>} />
-      <Route path="admin" element={<Lazy><AdminView /></Lazy>} />
-      <Route path="alerts" element={<Lazy><AlertsView /></Lazy>} />
-      <Route path="gitops" element={<Lazy><ArgoCDView /></Lazy>} />
-      <Route path="fleet" element={<Lazy><FleetView /></Lazy>} />
-      <Route path="fleet/compare" element={<Lazy><CompareView /></Lazy>} />
-      <Route path="fleet/compliance" element={<Lazy><ComplianceView /></Lazy>} />
-      <Route path="fleet/workloads" element={<Lazy><FleetWorkloadsView /></Lazy>} />
-      <Route path="fleet/alerts" element={<Lazy><FleetAlertsView /></Lazy>} />
-      <Route path="fleet/r/:gvr" element={<Lazy><FleetResourceRoute /></Lazy>} />
-      <Route path="fleet/drift" element={<Lazy><DriftDetectorView /></Lazy>} />
-      <Route path="inbox" element={<Lazy><InboxPage /></Lazy>} />
+      <Route path="identity" element={<Lazy fallbackTitle="Identity"><IdentityView /></Lazy>} />
+      <Route path="admin" element={<Lazy fallbackTitle="Admin"><AdminView /></Lazy>} />
+      <Route path="alerts" element={<Lazy fallbackTitle="Alerts"><AlertsView /></Lazy>} />
+      <Route path="gitops" element={<Lazy fallbackTitle="GitOps"><ArgoCDView /></Lazy>} />
+      <Route path="fleet" element={<Lazy fallbackTitle="Fleet"><FleetView /></Lazy>} />
+      <Route path="fleet/compare" element={<Lazy fallbackTitle="Fleet Compare"><CompareView /></Lazy>} />
+      <Route path="fleet/compliance" element={<Lazy fallbackTitle="Fleet Compliance"><ComplianceView /></Lazy>} />
+      <Route path="fleet/workloads" element={<Lazy fallbackTitle="Fleet Workloads"><FleetWorkloadsView /></Lazy>} />
+      <Route path="fleet/alerts" element={<Lazy fallbackTitle="Fleet Alerts"><FleetAlertsView /></Lazy>} />
+      <Route path="fleet/r/:gvr" element={<Lazy fallbackTitle="Fleet Resource"><FleetResourceRoute /></Lazy>} />
+      <Route path="fleet/drift" element={<Lazy fallbackTitle="Drift Detector"><DriftDetectorView /></Lazy>} />
+      <Route path="inbox" element={<Lazy fallbackTitle="Inbox"><InboxPage /></Lazy>} />
       <Route path="monitor" element={<Navigate to="/inbox" replace />} />
       <Route path="dynamic/:id" element={<DynamicViewRedirectRoute />} />
       <Route path="incidents" element={<Navigate to="/inbox" replace />} />
-      <Route path="readiness" element={<Lazy><OnboardingView /></Lazy>} />
+      <Route path="readiness" element={<Lazy fallbackTitle="Readiness"><OnboardingView /></Lazy>} />
       <Route path="onboarding" element={<Navigate to="/readiness" replace />} />
       <Route path="reviews" element={<Navigate to="/inbox?preset=needs_approval" replace />} />
       <Route path="memory" element={<Navigate to="/agent?tab=memory" replace />} />
-      <Route path="views" element={<Lazy><ViewsManagement /></Lazy>} />
-      <Route path="agent" element={<Lazy><PulseAgentView /></Lazy>} />
+      <Route path="views" element={<Lazy fallbackTitle="Views"><ViewsManagement /></Lazy>} />
+      <Route path="agent" element={<Lazy fallbackTitle="Agent"><PulseAgentView /></Lazy>} />
       <Route path="toolbox" element={<Navigate to="/agent?tab=tools" replace />} />
-      <Route path="slo" element={<Lazy><SloView /></Lazy>} />
-      <Route path="topology" element={<Lazy><TopologyView /></Lazy>} />
-      <Route path="operators" element={<Lazy><OperatorCatalogView /></Lazy>} />
+      <Route path="slo" element={<Lazy fallbackTitle="SLO"><SloView /></Lazy>} />
+      <Route path="topology" element={<Lazy fallbackTitle="Topology"><TopologyView /></Lazy>} />
+      <Route path="operators" element={<Lazy fallbackTitle="Operators"><OperatorCatalogView /></Lazy>} />
       <Route path="operatorhub" element={<Navigate to="/operators" replace />} />
-      <Route path="project/:namespace" element={<Lazy><ProjectDashboard /></Lazy>} />
-      <Route path="timeline" element={<Lazy><TimelineView /></Lazy>} />
+      <Route path="project/:namespace" element={<Lazy fallbackTitle="Project"><ProjectDashboard /></Lazy>} />
+      <Route path="timeline" element={<Lazy fallbackTitle="Timeline"><TimelineView /></Lazy>} />
       <Route path="tools" element={<Navigate to="/agent?tab=tools" replace />} />
       <Route path="extensions" element={<Navigate to="/agent?tab=skills" replace />} />
     </>

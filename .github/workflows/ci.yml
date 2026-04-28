@@ -37,9 +37,6 @@ jobs:
       - name: Type check
         run: pnpm run type-check
 
-      - name: Strict type check
-        run: pnpm run type-check:strict
-
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest

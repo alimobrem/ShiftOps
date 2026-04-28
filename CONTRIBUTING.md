@@ -5,8 +5,8 @@
 ### TypeScript (OpenshiftPulse)
 - **Linter**: ESLint with TypeScript + React + React Hooks plugins
 - **Formatter**: Prettier (semi, single quotes, trailing commas, 100 char width)
-- **Type checking**: `tsc --noEmit` (strict mode available via `tsconfig.strict.json`)
-- Run: `pnpm verify` (type-check + strict + lint + test + build)
+- **Type checking**: `tsc --noEmit` (strict mode enabled in base `tsconfig.json`)
+- Run: `pnpm verify` (type-check + lint + test + build)
 
 ### Python (pulse-agent)
 - **Linter**: Ruff (pycodestyle, pyflakes, isort, bugbear, simplify)

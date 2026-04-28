@@ -80,7 +80,7 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
         timestamp: Date.now(),
         components: action.components.length > 0 ? action.components : undefined,
       };
-      const messages = [...state.messages, assistantMsg].slice(-(50));
+      const messages = [...state.messages, assistantMsg];
       return { ...state, messages, streaming: false, streamingText: '', thinkingText: '', activeTools: [], streamingComponents: [], pendingConfirm: null };
     }
     case 'error':
@@ -111,7 +111,7 @@ const initialState: SessionState = {
  * Used by InlineAgent and AmbientInsight for isolated conversations.
  */
 export function useAgentSession(options: UseAgentSessionOptions = {}): AgentSession {
-  const { mode = 'sre', autoConnect = true, context } = options;
+  const { mode = 'sre', autoConnect = true, context, maxMessages = 50 } = options;
   const [state, dispatch] = useReducer(sessionReducer, initialState);
   const clientRef = useRef<AgentClient | null>(null);
 
@@ -230,8 +230,13 @@ export function useAgentSession(options: UseAgentSessionOptions = {}): AgentSess
     clientRef.current?.disconnect();
   }, []);
 
+  const messages = maxMessages < state.messages.length
+    ? state.messages.slice(-maxMessages)
+    : state.messages;
+
   return {
     ...state,
+    messages,
     send,
     confirm,
     clear,

@@ -5,10 +5,7 @@ import PulseView from './views/PulseView';
 
 import CustomView from './views/CustomView';
 import ClaimView from './views/ClaimView';
-import MemoryView from './views/MemoryView';
-import ProjectDashboard from './views/ProjectDashboard';
 import { resourceRoutes, domainRoutes, redirectRoutes } from './routes';
-import './styles/index.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,11 +34,9 @@ export default function OpenshiftPulseApp() {
             {/* Resource routes (list, detail, yaml, logs, metrics, create, deps, investigate) */}
             {resourceRoutes()}
 
-            {/* Custom views and memory */}
+            {/* Custom views */}
             <Route path="custom/:viewId" element={<CustomView />} />
             <Route path="share/:shareToken" element={<ClaimView />} />
-            <Route path="memory" element={<MemoryView />} />
-            <Route path="project/:namespace" element={<ProjectDashboard />} />
 
             {/* Domain views (workloads, networking, compute, storage, etc.) */}
             {domainRoutes()}

@@ -1,0 +1,57 @@
+import React from 'react';
+import type { K8sResource } from '../../engine/renderers';
+import type { Event } from '../../engine/types';
+import { PodSummary } from './PodSummary';
+import { IncidentContext } from './IncidentContext';
+import { LabelsSection, AnnotationsSection, DetailSection } from './MetadataSections';
+import type { RelatedResource } from './types';
+
+interface PodDetailLayoutProps {
+  resource: K8sResource;
+  namespace: string;
+  events: Event[];
+  actionLoading: string | null;
+  relatedResources: RelatedResource[];
+  onAddLabel: () => void;
+  go: (path: string, title: string) => void;
+}
+
+export function PodDetailLayout({
+  resource,
+  namespace,
+  events,
+  actionLoading,
+  relatedResources,
+  onAddLabel,
+  go,
+}: PodDetailLayoutProps) {
+  return (
+    <div className="space-y-6">
+      <PodSummary resource={resource} go={go} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <IncidentContext resource={resource} managedPods={[]} events={events} namespace={namespace} go={go} />
+        </div>
+        <div className="space-y-6">
+          <LabelsSection resource={resource} onAddLabel={onAddLabel} actionLoading={actionLoading} />
+          <AnnotationsSection resource={resource} />
+          {/* Owner */}
+          {relatedResources.length > 0 && (
+            <DetailSection title="Owner">
+              <div className="space-y-1">
+                {relatedResources.map((related, idx) => (
+                  <button key={idx} onClick={() => go(related.path, related.name)}
+                    className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300">
+                    <span className="text-xs text-slate-500">{related.type}</span>
+                    {related.name}
+                  </button>
+                ))}
+              </div>
+            </DetailSection>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

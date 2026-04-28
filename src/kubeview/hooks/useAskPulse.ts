@@ -16,8 +16,7 @@ interface UseAskPulseResult {
 
 export function useAskPulse(query: string): UseAskPulseResult {
   const [response, setResponse] = useState<AskPulseResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [agentAvailable, setAgentAvailable] = useState(true);
+  const agentAvailable = useAgentStore(s => s.connected);
 
   const isNaturalLanguage = useMemo(() => detectNaturalLanguage(query), [query]);
 
@@ -26,17 +25,14 @@ export function useAskPulse(query: string): UseAskPulseResult {
   useEffect(() => {
     if (!isNaturalLanguage || !query.trim()) {
       setResponse(null);
-      setIsLoading(false);
       return;
     }
-    // Show a helpful response directing the user to the agent
     setResponse({
       text: `Press **Enter** or click **Open in Agent** to ask the AI about: "${query.slice(0, 80)}"`,
       suggestions: [],
       actions: [],
       fromAgent: false,
     });
-    setIsLoading(false);
   }, [query, isNaturalLanguage]);
 
   const openInAgent = useCallback(() => {
@@ -47,5 +43,5 @@ export function useAskPulse(query: string): UseAskPulseResult {
     useUIStore.getState().closeCommandPalette();
   }, [query]);
 
-  return { isNaturalLanguage, response, isLoading, agentAvailable, openInAgent };
+  return { isNaturalLanguage, response, isLoading: false, agentAvailable, openInAgent };
 }

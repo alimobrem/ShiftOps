@@ -90,7 +90,7 @@ function notifyPlanStore(action: 'complete' | 'fail') {
   import('./actionPlanStore').then(({ useActionPlanStore }) => {
     const ps = useActionPlanStore.getState();
     if (ps.execution?.awaitingCompletion) {
-      action === 'complete' ? ps.completeActiveStep() : ps.failActiveStep();
+      if (action === 'complete') { ps.completeActiveStep(); } else { ps.failActiveStep(); }
     }
   }).catch(() => {});
 }

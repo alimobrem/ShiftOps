@@ -2,6 +2,8 @@ import { Route, Navigate, useParams } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import TableView from '../views/TableView';
 import DetailView from '../views/DetailView';
+import { LoadingFallback } from '../components/LoadingFallback';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const YamlEditorView = lazy(() => import('../views/YamlEditorView'));
 const LogsView = lazy(() => import('../views/LogsView'));
@@ -9,14 +11,6 @@ const MetricsView = lazy(() => import('../views/MetricsView'));
 const CreateView = lazy(() => import('../views/CreateView'));
 const DependencyView = lazy(() => import('../views/DependencyView'));
 const NodeLogsView = lazy(() => import('../views/NodeLogsView'));
-
-function LoadingFallback() {
-  return (
-    <div className="flex items-center justify-center h-full">
-      <div className="kv-skeleton w-8 h-8 rounded-full" />
-    </div>
-  );
-}
 
 function parseGvr(gvr: string) {
   return gvr.replace(/~/g, '/');
@@ -38,9 +32,11 @@ function YamlRoute() {
   const { gvr, namespace, name } = useParams<{ gvr: string; namespace?: string; name: string }>();
   if (!gvr || !name) return <Navigate to="/pulse" replace />;
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <YamlEditorView gvrKey={parseGvr(gvr)} namespace={namespace} name={name} />
-    </Suspense>
+    <ErrorBoundary fallbackTitle="YAML Editor">
+      <Suspense fallback={<LoadingFallback />}>
+        <YamlEditorView gvrKey={parseGvr(gvr)} namespace={namespace} name={name} />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -48,9 +44,11 @@ function LogsRoute() {
   const { namespace, name } = useParams<{ namespace: string; name: string }>();
   if (!namespace || !name) return <Navigate to="/pulse" replace />;
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <LogsView namespace={namespace} podName={name} />
-    </Suspense>
+    <ErrorBoundary fallbackTitle="Logs">
+      <Suspense fallback={<LoadingFallback />}>
+        <LogsView namespace={namespace} podName={name} />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -58,9 +56,11 @@ function MetricsRoute() {
   const { gvr, namespace, name } = useParams<{ gvr: string; namespace?: string; name: string }>();
   if (!gvr || !name) return <Navigate to="/pulse" replace />;
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <MetricsView gvrKey={parseGvr(gvr)} namespace={namespace} name={name} />
-    </Suspense>
+    <ErrorBoundary fallbackTitle="Metrics">
+      <Suspense fallback={<LoadingFallback />}>
+        <MetricsView gvrKey={parseGvr(gvr)} namespace={namespace} name={name} />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -68,9 +68,11 @@ function CreateRoute() {
   const { gvr } = useParams<{ gvr: string }>();
   if (!gvr) return <Navigate to="/pulse" replace />;
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <CreateView gvrKey={parseGvr(gvr)} />
-    </Suspense>
+    <ErrorBoundary fallbackTitle="Create Resource">
+      <Suspense fallback={<LoadingFallback />}>
+        <CreateView gvrKey={parseGvr(gvr)} />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -78,9 +80,11 @@ function DependencyRoute() {
   const { gvr, namespace, name } = useParams<{ gvr: string; namespace?: string; name: string }>();
   if (!gvr || !name) return <Navigate to="/pulse" replace />;
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <DependencyView gvrKey={parseGvr(gvr)} namespace={namespace} name={name} />
-    </Suspense>
+    <ErrorBoundary fallbackTitle="Dependencies">
+      <Suspense fallback={<LoadingFallback />}>
+        <DependencyView gvrKey={parseGvr(gvr)} namespace={namespace} name={name} />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -105,9 +109,11 @@ export function resourceRoutes() {
 
       {/* Node logs: /node-logs/:name */}
       <Route path="node-logs/:name" element={
-        <Suspense fallback={<LoadingFallback />}>
-          <NodeLogsView />
-        </Suspense>
+        <ErrorBoundary fallbackTitle="Node Logs">
+          <Suspense fallback={<LoadingFallback />}>
+            <NodeLogsView />
+          </Suspense>
+        </ErrorBoundary>
       } />
 
       {/* Metrics: /metrics/apps~v1~deployments/:namespace/:name */}

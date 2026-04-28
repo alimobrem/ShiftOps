@@ -66,6 +66,10 @@ agent:
   wsTokenSecret: ""  # e.g. pulse-agent-openshift-sre-agent-ws-token
   wsTokenSecretKey: "token"
 
+# Network policy — restricts ingress to OAuth proxy/route and egress to agent + K8s API
+networkPolicy:
+  enabled: true
+
 # Quota for the namespace — sized for UI (2 pods) + Agent (1 pod) + PostgreSQL (1 pod) + builds
 quota:
   enabled: true
