@@ -297,7 +297,6 @@ export const useMonitorStore = create<MonitorState>()(
 
             case 'inbox_item_created': {
               import('./inboxStore').then(({ useInboxStore }) => {
-                useInboxStore.getState().refreshStats();
                 useInboxStore.getState().refresh();
               });
               if (event.severity === 'critical') {
@@ -314,7 +313,6 @@ export const useMonitorStore = create<MonitorState>()(
             case 'inbox_item_claimed':
             case 'inbox_item_resolved': {
               import('./inboxStore').then(({ useInboxStore }) => {
-                useInboxStore.getState().refreshStats();
                 useInboxStore.getState().refresh();
               });
               break;

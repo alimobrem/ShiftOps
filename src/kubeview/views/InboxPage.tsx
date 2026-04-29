@@ -64,11 +64,12 @@ export function InboxPage() {
       .catch(() => {
         if (!cancelled) {
           setDrawerItem(null);
+          setSelectedItem(null);
           useUIStore.getState().addToast({ type: 'error', title: 'Item not found — it may have been archived or deleted' });
         }
       });
     return () => { cancelled = true; };
-  }, [selectedItemId, items]);
+  }, [selectedItemId]);
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedItem(null);

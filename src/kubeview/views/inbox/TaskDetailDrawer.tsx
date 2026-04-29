@@ -273,8 +273,8 @@ function InvestigationCard({ report }: { report: InvestigationReport }) {
       </div>
       <div className="w-full bg-slate-800 rounded-full h-1.5">
         <div
-          className={`bg-blue-500 h-1.5 rounded-full transition-all w-[${confidencePct}%]`}
-          /* TODO: arbitrary width avoids inline style per "never use inline css" rule; critical for prod consistency */
+          className="bg-blue-500 h-1.5 rounded-full transition-all"
+          style={{ width: `${confidencePct}%` }}
         />
       </div>
       {report.summary && (
