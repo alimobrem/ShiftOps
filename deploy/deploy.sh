@@ -447,7 +447,7 @@ fi
 
 # Warn if upgrading and write ops were previously enabled but env var not set
 if [[ -z "${AGENT_ALLOW_WRITES:-}" ]]; then
-  EXISTING_WRITES=$(helm get values "$RELEASE_NAME" -n "$NAMESPACE" -o json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('agent',{}).get('rbac',{}).get('allowWriteOperations',''))" 2>/dev/null || echo "")
+  EXISTING_WRITES=$(helm get values "$RELEASE" -n "$NAMESPACE" -o json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('agent',{}).get('rbac',{}).get('allowWriteOperations',''))" 2>/dev/null || echo "")
   if [[ "$EXISTING_WRITES" == "True" || "$EXISTING_WRITES" == "true" ]]; then
     echo ""
     echo -e "\033[1;33mWARNING: Write operations will be DISABLED on this upgrade.\033[0m"
