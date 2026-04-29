@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Inbox } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/primitives/Tabs';
 import { EmptyState } from '../components/primitives/EmptyState';
@@ -17,6 +18,8 @@ import { fetchInboxItem } from '../engine/inboxApi';
 export function InboxPage() {
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [drawerItem, setDrawerItem] = useState<InboxItemType | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const didRestoreRef = useRef(false);
 
   const items = useInboxStore((s) => s.items);
   const groups = useInboxStore((s) => s.groups);
@@ -31,6 +34,24 @@ export function InboxPage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (didRestoreRef.current) return;
+    const taskId = searchParams.get('task');
+    if (taskId) {
+      didRestoreRef.current = true;
+      setSelectedItem(taskId);
+    }
+  }, [searchParams, setSelectedItem]);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (selectedItemId) next.set('task', selectedItemId);
+    else next.delete('task');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [selectedItemId, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!selectedItemId) {

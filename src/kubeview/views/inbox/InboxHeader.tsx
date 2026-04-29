@@ -45,7 +45,21 @@ export function InboxHeader({
             </Badge>
           )}
           {totalOpen > 0 && (
-            <span className="text-xs text-slate-500">{totalOpen} open</span>
+            <span className="text-xs text-slate-500">
+              {totalOpen} open
+              {(stats.unique_issues ?? 0) > 0 && (stats.unique_issues ?? 0) < totalOpen && (
+                <> ({stats.unique_issues} unique)</>
+              )}
+            </span>
+          )}
+          {(stats.agent_reviewing ?? 0) > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-violet-400">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
+              </span>
+              Agent processing {stats.agent_reviewing} item{stats.agent_reviewing !== 1 ? 's' : ''}...
+            </div>
           )}
           {hasSeverityData && (
             <div className="flex items-center gap-1.5 ml-2">
