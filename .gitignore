@@ -14,3 +14,4 @@ package-lock.json
 .superpowers/
 playwright-report/
 test-results/
+.pnpm-store/

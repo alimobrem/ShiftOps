@@ -37,10 +37,14 @@ export function InboxPage() {
 
   useEffect(() => {
     if (didRestoreRef.current) return;
+    didRestoreRef.current = true;
     const taskId = searchParams.get('task');
     if (taskId) {
-      didRestoreRef.current = true;
       setSelectedItem(taskId);
+    }
+    const preset = searchParams.get('preset');
+    if (preset) {
+      useInboxStore.getState().setPreset(preset as 'needs_attention' | 'agent_cleared' | 'my_items' | 'archived' | 'all');
     }
   }, [searchParams, setSelectedItem]);
 
